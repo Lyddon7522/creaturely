@@ -7,8 +7,8 @@ Creaturely uses two GitHub Actions workflows:
   Android debug build, and an unsigned iOS simulator build on pushes and pull
   requests.
 - [Creaturely Release](../.github/workflows/release.yml) runs release checks,
-  builds signed Android and iOS artifacts, stores them for 30 days as workflow
-  artifacts, and creates or refreshes a draft GitHub Release.
+  builds signed Android and iOS artifacts, stores them for 90 days as workflow
+  artifacts, and creates or refreshes a durable draft GitHub Release.
 
 The release workflow is continuous delivery of a reviewed release candidate.
 It does not automatically submit an app for public store review. The first
@@ -81,23 +81,34 @@ An App Store/TestFlight IPA requires an Apple Developer team, an Apple
 Distribution certificate with its private key, and an App Store provisioning
 profile whose entitlements match Creaturely.
 
-1. Register `com.vector42.creaturely` in the Apple Developer portal.
-2. Enable the required iCloud/CloudKit capability and use the container
+1. Finish the local Xcode setup, then confirm Flutter can use it:
+
+   ```sh
+   sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+   sudo xcodebuild -runFirstLaunch
+   flutter doctor -v
+   ```
+
+   Opening Xcode once also presents the license and additional-component
+   prompts that must be completed before command-line builds work.
+
+2. Register `com.vector42.creaturely` in the Apple Developer portal.
+3. Enable the required iCloud/CloudKit capability and use the container
    declared in [`Runner.entitlements`](../ios/Runner/Runner.entitlements).
-3. Create the Creaturely app record in App Store Connect.
-4. Create an Apple Distribution certificate. Export the certificate and
+4. Create the Creaturely app record in App Store Connect.
+5. Create an Apple Distribution certificate. Export the certificate and
    private key from Keychain Access as a password-protected `.p12`.
-5. Create and download an App Store provisioning profile for
+6. Create and download an App Store provisioning profile for
    `com.vector42.creaturely`. The profile must include Creaturely's
    capabilities.
-6. Convert both files to single-line Base64 values:
+7. Convert both files to single-line Base64 values:
 
    ```sh
    openssl base64 -A -in CreaturelyDistribution.p12
    openssl base64 -A -in CreaturelyAppStore.mobileprovision
    ```
 
-7. Add these `mobile-release` environment secrets:
+8. Add these `mobile-release` environment secrets:
 
    | Secret | Value |
    | --- | --- |
@@ -141,13 +152,60 @@ Successful runs contain:
 | --- | --- |
 | `creaturely-VERSION+BUILD.aab` | Google Play internal/closed/open/production tracks |
 | `creaturely-VERSION+BUILD.apk` | Direct installation for controlled Android QA |
+| `creaturely-VERSION+BUILD-android-mapping.txt` | Android R8 stack-trace deobfuscation |
+| `creaturely-VERSION+BUILD-android-native-symbols.zip` | Android native crash symbolication |
 | `creaturely-VERSION+BUILD.ipa` | Upload to App Store Connect/TestFlight |
 | `creaturely-VERSION+BUILD-dSYMs.zip` | Apple crash-symbolication archive |
 | `SHA256SUMS-*.txt` | Integrity checks for the generated files |
 
 Download them from the workflow run's **Artifacts** section. They expire there
-after 30 days. The workflow also attaches them to a draft GitHub Release; review
-the files and generated notes before publishing or deleting that draft.
+after 90 days, which is GitHub's maximum for a public repository. The workflow
+also attaches them to a draft GitHub Release. Release assets have no Actions
+artifact expiry and remain associated with the release until someone deletes
+the asset, release, or repository. Review the files and generated notes before
+publishing that draft.
+
+Keep every shipped version's tag, store binary, checksums, Android mapping and
+native symbols, and Apple dSYMs for the lifetime of the app. GitHub Releases are
+the primary archive; maintain an independent owner-controlled backup as
+disaster recovery rather than treating any single hosted service as literally
+permanent.
+
+## Is Fastlane required?
+
+No. Creaturely's current workflow deliberately uses the underlying tools
+directly:
+
+- Flutter and Gradle build the Android AAB/APK.
+- Flutter and Xcode's `xcodebuild` create the iOS archive/IPA.
+- GitHub Actions coordinates verification, signing, artifact storage, and the
+  draft release.
+- Play Console and Transporter/Xcode/App Store Connect handle the first store
+  deliveries.
+
+This is the smallest stack for learning the release process and diagnosing
+signing failures. Fastlane is an optional automation layer over many of these
+same tools and store APIs. It becomes valuable when repeated manual work is
+the problem: uploading every beta, promoting Play tracks, managing store
+metadata/screenshots, or sharing reusable release commands between local and
+CI environments. It also adds a Ruby/Bundler dependency and another
+configuration surface, so Creaturely should adopt it only when a concrete lane
+will replace repeated work.
+
+Alternatives include:
+
+| Approach | Best fit | Trade-off |
+| --- | --- | --- |
+| GitHub Actions plus native tools (current) | One Flutter repo already hosted on GitHub | Store upload steps are configured explicitly |
+| Fastlane inside GitHub Actions | Repeated Android and iOS store operations | Ruby dependencies and Fastlane configuration |
+| Xcode Cloud | Deeply integrated iOS/TestFlight delivery | Apple-only; Android still needs another pipeline |
+| Codemagic or Bitrise | Managed mobile-specific signing and store UI | Another hosted service, configuration, and possible cost |
+| Direct App Store Connect/Google Play APIs | Fully customized automation | Most engineering and credential-management work |
+
+For Creaturely v1, keep GitHub Actions and perform the first Play/TestFlight
+uploads manually. After both store records have successfully accepted a build,
+automate uploads to internal testing—not production—and retain human approval
+for promotion and public rollout.
 
 ## Distribute Android
 
@@ -201,8 +259,12 @@ deliberate production rollout.
 ## Official references
 
 - [GitHub workflow artifacts](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflow-artifacts)
+- [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)
 - [GitHub deployment environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
 - [Flutter Android release guide](https://docs.flutter.dev/deployment/android)
 - [Android Play App Signing](https://developer.android.com/studio/publish/app-signing)
 - [Flutter iOS release guide](https://docs.flutter.dev/deployment/ios)
 - [Apple App Store Connect build uploads](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/)
+- [Fastlane setup](https://docs.fastlane.tools/getting-started/ios/setup/)
+- [Apple Xcode Cloud](https://developer.apple.com/documentation/Xcode/Xcode-Cloud)
+- [Google Play Developer API](https://developers.google.com/android-publisher)

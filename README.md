@@ -158,7 +158,8 @@ Every push and pull request runs generation checks, formatting, analysis,
 tests, an Android integration journey, and Android/iOS development builds.
 Version tags run a separate approval-gated workflow that creates signed
 Android AAB/APK and iOS IPA/dSYM artifacts plus SHA-256 manifests, retains them
-as GitHub Actions artifacts, and assembles a draft GitHub Release.
+as GitHub Actions artifacts for the public-repository maximum of 90 days, and
+assembles a durable draft GitHub Release archive.
 
 Signing material belongs in the protected `mobile-release` GitHub environment,
 never in the repository. See [Building and distributing
