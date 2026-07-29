@@ -8,24 +8,32 @@ Creaturely uses two GitHub Actions workflows:
   requests.
 - [Creaturely Release](../.github/workflows/release.yml) runs release checks,
   builds signed Android and iOS artifacts, stores them for 90 days as workflow
-  artifacts, and creates or refreshes a durable draft GitHub Release.
+  artifacts, creates or refreshes a durable draft GitHub Release, and can
+  optionally use Fastlane to deliver that exact build to Google Play Internal
+  and TestFlight.
 
 The release workflow is continuous delivery of a reviewed release candidate.
-It does not automatically submit an app for public store review. The first
-store setup requires legal agreements, app records, privacy disclosures,
-screenshots, tester configuration, and other owner decisions that do not
-belong in source control.
+Store delivery runs only from a manual workflow dispatch with **Deploy beta**
+selected and after approval of the `mobile-beta` environment. Pushing a tag
+never uploads to a store, and no lane submits an app for public review. The
+first store setup still requires legal agreements, app records, privacy
+disclosures, screenshots, tester configuration, and other owner decisions
+that do not belong in source control.
 
 ## One-time GitHub setup
 
 In the GitHub repository:
 
-1. Open **Settings > Environments** and create an environment named
-   `mobile-release`.
-2. Restrict deployment branches/tags to release tags such as `v*`.
+1. Open **Settings > Environments** and create `mobile-release` for signing
+   credentials and `mobile-beta` for store API credentials.
+2. Allow release tags such as `v*` and the default branch used to start manual
+   workflows. Manual dispatch runs from that branch even though the workflow
+   validates an existing tag and checks out its immutable commit.
 3. Add a required reviewer if the repository plan supports it. Environment
-   secrets are not exposed to a release job until its protection rules pass.
-4. Add the Android and Apple secrets listed below to this environment.
+   secrets are not exposed to a release or deployment job until its protection
+   rules pass.
+4. Add the Android and Apple secrets listed below to the environment named in
+   each section.
 
 Never place signing keys, certificate passwords, provisioning profiles, or
 store API credentials in the repository, issue attachments, release notes, or
@@ -60,10 +68,10 @@ downloads.
 
    | Secret | Value |
    | --- | --- |
-   | `ANDROID_KEYSTORE_BASE64` | Base64 output for the upload keystore |
-   | `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-   | `ANDROID_KEY_ALIAS` | Upload-key alias, such as `upload` |
-   | `ANDROID_KEY_PASSWORD` | Password for that alias |
+   | `CREATURELY_ANDROID_KEYSTORE_BASE64` | Base64 output for the upload keystore |
+   | `CREATURELY_ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+   | `CREATURELY_ANDROID_KEY_ALIAS` | Upload-key alias, such as `upload` |
+   | `CREATURELY_ANDROID_KEY_PASSWORD` | Password for that alias |
 
 For a signed local build from Android Studio or the Flutter CLI, copy
 [`android/key.properties.example`](../android/key.properties.example) to
@@ -74,6 +82,36 @@ Without private signing configuration, local release-mode builds continue to
 use the debug key for development convenience. The GitHub release workflow
 sets `CREATURELY_REQUIRE_RELEASE_SIGNING=true`, so its distribution build fails
 instead of silently using the debug key.
+
+### Google Play beta delivery
+
+Fastlane's `android beta` lane uploads an already-signed AAB to the
+**Internal testing** track. It deliberately skips store metadata, changelogs,
+images, and screenshots, so a beta build cannot unexpectedly replace the
+listing.
+
+Google Play must already contain the Creaturely app and at least one
+owner-uploaded build before its publishing API accepts Fastlane uploads.
+After that first upload:
+
+1. Enable the Google Play Developer API for the Play-linked Google Cloud
+   project.
+2. Create a dedicated service account and grant it only the Play Console
+   permissions needed to manage internal-testing releases for Creaturely. Do
+   not grant production-release permission.
+3. Download its JSON credential and convert it to a single-line Base64 value:
+
+   ```sh
+   openssl base64 -A -in google-play-service-account.json
+   ```
+
+4. Add the result as
+   `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64` in `mobile-beta`.
+
+Fastlane also supports Google Workload Identity Federation. That is a useful
+future hardening step because it removes the long-lived JSON key; the initial
+workflow uses the simpler protected-environment secret while the owner learns
+the store setup.
 
 ## Apple signing
 
@@ -121,6 +159,71 @@ The workflow imports these into a temporary keychain, confirms that the
 profile's team and bundle ID match, creates the signed archive/IPA, and removes
 the temporary keychain and installed profile even when the job fails.
 
+### TestFlight beta delivery
+
+Fastlane's `ios beta` lane uploads the signed IPA, waits for App Store Connect
+processing, and assigns the build to an internal TestFlight group. It never
+enables external distribution or submits beta review.
+
+1. In App Store Connect, create an internal group named
+   `Creaturely Internal` and add the intended testers.
+2. Create a team App Store Connect API key with the **App Manager** or
+   **Admin** role. Fastlane can upload with a Developer key, but it needs the
+   higher role to update build/tester assignments.
+3. Download the `.p8` private key once and convert it to a single-line Base64
+   value:
+
+   ```sh
+   openssl base64 -A -in AuthKey_KEY_ID.p8
+   ```
+
+4. Add these `mobile-beta` environment secrets:
+
+   | Secret | Value |
+   | --- | --- |
+   | `APP_STORE_CONNECT_KEY_ID` | API key ID |
+   | `APP_STORE_CONNECT_ISSUER_ID` | API issuer ID |
+   | `APP_STORE_CONNECT_PRIVATE_KEY_BASE64` | Base64 output for the `.p8` key |
+
+The workflow defaults to the group name `Creaturely Internal`. If a different
+name is preferred, add a non-secret `TESTFLIGHT_INTERNAL_GROUP` variable to the
+`mobile-beta` environment.
+
+## Local tool readiness
+
+Creaturely uses Flutter 3.44's default Swift Package Manager integration. A
+successful `flutter build ios --simulator --debug --no-codesign` confirms that
+the current plugins resolve without CocoaPods, so Flutter Doctor's CocoaPods
+warning does not block this repository. Install CocoaPods only if a future
+plugin forces Flutter to fall back to it.
+
+Accept the outstanding Android SDK licenses before Android release work:
+
+```sh
+flutter doctor --android-licenses
+flutter doctor -v
+```
+
+Fastlane is pinned through Bundler and requires Ruby 3.3 or newer. On an Apple
+Silicon Mac, one straightforward setup is:
+
+```sh
+brew install ruby@3.4
+export PATH="/opt/homebrew/opt/ruby@3.4/bin:$PATH"
+bundle install
+bundle exec fastlane lanes
+```
+
+The two beta lanes consume artifacts built by Flutter; they do not rebuild
+them. A local Android upload, for example, uses a credential file kept outside
+the repository:
+
+```sh
+CREATURELY_ANDROID_AAB_PATH=build/app/outputs/bundle/release/app-release.aab \
+GOOGLE_PLAY_CREDENTIALS_PATH=/secure/path/google-play-service-account.json \
+bundle exec fastlane android beta
+```
+
 ## Create a release candidate
 
 1. Set the intended public version in `pubspec.yaml`, for example:
@@ -144,7 +247,10 @@ reuse an already uploaded Apple/Google build number.
 
 An existing tag can also be rebuilt from **Actions > Creaturely Release > Run
 workflow**. Disable **Create draft release** there when only temporary workflow
-artifacts are wanted.
+artifacts are wanted. Select **Deploy beta** only when the tagged build should
+also be delivered to Play Internal and TestFlight. The protected
+`mobile-beta` environment provides a final human approval before either
+upload begins.
 
 Successful runs contain:
 
@@ -171,41 +277,30 @@ the primary archive; maintain an independent owner-controlled backup as
 disaster recovery rather than treating any single hosted service as literally
 permanent.
 
-## Is Fastlane required?
+## What Fastlane owns
 
-No. Creaturely's current workflow deliberately uses the underlying tools
-directly:
+Fastlane complements rather than replaces GitHub Actions:
 
 - Flutter and Gradle build the Android AAB/APK.
 - Flutter and Xcode's `xcodebuild` create the iOS archive/IPA.
-- GitHub Actions coordinates verification, signing, artifact storage, and the
-  draft release.
-- Play Console and Transporter/Xcode/App Store Connect handle the first store
-  deliveries.
+- GitHub Actions coordinates verification, signing, immutable artifact storage,
+  release checksums, and approval boundaries.
+- Fastlane uploads those exact artifacts to Play Internal and TestFlight.
+- Play Console and App Store Connect retain the human-controlled promotion and
+  public-review steps.
 
-This is the smallest stack for learning the release process and diagnosing
-signing failures. Fastlane is an optional automation layer over many of these
-same tools and store APIs. It becomes valuable when repeated manual work is
-the problem: uploading every beta, promoting Play tracks, managing store
-metadata/screenshots, or sharing reusable release commands between local and
-CI environments. It also adds a Ruby/Bundler dependency and another
-configuration surface, so Creaturely should adopt it only when a concrete lane
-will replace repeated work.
+The pinned [`Fastfile`](../fastlane/Fastfile) refuses missing artifacts and
+credentials, fixes Android delivery to the internal track, and fixes iOS
+delivery to internal TestFlight. Ruby dependencies are locked in
+[`Gemfile.lock`](../Gemfile.lock), and CI parses every lane on each change.
 
-Alternatives include:
-
-| Approach | Best fit | Trade-off |
-| --- | --- | --- |
-| GitHub Actions plus native tools (current) | One Flutter repo already hosted on GitHub | Store upload steps are configured explicitly |
-| Fastlane inside GitHub Actions | Repeated Android and iOS store operations | Ruby dependencies and Fastlane configuration |
-| Xcode Cloud | Deeply integrated iOS/TestFlight delivery | Apple-only; Android still needs another pipeline |
-| Codemagic or Bitrise | Managed mobile-specific signing and store UI | Another hosted service, configuration, and possible cost |
-| Direct App Store Connect/Google Play APIs | Fully customized automation | Most engineering and credential-management work |
-
-For Creaturely v1, keep GitHub Actions and perform the first Play/TestFlight
-uploads manually. After both store records have successfully accepted a build,
-automate uploads to internal testing—not production—and retain human approval
-for promotion and public rollout.
+Fastlane can also automate store screenshots, but it cannot infer a useful
+Flutter screenshot journey. Its iOS `snapshot` feature drives XCUITest and its
+Android `screengrab` feature drives Espresso. Before enabling screenshot upload,
+Creaturely needs a deterministic synthetic journal, finalized store copy,
+approved device sizes, and UI tests that never expose a keeper's real health
+data. Once that harness exists, screenshot generation and upload can be added
+as separate approval-gated lanes without changing the beta lanes.
 
 ## Distribute Android
 
@@ -250,11 +345,9 @@ Connect, not ordinary public sideloading.
    agreements, and compliance questions.
 5. Select the tested build and submit it to App Review.
 
-Store upload automation can be added after both console accounts and their
-first apps are established. Keep that as separate, approval-gated deployment
-jobs with least-privilege Play service-account/App Store Connect credentials.
-Uploading a binary never bypasses TestFlight processing, platform review, or a
-deliberate production rollout.
+The Fastlane lane automates these upload and internal-group steps after the
+first App Store Connect setup. Uploading a binary never bypasses TestFlight
+processing, platform review, or a deliberate production rollout.
 
 ## Official references
 
@@ -264,7 +357,11 @@ deliberate production rollout.
 - [Flutter Android release guide](https://docs.flutter.dev/deployment/android)
 - [Android Play App Signing](https://developer.android.com/studio/publish/app-signing)
 - [Flutter iOS release guide](https://docs.flutter.dev/deployment/ios)
+- [Flutter continuous delivery guide](https://docs.flutter.dev/deployment/cd)
+- [Flutter Swift Package Manager guide](https://docs.flutter.dev/packages-and-plugins/swift-package-manager/for-app-developers)
 - [Apple App Store Connect build uploads](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/)
-- [Fastlane setup](https://docs.fastlane.tools/getting-started/ios/setup/)
+- [Fastlane GitHub Actions guide](https://docs.fastlane.tools/best-practices/continuous-integration/github/)
+- [Fastlane Play upload](https://docs.fastlane.tools/actions/upload_to_play_store/)
+- [Fastlane TestFlight upload](https://docs.fastlane.tools/actions/upload_to_testflight/)
 - [Apple Xcode Cloud](https://developer.apple.com/documentation/Xcode/Xcode-Cloud)
 - [Google Play Developer API](https://developers.google.com/android-publisher)

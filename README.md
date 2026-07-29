@@ -76,7 +76,8 @@ Install Flutter, an Android SDK with accepted licenses, and Android Studio's
 Java 17 runtime for Android work. iOS builds require macOS, a full supported
 Xcode installation, an available simulator runtime, and Apple signing for
 device/release archives. This project uses Flutter's Swift Package Manager
-integration; there is no application Podfile.
+integration; there is no application Podfile. Beta store delivery additionally
+uses the repository-pinned Fastlane bundle with Ruby 3.3 or newer.
 
 ```sh
 flutter --version
@@ -88,9 +89,10 @@ dart format lib/data/database.g.dart
 dart run tool/generate_icons.dart
 ```
 
-Generated Drift and localization files, and generated launcher icons, are
-committed so releases are reproducible. Regenerate them after changing database
-tables, ARB resources, or the icon generator.
+Generated Drift and localization files, generated launcher icons, and iOS
+SwiftPM resolution snapshots are committed so releases are reproducible.
+Regenerate them after changing database tables, ARB resources, icon sources, or
+native plugin dependencies.
 
 ## Run, test, and build
 
@@ -159,13 +161,16 @@ tests, an Android integration journey, and Android/iOS development builds.
 Version tags run a separate approval-gated workflow that creates signed
 Android AAB/APK and iOS IPA/dSYM artifacts plus SHA-256 manifests, retains them
 as GitHub Actions artifacts for the public-repository maximum of 90 days, and
-assembles a durable draft GitHub Release archive.
+assembles a durable draft GitHub Release archive. A manual release run can also
+send that exact build through Fastlane to Google Play Internal and TestFlight;
+tag pushes never deploy to a store, and production promotion remains manual.
 
 Signing material belongs in the protected `mobile-release` GitHub environment,
-never in the repository. See [Building and distributing
-Creaturely](docs/RELEASING.md) for one-time Android/Apple setup, required secret
-names, version/tag rules, artifact retrieval, Play testing tracks, TestFlight,
-and production-store handoff.
+and store API credentials belong in `mobile-beta`, never in the repository.
+See [Building and distributing Creaturely](docs/RELEASING.md) for local
+toolchain readiness, one-time Android/Apple setup, required secret names,
+version/tag rules, Fastlane lanes, artifact retrieval, Play testing tracks,
+TestFlight, and production-store handoff.
 
 ## Platform configuration
 
