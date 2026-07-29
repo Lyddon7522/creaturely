@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/.bundle/
+/vendor/bundle/
 
 # Symbolication related
 app.*.symbols
@@ -50,3 +52,8 @@ app.*.map.json
 *.keystore
 *.p12
 *.mobileprovision
+
+# Fastlane generates these locally and they may contain machine-specific data.
+/fastlane/.env*
+/fastlane/report.xml
+/fastlane/test_output/
