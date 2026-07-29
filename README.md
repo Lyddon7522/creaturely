@@ -108,6 +108,8 @@ flutter test integration_test/creaturely_journey_test.dart
 
 # Platform builds.
 flutter build apk --debug
+# Signed when android/key.properties is configured; otherwise development-only
+# release builds use the debug key.
 flutter build apk --release
 flutter build appbundle --release
 flutter build ios --simulator --debug --no-codesign
@@ -149,6 +151,20 @@ either the database or file store.
 
 See [the open backup format](docs/BACKUP_FORMAT.md) and
 [the privacy/network boundary](docs/PRIVACY_AND_NETWORK.md).
+
+## CI, release builds, and distribution
+
+Every push and pull request runs generation checks, formatting, analysis,
+tests, an Android integration journey, and Android/iOS development builds.
+Version tags run a separate approval-gated workflow that creates signed
+Android AAB/APK and iOS IPA/dSYM artifacts plus SHA-256 manifests, retains them
+as GitHub Actions artifacts, and assembles a draft GitHub Release.
+
+Signing material belongs in the protected `mobile-release` GitHub environment,
+never in the repository. See [Building and distributing
+Creaturely](docs/RELEASING.md) for one-time Android/Apple setup, required secret
+names, version/tag rules, artifact retrieval, Play testing tracks, TestFlight,
+and production-store handoff.
 
 ## Platform configuration
 
@@ -206,8 +222,11 @@ Before publishing 1.0:
 - Create or rename the public repository to
   [`Lyddon7522/Creaturely`](https://github.com/Lyddon7522/Creaturely), then
   update the local Git remote after the GitHub-side rename succeeds.
-- Configure release signing for both platforms. Android currently uses debug
-  signing only to make local release-mode development possible.
+- Configure the protected GitHub release environment and both platforms'
+  distribution credentials as described in
+  [the release guide](docs/RELEASING.md). Local Android release-mode builds
+  intentionally retain a debug-key fallback until `android/key.properties` is
+  configured; the distribution workflow forbids that fallback.
 - Revisit Flutter's temporary legacy-Kotlin compatibility switch after
   `flutter_local_notifications`, `file_picker`, `flutter_timezone`, and
   `share_plus` all support Flutter's built-in Kotlin mode.
