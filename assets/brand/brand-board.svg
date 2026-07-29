@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="title desc">
+  <title id="title">Creaturely brand board</title>
+  <desc id="desc">A visual reference for the Creaturely logo, color palette, typography, and app icon.</desc>
+  <rect width="1600" height="1100" fill="#F7FBFA"/>
+
+  <text x="80" y="92" fill="#087E78" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="800" letter-spacing="3">CREATURELY · BRAND KIT 1.0</text>
+  <text x="80" y="156" fill="#19302F" font-family="ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', Arial, sans-serif" font-size="54" font-weight="700" letter-spacing="-1.5">Calm care, made visible.</text>
+  <text x="80" y="204" fill="#5D706F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="23">A warm, observant identity for the moments between checkups.</text>
+
+  <g transform="translate(80 258) scale(.9)">
+    <path fill="#087E78" d="M64 115C56 108 8 80 8 45C8 27 22 14 40 14C51 14 60 19 64 28C68 19 77 14 88 14C106 14 120 27 120 45C120 80 72 108 64 115Z"/>
+    <g fill="#FFFFFF">
+      <circle cx="38" cy="55" r="7"/>
+      <circle cx="54" cy="44" r="7.5"/>
+      <circle cx="74" cy="44" r="7.5"/>
+      <circle cx="90" cy="55" r="7"/>
+      <path d="M44 78C44 66.5 52.8 59 64 59S84 66.5 84 78C84 87.5 77.7 94 69 94H59C50.3 94 44 87.5 44 78Z"/>
+    </g>
+    <path d="M49 79H56L59.5 71L64.5 87L69.5 77H79" fill="none" stroke="#087E78" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="213" y="324" fill="#19302F" font-family="ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', Arial, sans-serif" font-size="54" font-weight="700" letter-spacing="-1.4">Creaturely</text>
+  <text x="215" y="361" fill="#5D706F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="750" letter-spacing="3.1">KNOW THEIR NORMAL.</text>
+
+  <text x="80" y="458" fill="#19302F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="22" font-weight="750">Core palette</text>
+  <g transform="translate(80 486)">
+    <rect width="220" height="132" rx="20" fill="#087E78"/>
+    <text x="20" y="92" fill="#FFFFFF" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="750">Vital Teal</text>
+    <text x="20" y="116" fill="#FFFFFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">#087E78</text>
+  </g>
+  <g transform="translate(320 486)">
+    <rect width="220" height="132" rx="20" fill="#075D59"/>
+    <text x="20" y="92" fill="#FFFFFF" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="750">Deep Teal</text>
+    <text x="20" y="116" fill="#FFFFFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">#075D59</text>
+  </g>
+  <g transform="translate(560 486)">
+    <rect width="220" height="132" rx="20" fill="#77D6CE"/>
+    <text x="20" y="92" fill="#19302F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="750">Fresh Mint</text>
+    <text x="20" y="116" fill="#19302F" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">#77D6CE</text>
+  </g>
+  <g transform="translate(800 486)">
+    <rect width="220" height="132" rx="20" fill="#F26B5B"/>
+    <text x="20" y="92" fill="#19302F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="750">Heart Coral</text>
+    <text x="20" y="116" fill="#19302F" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">#F26B5B</text>
+  </g>
+  <g transform="translate(1040 486)">
+    <rect width="220" height="132" rx="20" fill="#19302F"/>
+    <text x="20" y="92" fill="#FFFFFF" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="750">Soft Ink</text>
+    <text x="20" y="116" fill="#FFFFFF" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">#19302F</text>
+  </g>
+  <g transform="translate(1280 486)">
+    <rect width="220" height="132" rx="20" fill="#FFFFFF" stroke="#D7E3E1" stroke-width="2"/>
+    <text x="20" y="92" fill="#19302F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="750">Clean Surface</text>
+    <text x="20" y="116" fill="#19302F" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">#FFFFFF</text>
+  </g>
+
+  <g transform="translate(80 690)">
+    <rect width="700" height="330" rx="28" fill="#FFFFFF" stroke="#D7E3E1" stroke-width="2"/>
+    <text x="36" y="54" fill="#087E78" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="800" letter-spacing="2.4">TYPOGRAPHY</text>
+    <text x="36" y="126" fill="#19302F" font-family="ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', Arial, sans-serif" font-size="48" font-weight="700" letter-spacing="-1.2">Warm at a glance.</text>
+    <text x="36" y="180" fill="#19302F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="650">System UI · Semibold · clear hierarchy</text>
+    <text x="36" y="226" fill="#5D706F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20">Health information should feel approachable,</text>
+    <text x="36" y="256" fill="#5D706F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20">never casual about the facts.</text>
+    <rect x="36" y="284" width="156" height="4" rx="2" fill="#F26B5B"/>
+  </g>
+
+  <g transform="translate(820 690)">
+    <rect width="680" height="330" rx="28" fill="#075D59"/>
+    <text x="36" y="54" fill="#77D6CE" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="800" letter-spacing="2.4">DARK MODE + APP ICON</text>
+    <g transform="translate(36 89) scale(.85)">
+      <path fill="#FFFFFF" d="M64 115C56 108 8 80 8 45C8 27 22 14 40 14C51 14 60 19 64 28C68 19 77 14 88 14C106 14 120 27 120 45C120 80 72 108 64 115Z"/>
+      <g fill="#075D59">
+        <circle cx="38" cy="55" r="7"/>
+        <circle cx="54" cy="44" r="7.5"/>
+        <circle cx="74" cy="44" r="7.5"/>
+        <circle cx="90" cy="55" r="7"/>
+        <path d="M44 78C44 66.5 52.8 59 64 59S84 66.5 84 78C84 87.5 77.7 94 69 94H59C50.3 94 44 87.5 44 78Z"/>
+      </g>
+      <path d="M49 79H56L59.5 71L64.5 87L69.5 77H79" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="160" y="146" fill="#FFFFFF" font-family="ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="-1">Creaturely</text>
+    <text x="162" y="180" fill="#CFEDEA" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="750" letter-spacing="2.6">KNOW THEIR NORMAL.</text>
+    <rect x="512" y="76" width="124" height="124" rx="28" fill="#0A6964"/>
+    <g transform="translate(526 88) scale(.75)">
+      <path fill="#77D6CE" d="M64 115C56 108 8 80 8 45C8 27 22 14 40 14C51 14 60 19 64 28C68 19 77 14 88 14C106 14 120 27 120 45C120 80 72 108 64 115Z"/>
+      <g fill="#075D59">
+        <circle cx="38" cy="55" r="7"/>
+        <circle cx="54" cy="44" r="7.5"/>
+        <circle cx="74" cy="44" r="7.5"/>
+        <circle cx="90" cy="55" r="7"/>
+        <path d="M44 78C44 66.5 52.8 59 64 59S84 66.5 84 78C84 87.5 77.7 94 69 94H59C50.3 94 44 87.5 44 78Z"/>
+      </g>
+      <path d="M49 79H56L59.5 71L64.5 87L69.5 77H79" fill="none" stroke="#77D6CE" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <circle cx="613" cy="177" r="8" fill="#F26B5B"/>
+    <text x="36" y="263" fill="#FFFFFF" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="20" font-weight="700">Steady. Caring. Observant.</text>
+    <text x="36" y="296" fill="#CFEDEA" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17">Clinical clarity without the coldness.</text>
+  </g>
+</svg>

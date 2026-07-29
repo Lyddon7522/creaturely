@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="300" viewBox="0 0 320 300" role="img" aria-labelledby="title desc">
+  <title id="title">Creaturely stacked logo</title>
+  <desc id="desc">Stacked Creaturely logo with a heart, paw, and pulse mark above the wordmark.</desc>
+  <g transform="translate(96 12)">
+    <path fill="#087E78" d="M64 115C56 108 8 80 8 45C8 27 22 14 40 14C51 14 60 19 64 28C68 19 77 14 88 14C106 14 120 27 120 45C120 80 72 108 64 115Z"/>
+    <g fill="#FFFFFF">
+      <circle cx="38" cy="55" r="7"/>
+      <circle cx="54" cy="44" r="7.5"/>
+      <circle cx="74" cy="44" r="7.5"/>
+      <circle cx="90" cy="55" r="7"/>
+      <path d="M44 78C44 66.5 52.8 59 64 59S84 66.5 84 78C84 87.5 77.7 94 69 94H59C50.3 94 44 87.5 44 78Z"/>
+    </g>
+    <path d="M49 79H56L59.5 71L64.5 87L69.5 77H79" fill="none" stroke="#087E78" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="160" y="191" text-anchor="middle" fill="#19302F" font-family="ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', Arial, sans-serif" font-size="45" font-weight="700" letter-spacing="-1">Creaturely</text>
+  <text x="160" y="225" text-anchor="middle" fill="#5D706F" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="700" letter-spacing="2.5">KNOW THEIR NORMAL.</text>
+</svg>
