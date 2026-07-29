@@ -15,6 +15,11 @@ on:
         required: true
         default: true
         type: boolean
+      deploy_beta:
+        description: Upload this build to Play Internal and TestFlight
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -24,6 +29,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  FASTLANE_OPT_OUT_USAGE: "YES"
+  FASTLANE_SKIP_UPDATE_CHECK: "YES"
   FLUTTER_VERSION: 3.44.8
 
 jobs:
@@ -128,10 +135,10 @@ jobs:
     timeout-minutes: 35
     environment: mobile-release
     env:
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      CREATURELY_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      CREATURELY_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      CREATURELY_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      CREATURELY_ANDROID_KEYSTORE_BASE64: ${{ secrets.CREATURELY_ANDROID_KEYSTORE_BASE64 }}
+      CREATURELY_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.CREATURELY_ANDROID_KEYSTORE_PASSWORD }}
+      CREATURELY_ANDROID_KEY_ALIAS: ${{ secrets.CREATURELY_ANDROID_KEY_ALIAS }}
+      CREATURELY_ANDROID_KEY_PASSWORD: ${{ secrets.CREATURELY_ANDROID_KEY_PASSWORD }}
       CREATURELY_REQUIRE_RELEASE_SIGNING: "true"
 
     steps:
@@ -163,7 +170,7 @@ jobs:
 
           missing=0
           for variable_name in \
-            ANDROID_KEYSTORE_BASE64 \
+            CREATURELY_ANDROID_KEYSTORE_BASE64 \
             CREATURELY_ANDROID_KEYSTORE_PASSWORD \
             CREATURELY_ANDROID_KEY_ALIAS \
             CREATURELY_ANDROID_KEY_PASSWORD
@@ -178,7 +185,8 @@ jobs:
           fi
 
           KEYSTORE_PATH="$RUNNER_TEMP/creaturely-upload.jks"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          printf '%s' "$CREATURELY_ANDROID_KEYSTORE_BASE64" \
+            | base64 --decode > "$KEYSTORE_PATH"
           chmod 600 "$KEYSTORE_PATH"
           printf 'CREATURELY_ANDROID_KEYSTORE_PATH=%s\n' "$KEYSTORE_PATH" >> "$GITHUB_ENV"
 
@@ -455,6 +463,113 @@ jobs:
           security delete-keychain \
             "$RUNNER_TEMP/creaturely-signing.keychain-db" \
             2>/dev/null || true
+
+  android-beta:
+    name: Deploy Google Play internal beta
+    needs:
+      - metadata
+      - android
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_beta }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: mobile-beta
+    env:
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64 }}
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.release_sha }}
+
+      - name: Set up Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Download signed Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: creaturely-android-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
+          path: beta-artifact
+
+      - name: Prepare Google Play credentials and artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64" ]]; then
+            echo "::error::GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64 is not configured in mobile-beta."
+            exit 1
+          fi
+
+          CREDENTIALS_PATH="$RUNNER_TEMP/google-play-service-account.json"
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64" \
+            | base64 --decode > "$CREDENTIALS_PATH"
+          chmod 600 "$CREDENTIALS_PATH"
+
+          AAB_PATH="$(find beta-artifact -type f -name '*.aab' -print -quit)"
+          if [[ -z "$AAB_PATH" ]]; then
+            echo "::error::The signed Android app bundle was not downloaded."
+            exit 1
+          fi
+
+          {
+            printf 'CREATURELY_ANDROID_AAB_PATH=%s\n' "$AAB_PATH"
+            printf 'GOOGLE_PLAY_CREDENTIALS_PATH=%s\n' "$CREDENTIALS_PATH"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload to Google Play Internal
+        run: bundle exec fastlane android beta
+
+  ios-beta:
+    name: Deploy TestFlight internal beta
+    needs:
+      - metadata
+      - ios
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_beta }}
+    runs-on: macos-latest
+    timeout-minutes: 45
+    environment: mobile-beta
+    env:
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+      TESTFLIGHT_INTERNAL_GROUP: ${{ vars.TESTFLIGHT_INTERNAL_GROUP || 'Creaturely Internal' }}
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.release_sha }}
+
+      - name: Set up Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Download signed iOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: creaturely-ios-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
+          path: beta-artifact
+
+      - name: Locate signed IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IPA_PATH="$(find beta-artifact -type f -name '*.ipa' -print -quit)"
+          if [[ -z "$IPA_PATH" ]]; then
+            echo "::error::The signed iOS application archive was not downloaded."
+            exit 1
+          fi
+          printf 'CREATURELY_IOS_IPA_PATH=%s\n' "$IPA_PATH" >> "$GITHUB_ENV"
+
+      - name: Upload to TestFlight
+        run: bundle exec fastlane ios beta
 
   draft-release:
     name: Create draft GitHub release

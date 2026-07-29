@@ -7,6 +7,10 @@ on:
 permissions:
   contents: read
 
+env:
+  FASTLANE_OPT_OUT_USAGE: "YES"
+  FASTLANE_SKIP_UPDATE_CHECK: "YES"
+
 concurrency:
   group: creaturely-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -72,6 +76,24 @@ jobs:
 
       - name: Build Android debug APK
         run: flutter build apk --debug
+
+  release-config:
+    name: Validate Fastlane release lanes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Parse Fastlane configuration
+        run: bundle exec fastlane lanes
 
   ios:
     name: Build iOS simulator
