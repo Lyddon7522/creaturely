@@ -11,7 +11,7 @@ on:
         required: true
         type: string
       create_draft_release:
-        description: Attach the builds to a draft GitHub release
+        description: Archive the builds on a draft GitHub release
         required: true
         default: true
         type: boolean
@@ -231,12 +231,19 @@ jobs:
           cp \
             build/app/outputs/flutter-apk/app-release.apk \
             "$RELEASE_DIR/creaturely-$RELEASE_LABEL.apk"
+          if [[ -f build/app/outputs/mapping/release/mapping.txt ]]; then
+            cp \
+              build/app/outputs/mapping/release/mapping.txt \
+              "$RELEASE_DIR/creaturely-$RELEASE_LABEL-android-mapping.txt"
+          fi
+          if [[ -f build/app/outputs/native-debug-symbols/release/native-debug-symbols.zip ]]; then
+            cp \
+              build/app/outputs/native-debug-symbols/release/native-debug-symbols.zip \
+              "$RELEASE_DIR/creaturely-$RELEASE_LABEL-android-native-symbols.zip"
+          fi
           (
             cd "$RELEASE_DIR"
-            sha256sum \
-              "creaturely-$RELEASE_LABEL.aab" \
-              "creaturely-$RELEASE_LABEL.apk" \
-              > SHA256SUMS-android.txt
+            sha256sum creaturely-* > SHA256SUMS-android.txt
           )
           printf 'path=%s\n' "$RELEASE_DIR" >> "$GITHUB_OUTPUT"
 
@@ -246,7 +253,7 @@ jobs:
           name: creaturely-android-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
           path: ${{ steps.package.outputs.path }}
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
   ios:
     name: Build signed iOS artifacts
@@ -435,7 +442,7 @@ jobs:
           name: creaturely-ios-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
           path: ${{ steps.package.outputs.path }}
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
 
       - name: Remove temporary Apple signing identity
         if: always()
