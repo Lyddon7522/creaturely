@@ -1,0 +1,496 @@
+name: Creaturely Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to build, such as v1.0.0
+        required: true
+        type: string
+      create_draft_release:
+        description: Attach the builds to a draft GitHub release
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: creaturely-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.44.8
+
+jobs:
+  metadata:
+    name: Validate release metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      build_number: ${{ steps.release.outputs.build_number }}
+      release_sha: ${{ steps.release.outputs.release_sha }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+
+      - name: Validate tag and version
+        id: release
+        env:
+          REQUESTED_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$REQUESTED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tags must use vMAJOR.MINOR.PATCH, for example v1.0.0."
+            exit 1
+          fi
+
+          if ! git show-ref --verify --quiet "refs/tags/$REQUESTED_TAG"; then
+            echo "::error::The requested release tag does not exist."
+            exit 1
+          fi
+
+          VERSION="${REQUESTED_TAG#v}"
+          PUBSPEC_VERSION="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n 1)"
+          PUBSPEC_BUILD_NAME="${PUBSPEC_VERSION%%+*}"
+          if [[ "$VERSION" != "$PUBSPEC_BUILD_NAME" ]]; then
+            echo "::error::Tag $REQUESTED_TAG does not match pubspec.yaml version $PUBSPEC_BUILD_NAME."
+            exit 1
+          fi
+
+          BUILD_NUMBER="$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))"
+          RELEASE_SHA="$(git rev-list -n 1 "$REQUESTED_TAG")"
+
+          {
+            printf 'build_number=%s\n' "$BUILD_NUMBER"
+            printf 'release_sha=%s\n' "$RELEASE_SHA"
+            printf 'tag=%s\n' "$REQUESTED_TAG"
+            printf 'version=%s\n' "$VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+  checks:
+    name: Verify release source
+    needs: metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.release_sha }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Reproduce generated artifacts
+        run: |
+          flutter gen-l10n
+          dart run build_runner build
+          dart format lib/data/database.g.dart
+          dart run tool/generate_icons.dart
+          git diff --exit-code
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed lib test integration_test tool
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run unit and widget tests
+        run: flutter test
+
+  android:
+    name: Build signed Android artifacts
+    needs:
+      - metadata
+      - checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: mobile-release
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      CREATURELY_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      CREATURELY_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      CREATURELY_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      CREATURELY_REQUIRE_RELEASE_SIGNING: "true"
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.release_sha }}
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Install Android upload key
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for variable_name in \
+            ANDROID_KEYSTORE_BASE64 \
+            CREATURELY_ANDROID_KEYSTORE_PASSWORD \
+            CREATURELY_ANDROID_KEY_ALIAS \
+            CREATURELY_ANDROID_KEY_PASSWORD
+          do
+            if [[ -z "${!variable_name}" ]]; then
+              echo "::error::$variable_name is not configured in the mobile-release environment."
+              missing=1
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+          KEYSTORE_PATH="$RUNNER_TEMP/creaturely-upload.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          chmod 600 "$KEYSTORE_PATH"
+          printf 'CREATURELY_ANDROID_KEYSTORE_PATH=%s\n' "$KEYSTORE_PATH" >> "$GITHUB_ENV"
+
+      - name: Build app bundle and installable APK
+        run: |
+          flutter build appbundle \
+            --release \
+            --build-name="${{ needs.metadata.outputs.version }}" \
+            --build-number="${{ needs.metadata.outputs.build_number }}"
+          flutter build apk \
+            --release \
+            --build-name="${{ needs.metadata.outputs.version }}" \
+            --build-number="${{ needs.metadata.outputs.build_number }}"
+
+      - name: Verify Android signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
+          APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+
+          if [[ -z "$APKSIGNER" ]]; then
+            echo "::error::Android apksigner was not found."
+            exit 1
+          fi
+
+          jarsigner -verify "$AAB_PATH" \
+            > "$RUNNER_TEMP/aab-signature-verification.txt"
+          if ! grep -q "jar verified" "$RUNNER_TEMP/aab-signature-verification.txt"; then
+            echo "::error::The Android app bundle signature could not be verified."
+            exit 1
+          fi
+          echo "Android app bundle signature verified."
+          "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
+
+      - name: Package Android artifacts
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RELEASE_DIR="$RUNNER_TEMP/creaturely-android"
+          RELEASE_LABEL="${{ needs.metadata.outputs.version }}+${{ needs.metadata.outputs.build_number }}"
+          mkdir -p "$RELEASE_DIR"
+          cp \
+            build/app/outputs/bundle/release/app-release.aab \
+            "$RELEASE_DIR/creaturely-$RELEASE_LABEL.aab"
+          cp \
+            build/app/outputs/flutter-apk/app-release.apk \
+            "$RELEASE_DIR/creaturely-$RELEASE_LABEL.apk"
+          (
+            cd "$RELEASE_DIR"
+            sha256sum \
+              "creaturely-$RELEASE_LABEL.aab" \
+              "creaturely-$RELEASE_LABEL.apk" \
+              > SHA256SUMS-android.txt
+          )
+          printf 'path=%s\n' "$RELEASE_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: creaturely-android-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+
+  ios:
+    name: Build signed iOS artifacts
+    needs:
+      - metadata
+      - checks
+    runs-on: macos-latest
+    timeout-minutes: 50
+    environment: mobile-release
+    env:
+      IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+      IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.release_sha }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Install Apple distribution identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for variable_name in \
+            IOS_DISTRIBUTION_CERTIFICATE_BASE64 \
+            IOS_DISTRIBUTION_CERTIFICATE_PASSWORD \
+            IOS_PROVISIONING_PROFILE_BASE64 \
+            IOS_TEAM_ID
+          do
+            if [[ -z "${!variable_name}" ]]; then
+              echo "::error::$variable_name is not configured in the mobile-release environment."
+              missing=1
+            fi
+          done
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+          CERTIFICATE_PATH="$RUNNER_TEMP/creaturely-distribution.p12"
+          PROFILE_PATH="$RUNNER_TEMP/creaturely-app-store.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/creaturely-profile.plist"
+          KEYCHAIN_PATH="$RUNNER_TEMP/creaturely-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 32)"
+
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_BASE64" \
+            | base64 -D > "$CERTIFICATE_PATH"
+          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" \
+            | base64 -D > "$PROFILE_PATH"
+          chmod 600 "$CERTIFICATE_PATH" "$PROFILE_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s \
+            -k "$KEYCHAIN_PASSWORD" \
+            "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+
+          security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")"
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")"
+          PROFILE_TEAM_ID="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST")"
+          PROFILE_APP_IDENTIFIER="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :Entitlements:application-identifier' \
+              "$PROFILE_PLIST"
+          )"
+
+          if [[ "$PROFILE_TEAM_ID" != "$IOS_TEAM_ID" ]]; then
+            echo "::error::The provisioning profile team does not match IOS_TEAM_ID."
+            exit 1
+          fi
+          if [[ "$PROFILE_APP_IDENTIFIER" != *".com.vector42.creaturely" ]]; then
+            echo "::error::The provisioning profile is not for com.vector42.creaturely."
+            exit 1
+          fi
+
+          PROFILE_INSTALL_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILE_INSTALL_DIR"
+          cp "$PROFILE_PATH" "$PROFILE_INSTALL_DIR/$PROFILE_UUID.mobileprovision"
+
+          {
+            printf 'CREATURELY_IOS_KEYCHAIN=%s\n' "$KEYCHAIN_PATH"
+            printf 'CREATURELY_IOS_PROFILE_NAME=%s\n' "$PROFILE_NAME"
+            printf 'CREATURELY_IOS_PROFILE_UUID=%s\n' "$PROFILE_UUID"
+          } >> "$GITHUB_ENV"
+
+      - name: Prepare unsigned Flutter iOS build
+        run: |
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --build-name="${{ needs.metadata.outputs.version }}" \
+            --build-number="${{ needs.metadata.outputs.build_number }}"
+
+      - name: Archive and export signed IPA
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE_PATH="$RUNNER_TEMP/Creaturely.xcarchive"
+          EXPORT_PATH="$RUNNER_TEMP/creaturely-ios-export"
+          EXPORT_OPTIONS_PATH="$RUNNER_TEMP/ExportOptions.plist"
+          RELEASE_DIR="$RUNNER_TEMP/creaturely-ios"
+          RELEASE_LABEL="${{ needs.metadata.outputs.version }}+${{ needs.metadata.outputs.build_number }}"
+
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$CREATURELY_IOS_PROFILE_NAME" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $CREATURELY_IOS_KEYCHAIN" \
+            FLUTTER_BUILD_NAME="${{ needs.metadata.outputs.version }}" \
+            FLUTTER_BUILD_NUMBER="${{ needs.metadata.outputs.build_number }}" \
+            archive
+
+          cp ios/ExportOptions.plist "$EXPORT_OPTIONS_PATH"
+          /usr/libexec/PlistBuddy \
+            -c "Set :teamID $IOS_TEAM_ID" \
+            "$EXPORT_OPTIONS_PATH"
+          /usr/libexec/PlistBuddy \
+            -c "Set :provisioningProfiles:com.vector42.creaturely $CREATURELY_IOS_PROFILE_UUID" \
+            "$EXPORT_OPTIONS_PATH"
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$EXPORT_OPTIONS_PATH"
+
+          IPA_PATH="$(find "$EXPORT_PATH" -maxdepth 1 -type f -name '*.ipa' -print -quit)"
+          if [[ -z "$IPA_PATH" ]]; then
+            echo "::error::Xcode did not export an IPA."
+            exit 1
+          fi
+
+          mkdir -p "$RELEASE_DIR"
+          cp "$IPA_PATH" "$RELEASE_DIR/creaturely-$RELEASE_LABEL.ipa"
+          if [[ -d "$ARCHIVE_PATH/dSYMs" ]]; then
+            ditto \
+              -c \
+              -k \
+              --sequesterRsrc \
+              --keepParent \
+              "$ARCHIVE_PATH/dSYMs" \
+              "$RELEASE_DIR/creaturely-$RELEASE_LABEL-dSYMs.zip"
+          fi
+          (
+            cd "$RELEASE_DIR"
+            shasum -a 256 creaturely-* > SHA256SUMS-ios.txt
+          )
+          printf 'path=%s\n' "$RELEASE_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: creaturely-ios-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove temporary Apple signing identity
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${CREATURELY_IOS_PROFILE_UUID:-}" ]]; then
+            rm -f \
+              "$HOME/Library/MobileDevice/Provisioning Profiles/$CREATURELY_IOS_PROFILE_UUID.mobileprovision"
+          fi
+          security delete-keychain \
+            "$RUNNER_TEMP/creaturely-signing.keychain-db" \
+            2>/dev/null || true
+
+  draft-release:
+    name: Create draft GitHub release
+    needs:
+      - metadata
+      - android
+      - ios
+    if: ${{ github.event_name == 'push' || inputs.create_draft_release }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download signed artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: creaturely-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create or refresh draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.metadata.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t assets < <(find release-assets -maxdepth 1 -type f -print | sort)
+          if [[ "${#assets[@]}" -eq 0 ]]; then
+            echo "::error::No release assets were downloaded."
+            exit 1
+          fi
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create \
+              "$RELEASE_TAG" \
+              "${assets[@]}" \
+              --draft \
+              --generate-notes \
+              --title "Creaturely $RELEASE_VERSION" \
+              --verify-tag
+          fi
