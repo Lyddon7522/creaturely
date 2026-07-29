@@ -1,0 +1,27 @@
+{
+  "@@locale": "en",
+  "appName": "Creaturely",
+  "@appName": {
+    "description": "Application name"
+  },
+  "animals": "Animals",
+  "timeline": "Timeline",
+  "trends": "Trends",
+  "schedule": "Schedule",
+  "settings": "Settings",
+  "continueLabel": "Continue",
+  "cancel": "Cancel",
+  "save": "Save",
+  "addAnimal": "Add animal",
+  "noAnimalsTitle": "Make space for the animal you care for",
+  "noAnimalsBody": "Creaturely works for any species. Add an animal to begin a private health journal.",
+  "medicalDisclaimer": "Creaturely is a journal, not a diagnostic tool. Measurements and reminders do not replace advice from a veterinarian.",
+  "privacySummary": "Your journal stays on this device. Vector42 collects no data.",
+  "respiratoryRate": "Resting breathing",
+  "medications": "Medication",
+  "documents": "Documents",
+  "healthRecords": "Health records",
+  "emptyTimeline": "Nothing recorded in this range yet.",
+  "permissionDenied": "Notifications are off. Creaturely still works; reminders will remain visible in the app.",
+  "seekAdvice": "If you are concerned about your animal, contact a veterinarian. Creaturely does not diagnose conditions."
+}
