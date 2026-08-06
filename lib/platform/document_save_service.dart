@@ -20,7 +20,7 @@ class SystemDocumentSaveService implements DocumentSaveService {
     required String dialogTitle,
     required Uint8List bytes,
     required List<String> allowedExtensions,
-  }) => FilePicker.platform.saveFile(
+  }) => FilePicker.saveFile(
     dialogTitle: dialogTitle,
     fileName: fileName,
     type: FileType.custom,

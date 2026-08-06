@@ -215,13 +215,11 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
   }
 
   Future<void> _restoreBackup() async {
-    final result = await FilePicker.platform.pickFiles(
+    final selectedFile = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: <String>['creaturely', 'zip'],
-      allowMultiple: false,
-      withData: false,
     );
-    final selectedPath = result?.files.single.path;
+    final selectedPath = selectedFile?.path;
     if (selectedPath == null) {
       return;
     }

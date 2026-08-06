@@ -228,13 +228,11 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final selectedFile = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: <String>['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'],
-      allowMultiple: false,
-      withData: false,
     );
-    final selectedPath = result?.files.single.path;
+    final selectedPath = selectedFile?.path;
     if (selectedPath == null) {
       return;
     }
