@@ -7,9 +7,13 @@ void main() {
   if (!masterFile.existsSync()) {
     throw StateError('Missing approved Creaturely app-icon master: ${masterFile.path}');
   }
-  final master = image.decodePng(masterFile.readAsBytesSync());
-  if (master == null || master.width != 1024 || master.height != 1024) {
+  final decodedMaster = image.decodePng(masterFile.readAsBytesSync());
+  if (decodedMaster == null || decodedMaster.width != 1024 || decodedMaster.height != 1024) {
     throw StateError('Creaturely app-icon master must be a valid 1024 × 1024 PNG.');
+  }
+  final master = decodedMaster.convert(numChannels: 3);
+  if (decodedMaster.hasAlpha) {
+    _writePng(masterFile, master, 1024);
   }
 
   final ios = <String, int>{
