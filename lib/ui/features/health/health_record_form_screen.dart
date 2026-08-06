@@ -9,10 +9,16 @@ import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
 class HealthRecordFormScreen extends ConsumerStatefulWidget {
-  const HealthRecordFormScreen({required this.animalId, this.recordId, super.key});
+  const HealthRecordFormScreen({
+    required this.animalId,
+    this.recordId,
+    this.initialKind,
+    super.key,
+  });
 
   final String animalId;
   final String? recordId;
+  final HealthRecordKind? initialKind;
 
   @override
   ConsumerState<HealthRecordFormScreen> createState() => _HealthRecordFormScreenState();
@@ -39,7 +45,7 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
         .where((value) => value.id == widget.recordId)
         .firstOrNull;
     final existing = _existing;
-    _kind = existing?.kind ?? HealthRecordKind.weight;
+    _kind = existing?.kind ?? widget.initialKind ?? HealthRecordKind.weight;
     _weightUnit = existing?.enteredUnit == 'lb'
         ? WeightUnit.pounds
         : state.snapshot.settings.weightUnit;

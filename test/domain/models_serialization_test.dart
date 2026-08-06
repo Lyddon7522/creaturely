@@ -27,10 +27,10 @@ void main() {
 
     expect(respiratory.single.id, 'breathing-1');
     expect(respiratory.single.rawValue, 10);
-    expect(respiratory.single.rawUnit, 'breaths in 30000 ms');
+    expect(respiratory.single.rawUnit, 'breaths in 30 seconds');
     expect(weight.single.id, 'weight-1');
-    expect(weight.single.rawValue, 0.12);
-    expect(weight.single.rawUnit, 'kg');
+    expect(weight.single.rawValue, closeTo(0.2645547, 0.0000001));
+    expect(weight.single.rawUnit, 'lb');
   });
 
   test('invalid typed JSON is rejected instead of silently coerced', () {

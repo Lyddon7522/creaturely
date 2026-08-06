@@ -1,13 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../domain/models.dart';
 import '../app_controller.dart';
+import 'animal_avatar.dart';
 import 'brand.dart';
 import 'theme.dart';
+
+export 'animal_avatar.dart';
 
 const double compactVerticalViewportBreakpoint = 600;
 
@@ -221,33 +221,6 @@ class CalmNotice extends StatelessWidget {
 }
 
 enum NoticeTone { neutral, supportive, attention }
-
-class AnimalAvatar extends StatelessWidget {
-  const AnimalAvatar({required this.animal, this.radius = 28, super.key});
-
-  final Animal animal;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final path = animal.photoPath;
-    return Semantics(
-      image: true,
-      label: '${animal.name}, ${animal.species}',
-      child: CircleAvatar(
-        radius: radius,
-        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-        foregroundImage: path != null && File(path).existsSync() ? FileImage(File(path)) : null,
-        child: path == null || !File(path).existsSync()
-            ? Text(
-                animal.name.characters.first.toUpperCase(),
-                style: TextStyle(fontSize: radius * 0.75, fontWeight: FontWeight.w700),
-              )
-            : null,
-      ),
-    );
-  }
-}
 
 class AnimalPicker extends ConsumerWidget {
   const AnimalPicker({super.key});

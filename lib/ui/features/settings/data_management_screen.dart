@@ -17,7 +17,10 @@ import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
 class DataManagementScreen extends ConsumerStatefulWidget {
-  const DataManagementScreen({super.key});
+  const DataManagementScreen({this.initialAnimalId, this.petExportOnly = false, super.key});
+
+  final String? initialAnimalId;
+  final bool petExportOnly;
 
   @override
   ConsumerState<DataManagementScreen> createState() => _DataManagementScreenState();
@@ -36,10 +39,19 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
   bool _working = false;
 
   @override
+  void initState() {
+    super.initState();
+    _animalId = widget.initialAnimalId;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
     final animals = state.activeAnimals;
-    _animalId ??= state.selectedAnimal?.id ?? animals.firstOrNull?.id;
+    if (_animalId == null || !animals.any((value) => value.id == _animalId)) {
+      _animalId = state.selectedAnimal?.id ?? animals.firstOrNull?.id;
+    }
+    final selectedAnimal = animals.where((value) => value.id == _animalId).firstOrNull;
     final documents = state.snapshot.documents
         .where(
           (value) =>
@@ -48,55 +60,62 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
         )
         .toList(growable: false);
     return Scaffold(
-      appBar: AppBar(title: const Text('Backup, restore & pet export')),
+      appBar: AppBar(
+        title: Text(widget.petExportOnly ? 'Pet export' : 'Backup, restore & pet export'),
+      ),
       body: ConstrainedPage(
         maxWidth: 820,
         child: ListView(
           children: [
-            const PageHeading(
-              title: 'Copies you control',
-              subtitle:
-                  'Create an open backup, safely restore one, or save and share a focused pet '
-                  'health summary.',
+            PageHeading(
+              title: widget.petExportOnly
+                  ? 'Export ${selectedAnimal?.name ?? 'pet'}’s health history'
+                  : 'Copies you control',
+              subtitle: widget.petExportOnly
+                  ? 'Choose a date range and create a vet-friendly PDF, CSV, or document package.'
+                  : 'Create an open backup, safely restore one, or save and share a focused pet '
+                        'health summary.',
             ),
-            const SizedBox(height: 18),
-            const CalmNotice(
-              icon: Icons.lock_outline_rounded,
-              text:
-                  'Save-file and share actions open only when you choose them. Creaturely performs '
-                  'no upload on its own during normal journaling.',
-              tone: NoticeTone.supportive,
-            ),
-            const SizedBox(height: 22),
-            const SectionHeading('Whole-journal backup'),
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    minTileHeight: 72,
-                    leading: const Icon(Icons.archive_outlined),
-                    title: const Text('Create .creaturely backup'),
-                    subtitle: Text(
-                      '${state.snapshot.animals.length} animals • '
-                      '${state.snapshot.documents.length} documents',
-                    ),
-                    trailing: const Icon(Icons.save_alt_rounded),
-                    onTap: _working ? null : _createBackup,
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    minTileHeight: 72,
-                    leading: const Icon(Icons.settings_backup_restore_rounded),
-                    title: const Text('Restore from .creaturely'),
-                    subtitle: const Text('Fully validated before an atomic replacement.'),
-                    trailing: const Icon(Icons.folder_open_rounded),
-                    onTap: _working ? null : _restoreBackup,
-                  ),
-                ],
+            if (!widget.petExportOnly) ...[
+              const SizedBox(height: 18),
+              const CalmNotice(
+                icon: Icons.lock_outline_rounded,
+                text:
+                    'Save-file and share actions open only when you choose them. Creaturely performs '
+                    'no upload on its own during normal journaling.',
+                tone: NoticeTone.supportive,
               ),
-            ),
+              const SizedBox(height: 22),
+              const SectionHeading('Whole-journal backup'),
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      minTileHeight: 72,
+                      leading: const Icon(Icons.archive_outlined),
+                      title: const Text('Create .creaturely backup'),
+                      subtitle: Text(
+                        '${state.snapshot.animals.length} animals • '
+                        '${state.snapshot.documents.length} documents',
+                      ),
+                      trailing: const Icon(Icons.save_alt_rounded),
+                      onTap: _working ? null : _createBackup,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      minTileHeight: 72,
+                      leading: const Icon(Icons.settings_backup_restore_rounded),
+                      title: const Text('Restore from .creaturely'),
+                      subtitle: const Text('Fully validated before an atomic replacement.'),
+                      trailing: const Icon(Icons.folder_open_rounded),
+                      onTap: _working ? null : _restoreBackup,
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 22),
-            const SectionHeading('Pet export'),
+            SectionHeading(widget.petExportOnly ? 'Export options' : 'Pet export'),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),

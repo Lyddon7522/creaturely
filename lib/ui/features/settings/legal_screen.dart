@@ -94,7 +94,7 @@ class LegalScreen extends StatelessWidget {
       ),
       _section(
         context,
-        'Local notifications',
+        'Notifications',
         'Operating systems may delay or suppress reminders. Always use the care plan supplied '
             'by your veterinarian and do not rely on Creaturely as the sole medication safeguard.',
       ),

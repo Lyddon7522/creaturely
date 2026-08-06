@@ -197,6 +197,22 @@ class RespiratoryThresholds {
   Map<String, Object?> toJson() => {'minimum': minimum, 'target': target, 'maximum': maximum};
 }
 
+/// Returns the number of completed calendar months since [dateOfBirth].
+///
+/// Month-end birthdays use the last available day in shorter months, and a
+/// future birth date safely resolves to zero.
+int completedAgeMonths(DateTime dateOfBirth, DateTime asOf) {
+  var months = (asOf.year - dateOfBirth.year) * 12 + asOf.month - dateOfBirth.month;
+  final lastDayOfCurrentMonth = DateTime(asOf.year, asOf.month + 1, 0).day;
+  final anniversaryDay = dateOfBirth.day > lastDayOfCurrentMonth
+      ? lastDayOfCurrentMonth
+      : dateOfBirth.day;
+  if (asOf.day < anniversaryDay) {
+    months -= 1;
+  }
+  return months < 0 ? 0 : months;
+}
+
 class Animal {
   const Animal({
     required this.id,

@@ -76,7 +76,7 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
                     onChanged: _working ? null : (value) => _toggle(value, provider, settings),
                     secondary: const Icon(Icons.cloud_sync_outlined),
                     title: const Text('Automatic recovery snapshots'),
-                    subtitle: Text(_providerName(provider)),
+                    subtitle: Text('At most once a day • ${_providerName(provider)}'),
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -146,8 +146,8 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
             const CalmNotice(
               icon: Icons.auto_delete_outlined,
               text:
-                  'Retention keeps the latest snapshot plus 7 daily, 4 weekly, and 6 monthly '
-                  'points. Attachment blobs are deduplicated by SHA-256 inside each open backup.',
+                  'Creaturely keeps the newest recovery point, plus up to 7 daily, 4 weekly, and '
+                  '6 monthly points. Older copies are removed automatically.',
             ),
             if (_working) ...[
               const SizedBox(height: 18),
@@ -252,7 +252,7 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
     });
     try {
       final manager = await ref.read(recoverySnapshotManagerProvider.future);
-      await manager.createAndPrune();
+      await manager.createAndPrune(force: true);
       await _refresh();
     } on CloudRecoveryException catch (error) {
       if (mounted) {

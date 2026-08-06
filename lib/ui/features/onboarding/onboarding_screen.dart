@@ -85,7 +85,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     thresholdMaximum: _thresholdMax,
                     species: _species,
                     disclaimerAccepted: _disclaimerAccepted,
-                    onSpeciesChanged: (value) => setState(() => _species = value),
+                    onSpeciesChanged: _changeSpecies,
                     onDisclaimerChanged: (value) => setState(() => _disclaimerAccepted = value),
                   ),
                 ],
@@ -135,6 +135,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  void _changeSpecies(String value) {
+    if (value == _species) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    _breed.clear();
+    setState(() => _species = value);
+  }
+
   Future<void> _next() async {
     if (_page < 3) {
       await _pages.nextPage(
@@ -160,7 +169,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
     if (!thresholds.isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review the breathing-range values and try again.')),
+        const SnackBar(content: Text('Review the respiratory-rate values and try again.')),
       );
       return;
     }

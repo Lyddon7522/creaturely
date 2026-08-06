@@ -13,7 +13,9 @@ import '../../core/widgets.dart';
 import '../../navigation/top_level_scroll.dart';
 
 class TimelineScreen extends ConsumerStatefulWidget {
-  const TimelineScreen({super.key});
+  const TimelineScreen({this.initialFilter, super.key});
+
+  final String? initialFilter;
 
   @override
   ConsumerState<TimelineScreen> createState() => _TimelineScreenState();
@@ -30,9 +32,23 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialFilter != null) {
+      _filters.add(widget.initialFilter!);
+    }
     _scrollCoordinator = ref.read(topLevelScrollCoordinatorProvider);
     _scrollToTop = () => animateTopLevelScrollToStart(context, _scrollController);
     _scrollCoordinator.register(TopLevelDestination.timeline, _scrollToTop);
+  }
+
+  @override
+  void didUpdateWidget(covariant TimelineScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialFilter != oldWidget.initialFilter) {
+      _filters.clear();
+      if (widget.initialFilter != null) {
+        _filters.add(widget.initialFilter!);
+      }
+    }
   }
 
   @override
@@ -82,6 +98,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
         )
         .toList(growable: false);
     final compact = usesCompactVerticalLayout(context);
+    final documentsOnly = _filters.length == 1 && _filters.contains('document');
     final leadingWidgets = <Widget>[
       PageHeading(
         title: '${animal.name}’s timeline',
@@ -112,6 +129,12 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
         toolbarHeight: compact ? 48 : null,
         title: const AnimalPicker(),
         actions: [
+          if (documentsOnly)
+            IconButton(
+              tooltip: 'Add document',
+              onPressed: () => context.push('/document/new/${animal.id}'),
+              icon: const Icon(Icons.add_rounded),
+            ),
           IconButton(
             tooltip: 'Choose date range',
             onPressed: _pickRange,
@@ -464,7 +487,7 @@ class _DoseEditDialogState extends State<_DoseEditDialog> {
               DropdownMenuItem(value: DoseStatus.given, child: Text('Given')),
               DropdownMenuItem(value: DoseStatus.skipped, child: Text('Skipped')),
               DropdownMenuItem(value: DoseStatus.missed, child: Text('Missed')),
-              DropdownMenuItem(value: DoseStatus.unrecorded, child: Text('Unrecorded')),
+              DropdownMenuItem(value: DoseStatus.unrecorded, child: Text('Not recorded yet')),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -687,7 +710,12 @@ class _DoseHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusLabel = _sentenceCase(dose.status.name);
+    final statusLabel = switch (dose.status) {
+      DoseStatus.given => 'Given',
+      DoseStatus.skipped => 'Skipped',
+      DoseStatus.missed => 'Missed',
+      DoseStatus.unrecorded => 'Pending',
+    };
     final statusIcon = switch (dose.status) {
       DoseStatus.given => Icons.check_circle_outline_rounded,
       DoseStatus.skipped => Icons.fast_forward_rounded,

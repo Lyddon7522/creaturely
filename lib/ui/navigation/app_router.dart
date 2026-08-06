@@ -13,6 +13,7 @@ import '../features/animals/animal_form_screen.dart';
 import '../features/animals/animals_screen.dart';
 import '../features/documents/document_form_screen.dart';
 import '../features/health/health_record_form_screen.dart';
+import '../features/medication/medication_details_screen.dart';
 import '../features/medication/medication_form_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/respiratory/respiratory_recording_screen.dart';
@@ -48,7 +49,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/trends',
-                pageBuilder: (context, state) => _page(context, state, const TrendsScreen()),
+                pageBuilder: (context, state) => _page(
+                  context,
+                  state,
+                  TrendsScreen(initialTab: state.uri.queryParameters['tab']),
+                ),
               ),
             ],
           ),
@@ -56,7 +61,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/timeline',
-                pageBuilder: (context, state) => _page(context, state, const TimelineScreen()),
+                pageBuilder: (context, state) => _page(
+                  context,
+                  state,
+                  TimelineScreen(initialFilter: state.uri.queryParameters['filter']),
+                ),
               ),
             ],
           ),
@@ -64,7 +73,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/schedule',
-                pageBuilder: (context, state) => _page(context, state, const ScheduleScreen()),
+                pageBuilder: (context, state) => _page(
+                  context,
+                  state,
+                  ScheduleScreen(initialView: state.uri.queryParameters['view']),
+                ),
               ),
             ],
           ),
@@ -75,6 +88,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/animal/:id/edit',
         builder: (context, state) => AnimalFormScreen(animalId: state.pathParameters['id']),
+      ),
+      GoRoute(
+        path: '/animal/:id/export',
+        builder: (context, state) =>
+            DataManagementScreen(initialAnimalId: state.pathParameters['id'], petExportOnly: true),
       ),
       GoRoute(
         path: '/record/breaths/:animalId',
@@ -122,9 +140,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/medication/:id/:animalId',
+        builder: (context, state) => MedicationDetailsScreen(
+          medicationId: state.pathParameters['id']!,
+          animalId: state.pathParameters['animalId']!,
+        ),
+      ),
+      GoRoute(
         path: '/health/new/:animalId',
-        builder: (context, state) =>
-            HealthRecordFormScreen(animalId: state.pathParameters['animalId']!),
+        builder: (context, state) => HealthRecordFormScreen(
+          animalId: state.pathParameters['animalId']!,
+          initialKind: switch (state.uri.queryParameters['kind']) {
+            'allergy' => HealthRecordKind.allergy,
+            'condition' => HealthRecordKind.condition,
+            'observation' => HealthRecordKind.observation,
+            _ => HealthRecordKind.weight,
+          },
+        ),
       ),
       GoRoute(
         path: '/health/:id/edit/:animalId',

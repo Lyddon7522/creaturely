@@ -173,7 +173,7 @@ class SpeciesSelector extends StatelessWidget {
   );
 }
 
-class BreedAutocompleteField extends StatefulWidget {
+class BreedAutocompleteField extends StatelessWidget {
   const BreedAutocompleteField({
     required this.controller,
     required this.species,
@@ -186,72 +186,37 @@ class BreedAutocompleteField extends StatefulWidget {
   final String keyPrefix;
 
   @override
-  State<BreedAutocompleteField> createState() => _BreedAutocompleteFieldState();
-}
-
-class _BreedAutocompleteFieldState extends State<BreedAutocompleteField> {
-  final FocusNode _focusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final suggestions = popularBreedSuggestions[widget.species] ?? const <String>[];
-    return RawAutocomplete<String>(
-      textEditingController: widget.controller,
-      focusNode: _focusNode,
-      displayStringForOption: (option) => option,
-      optionsBuilder: (value) {
-        if (suggestions.isEmpty) {
-          return const Iterable<String>.empty();
-        }
-        final query = value.text.trim().toLowerCase();
-        return suggestions
-            .where((option) => query.isEmpty || option.toLowerCase().contains(query))
-            .take(8);
-      },
-      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) => TextFormField(
-        key: ValueKey<String>('${widget.keyPrefix}_breed'),
+    final suggestions = popularBreedSuggestions[species] ?? const <String>[];
+    if (suggestions.isEmpty) {
+      return TextFormField(
+        key: ValueKey<String>('${keyPrefix}_breed'),
         controller: controller,
-        focusNode: focusNode,
         textCapitalization: TextCapitalization.words,
         textInputAction: TextInputAction.next,
-        onFieldSubmitted: (_) => onFieldSubmitted(),
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           labelText: 'Breed or variety (optional)',
-          helperText: suggestions.isEmpty
-              ? 'Free-form entry; multiple breeds are welcome'
-              : 'Choose a suggestion or type any breed or mix',
+          helperText: 'Free-form entry; multiple breeds are welcome',
         ),
-      ),
-      optionsViewBuilder: (context, onSelected, options) => Align(
-        alignment: Alignment.topLeft,
-        child: Material(
-          elevation: 6,
-          borderRadius: BorderRadius.circular(14),
-          clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520, maxHeight: 260),
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              shrinkWrap: true,
-              itemCount: options.length,
-              itemBuilder: (context, index) {
-                final option = options.elementAt(index);
-                final highlighted = AutocompleteHighlightedOption.of(context) == index;
-                return ListTile(
-                  selected: highlighted,
-                  title: Text(option),
-                  onTap: () => onSelected(option),
-                );
-              },
-            ),
-          ),
-        ),
+      );
+    }
+
+    return KeyedSubtree(
+      key: ValueKey<String>('${keyPrefix}_${species}_breed_suggestions'),
+      child: DropdownMenu<String>(
+        key: ValueKey<String>('${keyPrefix}_breed'),
+        controller: controller,
+        requestFocusOnTap: true,
+        enableFilter: true,
+        enableSearch: true,
+        expandedInsets: EdgeInsets.zero,
+        menuHeight: 260,
+        textInputAction: TextInputAction.next,
+        label: const Text('Breed or variety (optional)'),
+        helperText: 'Choose a suggestion or type any breed or mix',
+        dropdownMenuEntries: suggestions
+            .map((option) => DropdownMenuEntry<String>(value: option, label: option))
+            .toList(growable: false),
       ),
     );
   }
@@ -285,7 +250,7 @@ class RespiratoryThresholdFields extends StatelessWidget {
       );
       return thresholds.isMinimumOrdered
           ? null
-          : "Minimum breathing rate can't be higher than target or maximum.";
+          : "Minimum respiratory rate can't be higher than target or maximum.";
     }
 
     String? validateTarget(String? value) {
@@ -300,7 +265,7 @@ class RespiratoryThresholdFields extends StatelessWidget {
       );
       return thresholds.isTargetOrdered
           ? null
-          : "Target breathing rate can't be higher than maximum or lower than minimum.";
+          : "Target respiratory rate can't be higher than maximum or lower than minimum.";
     }
 
     String? validateMaximum(String? value) {
@@ -315,7 +280,7 @@ class RespiratoryThresholdFields extends StatelessWidget {
       );
       return thresholds.isMaximumOrdered
           ? null
-          : "Maximum breathing rate can't be lower than target or minimum.";
+          : "Maximum respiratory rate can't be lower than target or minimum.";
     }
 
     final fields = <Widget>[
@@ -342,7 +307,7 @@ class RespiratoryThresholdFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionHeading('Resting breathing range'),
+        const SectionHeading('Resting respiratory rate'),
         const CalmNotice(
           icon: Icons.info_outline_rounded,
           text:
@@ -351,7 +316,7 @@ class RespiratoryThresholdFields extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Text(
-          'All values use breaths/min. Leave any field blank if it is not configured.',
+          'All values use breaths/min. Leave any field blank if it is unknown.',
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),

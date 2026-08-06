@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../domain/models.dart';
@@ -11,7 +12,9 @@ import '../../core/widgets.dart';
 import '../../navigation/top_level_scroll.dart';
 
 class TrendsScreen extends ConsumerStatefulWidget {
-  const TrendsScreen({super.key});
+  const TrendsScreen({this.initialTab, super.key});
+
+  final String? initialTab;
 
   @override
   ConsumerState<TrendsScreen> createState() => _TrendsScreenState();
@@ -28,15 +31,24 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
   late final ScrollToTopCallback _scrollToTop;
   TrendRange _range = TrendRange.thirtyDays;
   DateTimeRange? _customRange;
-  bool _table = false;
+  bool _showList = false;
 
   @override
   void initState() {
     super.initState();
     _scrollCoordinator = ref.read(topLevelScrollCoordinatorProvider);
-    _tabs = TabController(length: 3, vsync: this)..addListener(_handleTabChanged);
+    _tabs = TabController(length: 3, initialIndex: _tabIndex(widget.initialTab), vsync: this)
+      ..addListener(_handleTabChanged);
     _scrollToTop = () => animateTopLevelScrollToStart(context, _scrollControllers[_tabs.index]);
     _scrollCoordinator.register(TopLevelDestination.trends, _scrollToTop);
+  }
+
+  @override
+  void didUpdateWidget(covariant TrendsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTab != oldWidget.initialTab) {
+      _tabs.animateTo(_tabIndex(widget.initialTab));
+    }
   }
 
   @override
@@ -55,6 +67,12 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
       setState(() {});
     }
   }
+
+  static int _tabIndex(String? value) => switch (value) {
+    'weight' => 1,
+    'medication' => 2,
+    _ => 0,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -77,9 +95,9 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
         actions: [
           if (_tabs.index != 2)
             IconButton(
-              tooltip: _table ? 'Show chart' : 'Show accessible data table',
-              onPressed: () => setState(() => _table = !_table),
-              icon: Icon(_table ? Icons.show_chart_rounded : Icons.table_rows_outlined),
+              tooltip: _showList ? 'Show chart' : 'Show measurement list',
+              onPressed: () => setState(() => _showList = !_showList),
+              icon: Icon(_showList ? Icons.show_chart_rounded : Icons.view_list_outlined),
             ),
           const SettingsAction(),
           const SizedBox(width: 4),
@@ -183,7 +201,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
       children: [
         _SummaryRow(summary: summary, unit: label, kind: kind),
         const SizedBox(height: 16),
-        if (_table)
+        if (_showList)
           _TrendTable(points: points, unit: label, kind: kind)
         else
           _TrendChart(
@@ -231,6 +249,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
         .where(
           (dose) =>
               dose.animalId == animal.id &&
+              dose.status != DoseStatus.unrecorded &&
               (start == null || !dose.dueAt.isBefore(start)) &&
               !dose.dueAt.isAfter(end),
         )
@@ -238,8 +257,8 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
     if (doses.isEmpty) {
       return const EmptyState(
         icon: Icons.medication_outlined,
-        title: 'No medication doses in this range',
-        body: 'Choose another range or add a medication schedule from the Animals dashboard.',
+        title: 'No medication outcomes in this range',
+        body: 'Given, skipped, and missed doses will appear here after they are recorded.',
       );
     }
     final medicationNames = <String, String>{
@@ -271,6 +290,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
                 _MedicationBreakdownTile(
                   name: medicationNames[medicationIds[index]] ?? 'Medication',
                   doses: grouped[medicationIds[index]]!,
+                  onTap: () => context.push('/medication/${medicationIds[index]}/${animal.id}'),
                 ),
               ],
             ],
@@ -332,11 +352,6 @@ class _MedicationSummary extends StatelessWidget {
         count: doses.where((dose) => dose.status == DoseStatus.missed).length,
         icon: Icons.event_busy_outlined,
       ),
-      (
-        label: 'Unrecorded',
-        count: doses.where((dose) => dose.status == DoseStatus.unrecorded).length,
-        icon: Icons.schedule_rounded,
-      ),
     ];
     return Card(
       child: Padding(
@@ -344,11 +359,7 @@ class _MedicationSummary extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final textScale = MediaQuery.textScalerOf(context).scale(1);
-            final columns = constraints.maxWidth >= 520 && textScale <= 1.4
-                ? 4
-                : constraints.maxWidth >= 260
-                ? 2
-                : 1;
+            final columns = constraints.maxWidth >= 340 && textScale <= 1.4 ? 3 : 1;
             const spacing = 12.0;
             final width = (constraints.maxWidth - (columns - 1) * spacing) / columns;
             return Wrap(
@@ -404,24 +415,24 @@ class _MedicationSummary extends StatelessWidget {
 }
 
 class _MedicationBreakdownTile extends StatelessWidget {
-  const _MedicationBreakdownTile({required this.name, required this.doses});
+  const _MedicationBreakdownTile({required this.name, required this.doses, required this.onTap});
 
   final String name;
   final List<DoseLedgerEntry> doses;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final given = doses.where((dose) => dose.status == DoseStatus.given).length;
     final skipped = doses.where((dose) => dose.status == DoseStatus.skipped).length;
     final missed = doses.where((dose) => dose.status == DoseStatus.missed).length;
-    final unrecorded = doses.where((dose) => dose.status == DoseStatus.unrecorded).length;
     return ListTile(
+      minTileHeight: 72,
       leading: const Icon(Icons.medication_outlined),
       title: Text(name),
-      subtitle: Text(
-        '$given given • $skipped skipped • $missed missed'
-        '${unrecorded == 0 ? '' : ' • $unrecorded unrecorded'}',
-      ),
+      subtitle: Text('$given given • $skipped skipped • $missed missed'),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
     );
   }
 }
@@ -434,29 +445,35 @@ class _RangePicker extends StatelessWidget {
   final ValueChanged<TrendRange> onSelected;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: SegmentedButton<TrendRange>(
-      segments: [
-        const ButtonSegment(value: TrendRange.sevenDays, label: Text('7D')),
-        const ButtonSegment(value: TrendRange.thirtyDays, label: Text('30D')),
-        const ButtonSegment(value: TrendRange.ninetyDays, label: Text('90D')),
-        const ButtonSegment(value: TrendRange.oneYear, label: Text('1Y')),
-        ButtonSegment(
-          value: TrendRange.custom,
-          label: Text(
-            customRange == null
-                ? 'Custom'
-                : '${DateFormat.Md().format(customRange!.start)}–'
-                      '${DateFormat.Md().format(customRange!.end)}',
+  Widget build(BuildContext context) {
+    final values = <(TrendRange, String)>[
+      (TrendRange.sevenDays, '7D'),
+      (TrendRange.thirtyDays, '30D'),
+      (TrendRange.ninetyDays, '90D'),
+      (TrendRange.oneYear, '1Y'),
+      (
+        TrendRange.custom,
+        customRange == null
+            ? 'Custom'
+            : '${DateFormat.Md().format(customRange!.start)}–'
+                  '${DateFormat.Md().format(customRange!.end)}',
+      ),
+      (TrendRange.allTime, 'All'),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final value in values)
+          ChoiceChip(
+            label: Text(value.$2),
+            selected: selected == value.$1,
+            showCheckmark: false,
+            onSelected: (_) => onSelected(value.$1),
           ),
-        ),
-        const ButtonSegment(value: TrendRange.allTime, label: Text('All')),
       ],
-      selected: {selected},
-      onSelectionChanged: (values) => onSelected(values.first),
-    ),
-  );
+    );
+  }
 }
 
 class _SummaryRow extends StatelessWidget {
@@ -747,33 +764,84 @@ class _TrendTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Accessible measurement table with ${points.length} rows',
+    label: 'Accessible measurement list with ${points.length} rows',
     child: Card(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Date and time')),
-            DataColumn(label: Text('Displayed value'), numeric: true),
-            DataColumn(label: Text('Canonical/raw value')),
-          ],
-          rows: points
-              .map(
-                (point) => DataRow(
-                  cells: [
-                    DataCell(Text(DateFormat.yMMMd().add_jm().format(point.at.toLocal()))),
-                    DataCell(
-                      Text(
-                        '${kind == _TrendKind.respiratory ? formatRespiratoryRate(point.value) : formatDisplayNumber(point.value)} $unit',
-                      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) => constraints.maxWidth >= 680
+            ? _wideTable(context)
+            : Column(
+                children: [
+                  for (var index = 0; index < points.length; index++) ...[
+                    _MeasurementRow(
+                      at: points[index].at,
+                      measurement: _measurement(points[index]),
+                      recordedAs: _recordedAs(points[index]),
                     ),
-                    DataCell(Text('${point.rawValue} ${point.rawUnit}')),
+                    if (index < points.length - 1) const Divider(height: 1),
                   ],
-                ),
-              )
-              .toList(growable: false),
-        ),
+                ],
+              ),
       ),
+    ),
+  );
+
+  Widget _wideTable(BuildContext context) => DataTable(
+    columns: const [
+      DataColumn(label: Text('Date and time')),
+      DataColumn(label: Text('Measurement'), numeric: true),
+      DataColumn(label: Text('Recorded as')),
+    ],
+    rows: points
+        .map(
+          (point) => DataRow(
+            cells: [
+              DataCell(Text(DateFormat.yMMMd().add_jm().format(point.at.toLocal()))),
+              DataCell(Text(_measurement(point))),
+              DataCell(Text(_recordedAs(point))),
+            ],
+          ),
+        )
+        .toList(growable: false),
+  );
+
+  String _measurement(TrendPoint point) =>
+      '${kind == _TrendKind.respiratory ? formatRespiratoryRate(point.value) : formatDisplayNumber(point.value)} $unit';
+
+  String _recordedAs(TrendPoint point) => '${formatDisplayNumber(point.rawValue)} ${point.rawUnit}';
+}
+
+class _MeasurementRow extends StatelessWidget {
+  const _MeasurementRow({required this.at, required this.measurement, required this.recordedAs});
+
+  final DateTime at;
+  final String measurement;
+  final String recordedAs;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          DateFormat.yMMMd().add_jm().format(at.toLocal()),
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          measurement,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          'Recorded as $recordedAs',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      ],
     ),
   );
 }

@@ -67,11 +67,11 @@ void main() {
     expect(find.text('Average'), findsOneWidget);
     expect(find.text('breaths/min • 1 entry'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Show accessible data table'));
+    await tester.tap(find.byTooltip('Show measurement list'));
     await WidgetHarness.pumpFrames(tester);
-    expect(find.bySemanticsLabel('Accessible measurement table with 1 rows'), findsOneWidget);
+    expect(find.bySemanticsLabel('Accessible measurement list with 1 rows'), findsOneWidget);
     expect(find.text('20 breaths/min'), findsOneWidget);
-    expect(find.text('10.0 breaths in 30000 ms'), findsOneWidget);
+    expect(find.text('10 breaths in 30 seconds'), findsOneWidget);
 
     tester.view.physicalSize = const Size(430, 900);
     await WidgetHarness.pumpFrames(tester);
@@ -234,11 +234,11 @@ void main() {
     expect(find.text('Given'), findsOneWidget);
     expect(find.text('Skipped'), findsOneWidget);
     expect(find.text('Missed'), findsOneWidget);
-    expect(find.text('Unrecorded'), findsOneWidget);
+    expect(find.text('Unrecorded'), findsNothing);
     expect(find.text('1 given • 1 skipped • 1 missed'), findsOneWidget);
     expect(find.text('By medication'), findsOneWidget);
     expect(find.text('Supportive care'), findsOneWidget);
-    expect(find.byTooltip('Show accessible data table'), findsNothing);
+    expect(find.byTooltip('Show measurement list'), findsNothing);
   });
 
   testWidgets('future medication repetitions live in the bounded Schedule view', (tester) async {

@@ -83,6 +83,9 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
       );
     }
     final selected = state.selectedAnimal ?? animals.first;
+    final otherAnimals = animals
+        .where((animal) => animal.id != selected.id)
+        .toList(growable: false);
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: usesCompactVerticalLayout(context) ? 48 : null,
@@ -106,52 +109,28 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
               child: _AnimalHero(
                 animal: selected,
                 onEdit: () => context.push('/animal/${selected.id}/edit'),
+                onExport: () => context.push('/animal/${selected.id}/export'),
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverToBoxAdapter(child: _QuickActions(animal: selected)),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: 18)),
             SliverToBoxAdapter(
               child: _CareSummary(animal: selected, snapshot: state.snapshot),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverToBoxAdapter(
-              child: SectionHeading(
-                'Your animals',
-                trailing: TextButton.icon(
-                  onPressed: () => context.push('/animal/new'),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add'),
+            SliverToBoxAdapter(child: _QuickActions(animal: selected)),
+            if (otherAnimals.isNotEmpty) ...[
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              SliverToBoxAdapter(
+                child: _OtherAnimals(
+                  animals: otherAnimals,
+                  onSelect: (animal) {
+                    ref.read(appControllerProvider.notifier).selectAnimal(animal.id);
+                    animateTopLevelScrollToStart(context, _scrollController);
+                  },
+                  onAdd: () => context.push('/animal/new'),
                 ),
               ),
-            ),
-            SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.crossAxisExtent;
-                final columns = width >= 760
-                    ? 3
-                    : width >= 480
-                    ? 2
-                    : 1;
-                return SliverGrid.builder(
-                  itemCount: animals.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    mainAxisExtent: 116,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                  ),
-                  itemBuilder: (context, index) {
-                    final animal = animals[index];
-                    return _AnimalCard(
-                      animal: animal,
-                      selected: animal.id == selected.id,
-                      onTap: () => ref.read(appControllerProvider.notifier).selectAnimal(animal.id),
-                    );
-                  },
-                );
-              },
-            ),
+            ],
             if (archived.isNotEmpty) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
               SliverToBoxAdapter(child: _ArchivedAnimals(animals: archived)),
@@ -196,61 +175,141 @@ class _ArchivedAnimals extends StatelessWidget {
 }
 
 class _AnimalHero extends StatelessWidget {
-  const _AnimalHero({required this.animal, required this.onEdit});
+  const _AnimalHero({required this.animal, required this.onEdit, required this.onExport});
 
   final Animal animal;
   final VoidCallback onEdit;
+  final VoidCallback onExport;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    label: '${animal.name} dashboard',
-    child: Card(
-      color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.6),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(
-          children: [
-            AnimalAvatar(animal: animal, radius: 44),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(animal.name, style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 3),
-                  Text(
-                    <String?>[animal.species, animal.breed].whereType<String>().join(' • '),
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  if (animal.approximateAgeMonths != null)
-                    Text(
-                      _friendlyAge(animal.approximateAgeMonths!),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                ],
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ageMonths = animal.dateOfBirth == null
+        ? animal.approximateAgeMonths
+        : completedAgeMonths(animal.dateOfBirth!, DateTime.now());
+    return Semantics(
+      container: true,
+      label: '${animal.name} dashboard',
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.alphaBlend(
+                  scheme.primary.withValues(alpha: dark ? 0.25 : 0.12),
+                  scheme.surface,
+                ),
+                Color.alphaBlend(
+                  scheme.secondary.withValues(alpha: dark ? 0.18 : 0.09),
+                  scheme.surface,
+                ),
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -28,
+                top: -38,
+                child: _DecorativeCircle(
+                  diameter: 132,
+                  color: scheme.secondary.withValues(alpha: dark ? 0.14 : 0.1),
+                ),
               ),
-            ),
-            IconButton(
-              tooltip: 'Edit ${animal.name}',
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
-            ),
-          ],
+              Positioned(
+                right: 42,
+                bottom: -38,
+                child: _DecorativeCircle(
+                  diameter: 84,
+                  color: scheme.primary.withValues(alpha: dark ? 0.14 : 0.08),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimalAvatar(animal: animal, radius: 38),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(animal.name, style: Theme.of(context).textTheme.headlineMedium),
+                          const SizedBox(height: 3),
+                          Text(
+                            <String?>[animal.species, animal.breed].whereType<String>().join(' • '),
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          if (ageMonths != null)
+                            Text(
+                              _friendlyAge(ageMonths, approximate: animal.dateOfBirth == null),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: [
+                              TextButton.icon(
+                                onPressed: onEdit,
+                                icon: const Icon(Icons.edit_outlined, size: 19),
+                                label: const Text('Edit'),
+                              ),
+                              TextButton.icon(
+                                key: const ValueKey('animal_export'),
+                                onPressed: onExport,
+                                icon: const Icon(Icons.ios_share_rounded, size: 19),
+                                label: const Text('Export'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
-  String _friendlyAge(int months) {
+  String _friendlyAge(int months, {required bool approximate}) {
+    final qualifier = approximate ? ' (approximate)' : '';
     if (months < 12) {
-      return '$months months old (approximate)';
+      return '$months months old$qualifier';
     }
     final years = months ~/ 12;
     final remainder = months % 12;
     return '$years ${years == 1 ? 'year' : 'years'}'
-        '${remainder == 0 ? '' : ', $remainder months'} old (approximate)';
+        '${remainder == 0 ? '' : ', $remainder months'} old$qualifier';
   }
+}
+
+class _DecorativeCircle extends StatelessWidget {
+  const _DecorativeCircle({required this.diameter, required this.color});
+
+  final double diameter;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: ExcludeSemantics(
+      child: SizedBox.square(
+        dimension: diameter,
+        child: DecoratedBox(
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+      ),
+    ),
+  );
 }
 
 class _QuickActions extends StatelessWidget {
@@ -260,43 +319,51 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actions = <({IconData icon, String label, String route, Color color})>[
-      (
-        icon: Icons.air_rounded,
-        label: 'Count breaths',
-        route: '/record/breaths/${animal.id}',
-        color: CreaturelyColors.vitalTeal,
-      ),
-      (
-        icon: Icons.medication_outlined,
-        label: 'Medication',
-        route: '/medication/new/${animal.id}',
-        color: CreaturelyColors.success,
-      ),
-      (
-        icon: Icons.monitor_weight_outlined,
-        label: 'Health record',
-        route: '/health/new/${animal.id}',
-        color: CreaturelyColors.information,
-      ),
-      (
-        icon: Icons.description_outlined,
-        label: 'Document',
-        route: '/document/new/${animal.id}',
-        color: CreaturelyColors.warning,
-      ),
-    ];
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final usesLargeText = textScale > 1.4;
+    final actionHeight = 120.0 + ((textScale - 1.0).clamp(0.0, 2.0) * 56.0).toDouble();
+    final actions =
+        <({IconData icon, String label, String supporting, VoidCallback onTap, Color color})>[
+          (
+            icon: Icons.air_rounded,
+            label: 'Count breaths',
+            supporting: 'Start timer',
+            onTap: () => context.push('/record/breaths/${animal.id}'),
+            color: CreaturelyColors.vitalTeal,
+          ),
+          (
+            icon: Icons.monitor_weight_outlined,
+            label: 'Log weight',
+            supporting: 'Add measurement',
+            onTap: () => context.push('/health/new/${animal.id}?kind=weight'),
+            color: CreaturelyColors.information,
+          ),
+          (
+            icon: Icons.medication_outlined,
+            label: 'Medications',
+            supporting: 'Review doses',
+            onTap: () => context.go('/schedule'),
+            color: CreaturelyColors.success,
+          ),
+          (
+            icon: Icons.description_outlined,
+            label: 'Documents',
+            supporting: 'View files',
+            onTap: () => context.go('/timeline?filter=document'),
+            color: CreaturelyColors.warning,
+          ),
+        ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeading('Quick actions'),
+        const SectionHeading('Care shortcuts'),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: actions.length,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 240,
-            mainAxisExtent: 92,
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: usesLargeText ? 480 : 240,
+            mainAxisExtent: actionHeight,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
           ),
@@ -304,30 +371,71 @@ class _QuickActions extends StatelessWidget {
             final action = actions[index];
             return Semantics(
               button: true,
-              label: '${action.label} for ${animal.name}',
+              label: '${action.label} for ${animal.name}. ${action.supporting}.',
               child: Card(
                 clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => context.push(action.route),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color.alphaBlend(
+                          action.color.withValues(alpha: 0.1),
+                          Theme.of(context).colorScheme.surface,
+                        ),
+                        Color.alphaBlend(
+                          action.color.withValues(alpha: 0.025),
+                          Theme.of(context).colorScheme.surface,
+                        ),
+                      ],
+                    ),
+                  ),
+                  child: InkWell(
+                    onTap: action.onTap,
+                    child: Stack(
                       children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: action.color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(11),
-                            child: Icon(action.icon, color: action.color),
+                        Positioned(
+                          right: -10,
+                          bottom: -14,
+                          child: ExcludeSemantics(
+                            child: Icon(
+                              action.icon,
+                              color: action.color.withValues(alpha: 0.07),
+                              size: 82,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Flexible(
-                          child: Text(
-                            action.label,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                        Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: action.color.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Icon(action.icon, color: action.color, size: 22),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                action.label,
+                                maxLines: usesLargeText ? 2 : 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                action.supporting,
+                                maxLines: usesLargeText ? 2 : 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -371,49 +479,59 @@ class _CareSummary extends StatelessWidget {
         .length;
     final weightUnit = snapshot.settings.weightUnit;
     final weightLabel = weightUnit == WeightUnit.kilograms ? 'kg' : 'lb';
-    final rows = <({IconData icon, String label, String value})>[
+    final rows = <({IconData icon, Color color, String label, String value, VoidCallback onTap})>[
       (
         icon: Icons.air_rounded,
+        color: CreaturelyColors.vitalTeal,
         label: 'Latest breathing',
         value: sessions.isEmpty
             ? 'Not recorded'
             : '${formatRespiratoryRate(sessions.first.ratePerMinute)}/min • '
                   '${DateFormat.MMMd().format(sessions.first.recordedAt.toLocal())}',
+        onTap: () => context.go('/trends?tab=breathing'),
       ),
       (
         icon: Icons.monitor_weight_outlined,
+        color: CreaturelyColors.information,
         label: 'Current weight',
         value: animal.currentWeightKg == null
             ? 'Not recorded'
             : '${WeightValue.from(animal.currentWeightKg!, WeightUnit.kilograms).inUnit(weightUnit).toStringAsFixed(2)} $weightLabel',
+        onTap: () => context.go('/trends?tab=weight'),
       ),
       (
         icon: Icons.medication_outlined,
-        label: 'Active medication',
-        value: '$activeMeds ${activeMeds == 1 ? 'record' : 'records'}',
+        color: CreaturelyColors.success,
+        label: 'Medications',
+        value: '$activeMeds active',
+        onTap: () => context.go('/schedule?view=schedules'),
       ),
       (
         icon: Icons.schedule_rounded,
-        label: 'Due in 24 hours',
-        value: '$due ${due == 1 ? 'dose' : 'doses'}',
+        color: CreaturelyColors.heartCoral,
+        label: 'Doses due soon',
+        value: '$due ${due == 1 ? 'dose' : 'doses'} in the next 24 hours',
+        onTap: () => context.go('/schedule'),
       ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeading('Current care'),
+        const SectionHeading('Today at a glance'),
         Card(
           child: Column(
             children: [
               for (var index = 0; index < rows.length; index++) ...[
                 ListTile(
                   minTileHeight: 64,
-                  leading: Icon(rows[index].icon),
+                  leading: _CareIcon(icon: rows[index].icon, color: rows[index].color),
                   title: Text(rows[index].label),
                   subtitle: Text(
                     rows[index].value,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: rows[index].onTap,
                 ),
                 if (index < rows.length - 1) const Divider(height: 1),
               ],
@@ -437,47 +555,161 @@ class _CareSummary extends StatelessWidget {
   }
 }
 
-class _AnimalCard extends StatelessWidget {
-  const _AnimalCard({required this.animal, required this.selected, required this.onTap});
+class _CareIcon extends StatelessWidget {
+  const _CareIcon({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.13),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: SizedBox.square(dimension: 40, child: Icon(icon, color: color, size: 21)),
+  );
+}
+
+class _OtherAnimals extends StatelessWidget {
+  const _OtherAnimals({required this.animals, required this.onSelect, required this.onAdd});
+
+  final List<Animal> animals;
+  final ValueChanged<Animal> onSelect;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final itemWidth = textScale > 1.4 ? 126.0 : 96.0;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.alphaBlend(scheme.secondary.withValues(alpha: 0.07), scheme.surface),
+            Color.alphaBlend(scheme.primary.withValues(alpha: 0.04), scheme.surface),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Other animals', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 12,
+              runSpacing: 14,
+              children: [
+                for (final animal in animals)
+                  _AnimalOrb(animal: animal, width: itemWidth, onTap: () => onSelect(animal)),
+                _AddAnimalOrb(width: itemWidth, onTap: onAdd),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimalOrb extends StatelessWidget {
+  const _AnimalOrb({required this.animal, required this.width, required this.onTap});
 
   final Animal animal;
-  final bool selected;
+  final double width;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    selected: selected,
-    label: 'Open ${animal.name}, ${animal.species}',
-    child: Card(
-      color: selected ? Theme.of(context).colorScheme.secondaryContainer : null,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              AnimalAvatar(animal: animal, radius: 28),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(animal.name, style: Theme.of(context).textTheme.titleMedium),
-                    Text(
-                      animal.species,
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
+    label: 'Switch to ${animal.name}, ${animal.species}',
+    onTap: onTap,
+    child: ExcludeSemantics(
+      child: SizedBox(
+        width: width,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: ValueKey<String>('other_animal_${animal.id}'),
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimalAvatar(animal: animal, radius: 34),
+                  const SizedBox(height: 8),
+                  Text(
+                    animal.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ],
               ),
-              if (selected) const Icon(Icons.check_circle_rounded),
-            ],
+            ),
           ),
         ),
       ),
     ),
   );
+}
+
+class _AddAnimalOrb extends StatelessWidget {
+  const _AddAnimalOrb({required this.width, required this.onTap});
+
+  final double width;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      label: 'Add animal',
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: width,
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              key: const ValueKey('other_animal_add'),
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: scheme.primaryContainer,
+                        border: Border.all(color: scheme.primary.withValues(alpha: 0.24)),
+                      ),
+                      child: Icon(Icons.add_rounded, color: scheme.primary, size: 28),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Add pet', style: Theme.of(context).textTheme.labelLarge),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

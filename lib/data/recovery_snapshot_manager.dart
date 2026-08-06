@@ -11,6 +11,7 @@ class RecoverySnapshotManager {
     required this.backups,
     required this.cloud,
     this.retention = const SnapshotRetention(),
+    this.automaticInterval = const Duration(days: 1),
   });
 
   final SnapshotStore store;
@@ -18,13 +19,22 @@ class RecoverySnapshotManager {
   final CreaturelyBackupService backups;
   final CloudRecoveryBridge cloud;
   final SnapshotRetention retention;
+  final Duration automaticInterval;
 
-  Future<CloudSnapshotInfo> createAndPrune() async {
+  Future<CloudSnapshotInfo> createAndPrune({bool force = false}) async {
     final status = await cloud.status();
     if (status != CloudRecoveryState.available) {
       throw CloudRecoveryException(status, _message(status));
     }
     final now = DateTime.now().toUtc();
+    final existing = List<CloudSnapshotInfo>.of(await cloud.list());
+    existing.sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    if (!force && existing.isNotEmpty) {
+      final elapsed = now.difference(existing.first.createdAt.toUtc());
+      if (elapsed < automaticInterval) {
+        return existing.first;
+      }
+    }
     final snapshot = await store.loadSnapshot();
     final attachments = await documents.readAttachments(snapshot.documents);
     final animalPhotos = await documents.readAnimalPhotos(snapshot.animals);

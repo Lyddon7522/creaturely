@@ -7,7 +7,7 @@ import '../support/fixtures.dart';
 import '../support/widget_harness.dart';
 
 void main() {
-  testWidgets('add animal uses species dropdown and accepts suggested or mixed breeds', (
+  testWidgets('changing species refreshes breed suggestions and accepts a custom mix', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -24,16 +24,46 @@ void main() {
       tester.widget(find.byKey(const ValueKey('animal_species'))),
       isA<DropdownButtonFormField<String>>(),
     );
+    expect(find.text('Sex (optional)'), findsOneWidget);
+    expect(find.textContaining('Sex or status'), findsNothing);
     await tester.enterText(find.byKey(const ValueKey('animal_name')), 'Juniper');
     await tester.enterText(find.byKey(const ValueKey('animal_breed')), 'Lab');
     await WidgetHarness.pumpFrames(tester);
     expect(find.text('Labrador Retriever'), findsOneWidget);
-    await tester.tap(find.text('Labrador Retriever'));
+
+    await tester.tap(find.byKey(const ValueKey('animal_species')));
+    await WidgetHarness.pumpFrames(tester);
+    await tester.tap(find.text('Cat').last);
+    await WidgetHarness.pumpFrames(tester);
+    final breedField = find.byKey(const ValueKey('animal_breed'));
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(of: breedField, matching: find.byType(EditableText)),
+          )
+          .controller
+          .text,
+      isEmpty,
+    );
+    expect(find.text('Labrador Retriever'), findsNothing);
+
+    await tester.tap(breedField);
+    await WidgetHarness.pumpFrames(tester);
+    expect(find.text('Domestic Shorthair'), findsOneWidget);
+    await tester.tap(find.text('Domestic Shorthair'));
     await WidgetHarness.pumpFrames(tester);
     await tester.enterText(
       find.byKey(const ValueKey('animal_breed')),
-      'Labrador Retriever / Poodle',
+      'Domestic Shorthair / Siamese',
     );
+
+    await tester.tap(find.byKey(const ValueKey('animal_sex')));
+    await WidgetHarness.pumpFrames(tester);
+    expect(find.text('Male'), findsOneWidget);
+    expect(find.text('Female'), findsOneWidget);
+    expect(find.text('Other'), findsOneWidget);
+    await tester.tap(find.text('Other'));
+    await WidgetHarness.pumpFrames(tester);
 
     await tester.dragUntilVisible(
       find.byKey(const ValueKey('animal_threshold_target')),
@@ -41,7 +71,11 @@ void main() {
       const Offset(0, -500),
     );
     await tester.pump();
-    expect(find.textContaining('All values use breaths/min'), findsOneWidget);
+    expect(find.text('Resting respiratory rate'), findsOneWidget);
+    expect(
+      find.text('All values use breaths/min. Leave any field blank if it is unknown.'),
+      findsOneWidget,
+    );
     await tester.enterText(find.byKey(const ValueKey('animal_threshold_minimum')), '10');
     await tester.enterText(find.byKey(const ValueKey('animal_threshold_target')), '20');
     await tester.enterText(find.byKey(const ValueKey('animal_threshold_maximum')), '30');
@@ -64,14 +98,57 @@ void main() {
 
     final saved = await harness.database.snapshot();
     final juniper = saved.animals.singleWhere((animal) => animal.name == 'Juniper');
-    expect(juniper.species, 'Dog');
-    expect(juniper.breed, 'Labrador Retriever / Poodle');
+    expect(juniper.species, 'Cat');
+    expect(juniper.breed, 'Domestic Shorthair / Siamese');
+    expect(juniper.sexOrStatus, 'Other');
     expect(juniper.thresholds.minimum, 10);
     expect(juniper.thresholds.target, 20);
     expect(juniper.thresholds.maximum, 30);
   });
 
-  testWidgets('breathing range explains which value conflicts with the other limits', (
+  testWidgets('choosing a birth date calculates age months automatically', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 1000);
+    addTearDown(tester.view.reset);
+    final harness = await WidgetHarness.create(snapshot: fixtureSnapshot());
+    addTearDown(() => harness.close(tester));
+    await harness.pumpApp(tester);
+
+    harness.container.read(routerProvider).push<void>('/animal/new');
+    await WidgetHarness.pumpFrames(tester);
+    final birthDate = find.byKey(const ValueKey('animal_birth_date'));
+    await tester.ensureVisible(birthDate);
+    await tester.tap(birthDate);
+    await WidgetHarness.pumpFrames(tester);
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+
+    await tester.tap(find.text('OK'));
+    await WidgetHarness.pumpFrames(tester);
+    final ageFinder = find.byKey(const ValueKey('animal_age_months'));
+    final calculatedAge = tester.widget<TextFormField>(ageFinder);
+    expect(calculatedAge.controller!.text, '0');
+    expect(
+      tester
+          .widget<EditableText>(find.descendant(of: ageFinder, matching: find.byType(EditableText)))
+          .readOnly,
+      isTrue,
+    );
+    expect(find.text('Calculated from birth date'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Clear date of birth'));
+    await WidgetHarness.pumpFrames(tester);
+    final editableAge = tester.widget<TextFormField>(ageFinder);
+    expect(editableAge.controller!.text, isEmpty);
+    expect(
+      tester
+          .widget<EditableText>(find.descendant(of: ageFinder, matching: find.byType(EditableText)))
+          .readOnly,
+      isFalse,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('respiratory rate explains which value conflicts with the other limits', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -113,15 +190,15 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text("Minimum breathing rate can't be higher than target or maximum."),
+      find.text("Minimum respiratory rate can't be higher than target or maximum."),
       findsOneWidget,
     );
     expect(
-      find.text("Target breathing rate can't be higher than maximum or lower than minimum."),
+      find.text("Target respiratory rate can't be higher than maximum or lower than minimum."),
       findsOneWidget,
     );
     expect(
-      find.text("Maximum breathing rate can't be lower than target or minimum."),
+      find.text("Maximum respiratory rate can't be lower than target or minimum."),
       findsOneWidget,
     );
     final minimumTop = tester.getTopLeft(
@@ -135,7 +212,9 @@ void main() {
     expect(maximumTop.dy, greaterThan(targetTop.dy));
     expect(
       tester
-          .widget<Text>(find.text("Minimum breathing rate can't be higher than target or maximum."))
+          .widget<Text>(
+            find.text("Minimum respiratory rate can't be higher than target or maximum."),
+          )
           .maxLines,
       3,
     );
@@ -146,6 +225,6 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('validation_threshold_maximum')), '30');
     expect(formKey.currentState!.validate(), isTrue);
     await tester.pump();
-    expect(find.textContaining("breathing rate can't"), findsNothing);
+    expect(find.textContaining("respiratory rate can't"), findsNothing);
   });
 }

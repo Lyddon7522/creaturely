@@ -143,7 +143,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       }
                     },
                     secondary: const Icon(Icons.notifications_none_rounded),
-                    title: const Text('Local notifications'),
+                    title: const Text('Notifications'),
                     subtitle: Text(
                       settings.notificationsAllowed
                           ? 'Medication, breathing, and weight reminders can be scheduled.'

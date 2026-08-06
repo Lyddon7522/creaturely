@@ -58,7 +58,11 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
     );
     _breed = TextEditingController(text: animal?.breed);
     _sex = TextEditingController(text: animal?.sexOrStatus);
-    _age = TextEditingController(text: animal?.approximateAgeMonths?.toString());
+    _dateOfBirth = animal?.dateOfBirth;
+    final ageMonths = _dateOfBirth == null
+        ? animal?.approximateAgeMonths
+        : completedAgeMonths(_dateOfBirth!, DateTime.now());
+    _age = TextEditingController(text: ageMonths?.toString());
     _color = TextEditingController(text: animal?.colorMarkings);
     final settings = state.snapshot.settings;
     _weightUnit = settings.weightUnit;
@@ -76,7 +80,6 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
     _thresholdMin = TextEditingController(text: animal?.thresholds.minimum?.toString());
     _thresholdTarget = TextEditingController(text: animal?.thresholds.target?.toString());
     _thresholdMax = TextEditingController(text: animal?.thresholds.maximum?.toString());
-    _dateOfBirth = animal?.dateOfBirth;
     _photoPath = animal?.photoPath;
     _archived = animal?.archived ?? false;
   }
@@ -161,7 +164,7 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
                       choice: _speciesChoice,
                       customSpecies: _customSpecies,
                       keyPrefix: 'animal',
-                      onChoiceChanged: (value) => setState(() => _speciesChoice = value),
+                      onChoiceChanged: _changeSpecies,
                     ),
                     const SizedBox(height: 14),
                     BreedAutocompleteField(
@@ -170,20 +173,48 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
                       keyPrefix: 'animal',
                     ),
                     const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _sex,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(labelText: 'Sex or status (if supplied)'),
+                    DropdownButtonFormField<String>(
+                      key: const ValueKey('animal_sex'),
+                      initialValue: _sex.text.trim(),
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: 'Sex (optional)'),
+                      items:
+                          <String>{
+                                '',
+                                'Male',
+                                'Female',
+                                'Other',
+                                if (_sex.text.trim().isNotEmpty) _sex.text.trim(),
+                              }
+                              .map(
+                                (value) => DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value.isEmpty ? 'Not specified' : value),
+                                ),
+                              )
+                              .toList(growable: false),
+                      onChanged: (value) => _sex.text = value ?? '',
                     ),
                     const SizedBox(height: 14),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: InkWell(
+                            key: const ValueKey('animal_birth_date'),
                             onTap: _chooseBirthDate,
                             borderRadius: BorderRadius.circular(14),
                             child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'Date of birth'),
+                              decoration: InputDecoration(
+                                labelText: 'Date of birth',
+                                suffixIcon: _dateOfBirth == null
+                                    ? null
+                                    : IconButton(
+                                        tooltip: 'Clear date of birth',
+                                        onPressed: _clearBirthDate,
+                                        icon: const Icon(Icons.close_rounded),
+                                      ),
+                              ),
                               child: Text(
                                 _dateOfBirth == null
                                     ? 'Not supplied'
@@ -197,9 +228,17 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextFormField(
+                            key: const ValueKey('animal_age_months'),
                             controller: _age,
+                            readOnly: _dateOfBirth != null,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(labelText: 'Approx. age (months)'),
+                            decoration: InputDecoration(
+                              labelText: 'Age (months)',
+                              helperText: _dateOfBirth == null
+                                  ? 'Optional estimate'
+                                  : 'Calculated from birth date',
+                              helperMaxLines: 2,
+                            ),
                             validator: _wholeNumber,
                           ),
                         ),
@@ -351,8 +390,27 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
       initialDate: _dateOfBirth ?? DateTime.now(),
     );
     if (value != null) {
-      setState(() => _dateOfBirth = value);
+      setState(() {
+        _dateOfBirth = value;
+        _age.text = completedAgeMonths(value, DateTime.now()).toString();
+      });
     }
+  }
+
+  void _clearBirthDate() {
+    setState(() {
+      _dateOfBirth = null;
+      _age.clear();
+    });
+  }
+
+  void _changeSpecies(String value) {
+    if (value == _speciesChoice) {
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    _breed.clear();
+    setState(() => _speciesChoice = value);
   }
 
   Future<void> _editIdentifier([AnimalIdentifier? existing]) async {
@@ -423,7 +481,7 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
     );
     if (!thresholds.isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review the breathing-range values and try again.')),
+        const SnackBar(content: Text('Review the respiratory-rate values and try again.')),
       );
       return;
     }
@@ -445,7 +503,9 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
         breed: _nullable(_breed.text),
         sexOrStatus: _nullable(_sex.text),
         dateOfBirth: _dateOfBirth,
-        approximateAgeMonths: int.tryParse(_age.text),
+        approximateAgeMonths: _dateOfBirth == null
+            ? int.tryParse(_age.text)
+            : completedAgeMonths(_dateOfBirth!, DateTime.now()),
         colorMarkings: _nullable(_color.text),
         currentWeightKg: kilograms,
         notes: _nullable(_notes.text),

@@ -107,7 +107,7 @@ class TrendDataBuilder {
             at: value.recordedAt,
             value: value.ratePerMinute,
             rawValue: value.breathCount.toDouble(),
-            rawUnit: 'breaths in ${value.durationMilliseconds} ms',
+            rawUnit: 'breaths in ${formatDisplayNumber(value.durationMilliseconds / 1000)} seconds',
           ),
         )
         .toList(growable: false);
@@ -131,18 +131,17 @@ class TrendDataBuilder {
               (start == null || !value.occurredAt.isBefore(start)) &&
               (end == null || !value.occurredAt.isAfter(end)),
         )
-        .map(
-          (value) => TrendPoint(
+        .map((value) {
+          final enteredUnit = value.enteredUnit == 'lb' ? WeightUnit.pounds : WeightUnit.kilograms;
+          final weight = WeightValue.from(value.canonicalValue!, WeightUnit.kilograms);
+          return TrendPoint(
             id: value.id,
             at: value.occurredAt,
-            value: WeightValue.from(
-              value.canonicalValue!,
-              WeightUnit.kilograms,
-            ).inUnit(displayUnit),
-            rawValue: value.canonicalValue!,
-            rawUnit: 'kg',
-          ),
-        )
+            value: weight.inUnit(displayUnit),
+            rawValue: weight.inUnit(enteredUnit),
+            rawUnit: enteredUnit == WeightUnit.kilograms ? 'kg' : 'lb',
+          );
+        })
         .toList(growable: false);
     result.sort((a, b) => a.at.compareTo(b.at));
     return result;

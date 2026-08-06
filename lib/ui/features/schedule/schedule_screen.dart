@@ -15,7 +15,9 @@ enum _ScheduleView { today, sevenDays, schedules }
 enum _AddCare { breathing, medication, weight }
 
 class ScheduleScreen extends ConsumerStatefulWidget {
-  const ScheduleScreen({super.key});
+  const ScheduleScreen({this.initialView, super.key});
+
+  final String? initialView;
 
   @override
   ConsumerState<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -26,14 +28,23 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   final ScrollController _scrollController = ScrollController();
   late final TopLevelScrollCoordinator _scrollCoordinator;
   late final ScrollToTopCallback _scrollToTop;
-  _ScheduleView _view = _ScheduleView.today;
+  late _ScheduleView _view;
 
   @override
   void initState() {
     super.initState();
+    _view = _viewFrom(widget.initialView);
     _scrollCoordinator = ref.read(topLevelScrollCoordinatorProvider);
     _scrollToTop = () => animateTopLevelScrollToStart(context, _scrollController);
     _scrollCoordinator.register(TopLevelDestination.schedule, _scrollToTop);
+  }
+
+  @override
+  void didUpdateWidget(covariant ScheduleScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialView != oldWidget.initialView) {
+      _view = _viewFrom(widget.initialView);
+    }
   }
 
   @override
@@ -241,7 +252,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               schedules: state.snapshot.medicationSchedules
                   .where((value) => value.medicationId == medication.id)
                   .toList(growable: false),
-              onTap: () => context.push('/medication/${medication.id}/edit/${medication.animalId}'),
+              onTap: () => context.push('/medication/${medication.id}/${medication.animalId}'),
             ),
             const SizedBox(height: 10),
           ],
@@ -369,6 +380,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     }
     return DateFormat.EEEE().add_MMMd().format(day);
   }
+
+  static _ScheduleView _viewFrom(String? value) => switch (value) {
+    'week' => _ScheduleView.sevenDays,
+    'schedules' => _ScheduleView.schedules,
+    _ => _ScheduleView.today,
+  };
 }
 
 class _OccurrenceCard extends StatelessWidget {
