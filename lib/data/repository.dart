@@ -37,6 +37,13 @@ class CreaturelyRepository implements SnapshotStore {
     Iterable<MedicationSchedule> schedules,
     Iterable<DoseLedgerEntry> doseEntries,
   ) => database.transaction(() async {
+    final existingDoses = await (database.select(
+      database.doseLedgerRows,
+    )..where((row) => row.medicationId.equals(medication.id))).get();
+    final recordedOccurrenceTimes = existingDoses
+        .where((dose) => dose.status != DoseStatus.unrecorded.name)
+        .map((dose) => dose.dueAt.toUtc().millisecondsSinceEpoch)
+        .toSet();
     await database.upsertMedication(medication);
     await (database.delete(
       database.medicationScheduleRows,
@@ -50,7 +57,15 @@ class CreaturelyRepository implements SnapshotStore {
     for (final schedule in schedules) {
       await database.upsertMedicationSchedule(schedule);
     }
+    final generatedOccurrenceTimes = <int>{};
     for (final dose in doseEntries) {
+      if (dose.status == DoseStatus.unrecorded) {
+        final occurrenceTime = dose.dueAt.toUtc().millisecondsSinceEpoch;
+        if (recordedOccurrenceTimes.contains(occurrenceTime) ||
+            !generatedOccurrenceTimes.add(occurrenceTime)) {
+          continue;
+        }
+      }
       await database.upsertDose(dose);
     }
   });
@@ -58,34 +73,20 @@ class CreaturelyRepository implements SnapshotStore {
   Future<void> saveDose(DoseLedgerEntry dose) => database.upsertDose(dose);
 
   Future<void> saveHealthRecord(HealthRecord record) => database.transaction(() async {
+    final previous = await (database.select(
+      database.healthRecordRows,
+    )..where((row) => row.id.equals(record.id))).getSingleOrNull();
     await database.upsertHealthRecord(record);
-    if (record.kind == HealthRecordKind.weight && record.canonicalValue != null) {
-      final current = await (database.select(
-        database.animalRows,
-      )..where((row) => row.id.equals(record.animalId))).getSingle();
-      await database.upsertAnimal(
-        Animal(
-          id: current.id,
-          createdAt: current.createdAt,
-          updatedAt: record.updatedAt,
-          name: current.name,
-          photoPath: current.photoPath,
-          species: current.species,
-          breed: current.breed,
-          sexOrStatus: current.sexOrStatus,
-          dateOfBirth: current.dateOfBirth,
-          approximateAgeMonths: current.approximateAgeMonths,
-          colorMarkings: current.colorMarkings,
-          currentWeightKg: record.canonicalValue,
-          notes: current.notes,
-          archived: current.archived,
-          thresholds: RespiratoryThresholds(
-            minimum: current.thresholdMinimum,
-            target: current.thresholdTarget,
-            maximum: current.thresholdMaximum,
-          ),
-        ),
-      );
+
+    final affectedAnimals = <String>{};
+    if (previous?.kind == HealthRecordKind.weight.name) {
+      affectedAnimals.add(previous!.animalId);
+    }
+    if (record.kind == HealthRecordKind.weight) {
+      affectedAnimals.add(record.animalId);
+    }
+    for (final animalId in affectedAnimals) {
+      await _refreshCurrentWeight(animalId);
     }
   });
 
@@ -93,5 +94,41 @@ class CreaturelyRepository implements SnapshotStore {
 
   Future<void> saveSettings(AppSettings settings) => database.saveSettings(settings);
 
-  Future<void> delete(String kind, String id) => database.deleteRecord(kind, id);
+  Future<void> delete(String kind, String id) {
+    if (kind != 'health_records') {
+      return database.deleteRecord(kind, id);
+    }
+    return database.transaction(() async {
+      final record = await (database.select(
+        database.healthRecordRows,
+      )..where((row) => row.id.equals(id))).getSingleOrNull();
+      await database.deleteRecord(kind, id);
+      if (record?.kind == HealthRecordKind.weight.name) {
+        await _refreshCurrentWeight(record!.animalId);
+      }
+    });
+  }
+
+  Future<void> _refreshCurrentWeight(String animalId) async {
+    final latest =
+        await (database.select(database.healthRecordRows)
+              ..where(
+                (row) =>
+                    row.animalId.equals(animalId) &
+                    row.kind.equals(HealthRecordKind.weight.name) &
+                    row.canonicalValue.isNotNull() &
+                    row.archived.equals(false),
+              )
+              ..orderBy([
+                (row) => OrderingTerm.desc(row.occurredAt),
+                (row) => OrderingTerm.desc(row.updatedAt),
+                (row) => OrderingTerm.desc(row.createdAt),
+                (row) => OrderingTerm.desc(row.id),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
+    await (database.update(database.animalRows)..where((row) => row.id.equals(animalId))).write(
+      AnimalRowsCompanion(currentWeightKg: Value(latest?.canonicalValue)),
+    );
+  }
 }

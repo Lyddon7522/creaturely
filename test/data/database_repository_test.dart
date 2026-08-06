@@ -94,6 +94,81 @@ void main() {
     expect(snapshot.animals.single.currentWeightKg, 1.23456789);
   });
 
+  test('backfilled and redated weigh-ins keep the latest occurrence as current', () async {
+    await repository.saveAnimal(fixtureAnimal());
+    final older = _weightRecord(
+      id: 'weight-older',
+      occurredAt: fixtureTime.add(const Duration(days: 1)),
+      value: 1,
+    );
+    final newer = _weightRecord(
+      id: 'weight-newer',
+      occurredAt: fixtureTime.add(const Duration(days: 2)),
+      value: 2,
+    );
+
+    await repository.saveHealthRecord(newer);
+    await repository.saveHealthRecord(older);
+
+    var snapshot = await repository.loadSnapshot();
+    expect(snapshot.animals.single.currentWeightKg, 2);
+
+    await repository.saveHealthRecord(
+      _weightRecord(
+        id: newer.id,
+        createdAt: newer.createdAt,
+        updatedAt: fixtureTime.add(const Duration(days: 3)),
+        occurredAt: fixtureTime,
+        value: 3,
+      ),
+    );
+
+    snapshot = await repository.loadSnapshot();
+    expect(snapshot.animals.single.currentWeightKg, 1);
+  });
+
+  test('deleting weigh-ins restores the latest remaining weight and then clears it', () async {
+    await repository.saveAnimal(fixtureAnimal());
+    final older = _weightRecord(id: 'weight-older', occurredAt: fixtureTime, value: 1);
+    final newer = _weightRecord(
+      id: 'weight-newer',
+      occurredAt: fixtureTime.add(const Duration(days: 1)),
+      value: 2,
+    );
+    await repository.saveHealthRecord(older);
+    await repository.saveHealthRecord(newer);
+
+    await repository.delete('health_records', newer.id);
+    var snapshot = await repository.loadSnapshot();
+    expect(snapshot.animals.single.currentWeightKg, 1);
+
+    await repository.delete('health_records', older.id);
+    snapshot = await repository.loadSnapshot();
+    expect(snapshot.animals.single.currentWeightKg, isNull);
+  });
+
+  test('changing a weigh-in to another record kind recomputes current weight', () async {
+    await repository.saveAnimal(fixtureAnimal());
+    final weight = _weightRecord(id: 'weight-to-edit', occurredAt: fixtureTime, value: 1);
+    await repository.saveHealthRecord(weight);
+
+    await repository.saveHealthRecord(
+      HealthRecord(
+        id: weight.id,
+        animalId: weight.animalId,
+        createdAt: weight.createdAt,
+        updatedAt: fixtureTime.add(const Duration(minutes: 1)),
+        occurredAt: weight.occurredAt,
+        kind: HealthRecordKind.observation,
+        title: 'General observation',
+        note: 'No longer a weigh-in.',
+      ),
+    );
+
+    final snapshot = await repository.loadSnapshot();
+    expect(snapshot.animals.single.currentWeightKg, isNull);
+  });
+
   test('medication edit replaces future unrecorded doses without duplicates', () async {
     final initial = fixtureSnapshot();
     await repository.replaceSnapshot(
@@ -167,6 +242,63 @@ void main() {
       isNull,
     );
   });
+
+  for (final status in <DoseStatus>[DoseStatus.given, DoseStatus.skipped]) {
+    test('medication edit does not regenerate a recently ${status.name} dose', () async {
+      final dueAt = DateTime.utc(2026, 3, 7, 14, 30);
+      final now = dueAt.add(const Duration(hours: 1));
+      final completedDose = DoseLedgerEntry(
+        id: 'completed-${status.name}',
+        medicationId: 'med-1',
+        scheduleId: 'schedule-1',
+        animalId: 'animal-1',
+        createdAt: fixtureTime,
+        updatedAt: now,
+        dueAt: dueAt,
+        intendedLocalTime: '2026-03-07T08:30',
+        timeZoneId: 'America/Chicago',
+        status: status,
+        administeredAt: status == DoseStatus.given ? now : null,
+      );
+      final initial = fixtureSnapshot();
+      await repository.replaceSnapshot(
+        CreaturelySnapshot(
+          schemaVersion: initial.schemaVersion,
+          exportedAt: initial.exportedAt,
+          animals: initial.animals,
+          identifiers: initial.identifiers,
+          respiratorySessions: initial.respiratorySessions,
+          respiratoryReminders: initial.respiratoryReminders,
+          weightReminders: initial.weightReminders,
+          medications: initial.medications,
+          medicationSchedules: initial.medicationSchedules,
+          doseLedger: <DoseLedgerEntry>[completedDose],
+          healthRecords: initial.healthRecords,
+          documents: initial.documents,
+          settings: initial.settings,
+        ),
+      );
+      final controller = AppController(
+        repository: repository,
+        reminders: const NoopReminderService(),
+        timeZones: const _UnresolvedTimeZoneService(),
+        clock: () => now,
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+
+      await controller.saveMedication(
+        fixtureMedication().copyWith(updatedAt: now),
+        <MedicationSchedule>[fixtureSchedule().copyWith(updatedAt: now)],
+      );
+
+      final occurrenceEntries = controller.state.snapshot.doseLedger
+          .where((dose) => dose.medicationId == 'med-1' && dose.dueAt.isAtSameMomentAs(dueAt))
+          .toList(growable: false);
+      expect(occurrenceEntries, hasLength(1));
+      expect(occurrenceEntries.single.status, status);
+    });
+  }
 
   test('deactivating medication preserves history without generating future doses', () async {
     await repository.replaceSnapshot(fixtureSnapshot());
@@ -345,6 +477,25 @@ void main() {
     expect(row.data['reminder_at'], isNull);
   });
 }
+
+HealthRecord _weightRecord({
+  required String id,
+  required DateTime occurredAt,
+  required double value,
+  DateTime? createdAt,
+  DateTime? updatedAt,
+}) => HealthRecord(
+  id: id,
+  animalId: 'animal-1',
+  createdAt: createdAt ?? fixtureTime,
+  updatedAt: updatedAt ?? fixtureTime,
+  occurredAt: occurredAt,
+  kind: HealthRecordKind.weight,
+  title: 'Weigh-in',
+  canonicalValue: value,
+  canonicalUnit: 'kg',
+  enteredUnit: 'kg',
+);
 
 class _MutableTimeZoneService implements TimeZoneService {
   _MutableTimeZoneService(this.identifier);
