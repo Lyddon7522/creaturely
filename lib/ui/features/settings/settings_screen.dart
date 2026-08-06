@@ -203,7 +203,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: const Text('Open a private-data-safe GitHub issue form.'),
                     trailing: const Icon(Icons.open_in_new_rounded),
                     onTap: () => _openExternal(
-                      Uri.https('github.com', '/Lyddon7522/Creaturely/issues/new', <String, String>{
+                      Uri.https('github.com', '/Lyddon7522/creaturely/issues/new', <String, String>{
                         'template': 'bug_report.yml',
                       }),
                     ),
@@ -213,9 +213,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     minTileHeight: 66,
                     leading: const Icon(Icons.code_rounded),
                     title: const Text('View Creaturely source'),
-                    subtitle: const Text('github.com/Lyddon7522/Creaturely'),
+                    subtitle: const Text('github.com/Lyddon7522/creaturely'),
                     trailing: const Icon(Icons.open_in_new_rounded),
-                    onTap: () => _openExternal(Uri.https('github.com', '/Lyddon7522/Creaturely')),
+                    onTap: () => _openExternal(Uri.https('github.com', '/Lyddon7522/creaturely')),
                   ),
                   const Divider(height: 1),
                   ListTile(

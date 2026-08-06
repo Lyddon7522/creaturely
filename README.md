@@ -1,5 +1,7 @@
 # Creaturely
 
+[![Creaturely CI](https://github.com/Lyddon7522/creaturely/actions/workflows/ci.yml/badge.svg)](https://github.com/Lyddon7522/creaturely/actions/workflows/ci.yml)
+
 Creaturely is a calm, local-first health journal for any animal. It helps one
 keeper record care for multiple animals on one active Android or iOS device,
 without an account, advertising, analytics, or a health-data backend.
@@ -225,9 +227,6 @@ provider-console secrets.
 
 Before publishing 1.0:
 
-- Create or rename the public repository to
-  [`Lyddon7522/Creaturely`](https://github.com/Lyddon7522/Creaturely), then
-  update the local Git remote after the GitHub-side rename succeeds.
 - Configure the protected GitHub release environment and both platforms'
   distribution credentials as described in
   [the release guide](docs/RELEASING.md). Local Android release-mode builds

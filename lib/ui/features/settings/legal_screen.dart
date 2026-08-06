@@ -151,7 +151,7 @@ class LegalScreen extends StatelessWidget {
         context,
         'Free and open source',
         'Creaturely is licensed under GNU GPLv3. Source code and issue tracking: '
-            'https://github.com/Lyddon7522/Creaturely',
+            'https://github.com/Lyddon7522/creaturely',
       ),
       ListTile(
         contentPadding: EdgeInsets.zero,

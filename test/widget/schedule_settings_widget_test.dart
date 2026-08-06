@@ -119,7 +119,7 @@ void main() {
 
     expect(links.opened, hasLength(1));
     expect(links.opened.single.host, 'github.com');
-    expect(links.opened.single.path, '/Lyddon7522/Creaturely/issues/new');
+    expect(links.opened.single.path, '/Lyddon7522/creaturely/issues/new');
     expect(links.opened.single.queryParameters['template'], 'bug_report.yml');
     expect(links.opened.single.toString(), isNot(contains('Moss')));
   });
