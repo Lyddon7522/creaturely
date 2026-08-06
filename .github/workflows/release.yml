@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
@@ -95,7 +95,7 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.metadata.outputs.release_sha }}
 
@@ -143,12 +143,12 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.metadata.outputs.release_sha }}
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -256,7 +256,7 @@ jobs:
           printf 'path=%s\n' "$RELEASE_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Upload Android artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: creaturely-android-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
           path: ${{ steps.package.outputs.path }}
@@ -279,7 +279,7 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.metadata.outputs.release_sha }}
 
@@ -445,7 +445,7 @@ jobs:
           printf 'path=%s\n' "$RELEASE_DIR" >> "$GITHUB_OUTPUT"
 
       - name: Upload iOS artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: creaturely-ios-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
           path: ${{ steps.package.outputs.path }}
@@ -478,7 +478,7 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.metadata.outputs.release_sha }}
 
@@ -489,7 +489,7 @@ jobs:
           bundler-cache: true
 
       - name: Download signed Android artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: creaturely-android-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
           path: beta-artifact
@@ -540,7 +540,7 @@ jobs:
 
     steps:
       - name: Check out tagged source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.metadata.outputs.release_sha }}
 
@@ -551,7 +551,7 @@ jobs:
           bundler-cache: true
 
       - name: Download signed iOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: creaturely-ios-${{ needs.metadata.outputs.version }}-${{ needs.metadata.outputs.build_number }}
           path: beta-artifact
@@ -585,7 +585,7 @@ jobs:
 
     steps:
       - name: Download signed artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: creaturely-*
           path: release-assets

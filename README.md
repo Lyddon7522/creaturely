@@ -71,7 +71,7 @@ open-source license view.
 - Dart **3.12.2**
 - Android API **24+**; compile/target SDK supplied by Flutter (API 36 in the
   current toolchain); Java 17
-- iOS **13+**
+- iOS **14+**
 - Android and iOS only. A web target is intentionally not present.
 
 Install Flutter, an Android SDK with accepted licenses, and Android Studio's

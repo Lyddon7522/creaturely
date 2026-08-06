@@ -66,4 +66,23 @@ void main() {
     expect(saved.animals.single.thresholds.maximum, 28);
     expect(saved.settings.notificationsAllowed, isFalse);
   });
+
+  testWidgets('onboarding navigation works when animations are disabled', (tester) async {
+    addTearDown(tester.platformDispatcher.clearAllTestValues);
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+      disableAnimations: true,
+    );
+    final harness = await WidgetHarness.create(snapshot: CreaturelySnapshot.empty());
+    addTearDown(() => harness.close(tester));
+    await harness.pumpApp(tester);
+
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    expect(find.text('You decide where copies go.'), findsOneWidget);
+
+    await tester.tap(find.text('Back'));
+    await tester.pump();
+    expect(find.text('Know their normal.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

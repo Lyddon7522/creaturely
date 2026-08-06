@@ -49,7 +49,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -97,14 +96,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   if (_page > 0)
                     TextButton(
-                      onPressed: _saving
-                          ? null
-                          : () => _pages.previousPage(
-                              duration: reduceMotion
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 220),
-                              curve: Curves.easeOutCubic,
-                            ),
+                      onPressed: _saving ? null : () => _showPage(_page - 1),
                       child: const Text('Back'),
                     ),
                   const Spacer(),
@@ -144,14 +136,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _species = value);
   }
 
+  Future<void> _showPage(int page) async {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pages.jumpToPage(page);
+      return;
+    }
+    await _pages.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   Future<void> _next() async {
     if (_page < 3) {
-      await _pages.nextPage(
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-      );
+      await _showPage(_page + 1);
       return;
     }
     if (!_form.currentState!.validate() || !_disclaimerAccepted) {
