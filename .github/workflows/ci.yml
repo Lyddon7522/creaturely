@@ -1,8 +1,19 @@
 name: Creaturely CI
 
+# Shared assets/brand changes intentionally continue to validate the Flutter app.
 on:
   push:
+    paths-ignore:
+      - "site/**"
+      - "infra/site/**"
+      - ".github/workflows/site.yml"
+      - "**/*.md"
   pull_request:
+    paths-ignore:
+      - "site/**"
+      - "infra/site/**"
+      - ".github/workflows/site.yml"
+      - "**/*.md"
 
 permissions:
   contents: read
