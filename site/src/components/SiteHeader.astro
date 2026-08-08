@@ -58,3 +58,13 @@ const isCurrent = (href: string) =>
     </details>
   </div>
 </header>
+
+<script>
+  document.querySelectorAll<HTMLDetailsElement>('.mobile-nav').forEach((mobileNavigation) => {
+    mobileNavigation.querySelectorAll('nav a').forEach((link) => {
+      link.addEventListener('click', () => {
+        mobileNavigation.open = false;
+      });
+    });
+  });
+</script>

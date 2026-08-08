@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +31,30 @@ function builtTarget(targetPath) {
   return resolve(distDirectory, relativePath);
 }
 
+function contentSecurityPolicy(html, page) {
+  const metaTag = [...html.matchAll(/<meta\b[^>]*>/gi)]
+    .map((match) => match[0])
+    .find((tag) => /\bhttp-equiv="content-security-policy"/i.test(tag));
+  const content = metaTag?.match(/\bcontent="([^"]*)"/i)?.[1];
+
+  if (!content) {
+    throw new Error(`Built page is missing Astro's content security policy: ${page}`);
+  }
+
+  return new Map(
+    content
+      .split(';')
+      .map((directive) => directive.trim().split(/\s+/))
+      .filter(([name]) => name)
+      .map(([name, ...sources]) => [name, sources]),
+  );
+}
+
+function contentHash(content) {
+  const hash = createHash('sha256').update(content).digest('base64');
+  return `'sha256-${hash}'`;
+}
+
 for (const page of expectedPages) {
   const path = resolve(distDirectory, page);
   if (!existsSync(path)) {
@@ -40,8 +65,50 @@ for (const page of expectedPages) {
   if (html.includes('—')) {
     throw new Error(`Built page contains an em dash: ${page}`);
   }
-  if (/<style(?:\s|>)/i.test(html)) {
-    throw new Error(`Built page contains an inline style element that the site CSP blocks: ${page}`);
+
+  const csp = contentSecurityPolicy(html, page);
+  const requiredSources = new Map([
+    ['default-src', ["'self'"]],
+    ['img-src', ["'self'", 'data:']],
+    ['connect-src', ["'self'"]],
+    ['font-src', ["'self'"]],
+    ['base-uri', ["'self'"]],
+    ['form-action', ["'none'"]],
+    ['object-src', ["'none'"]],
+    ['script-src', ["'self'"]],
+    ['style-src', ["'self'"]],
+  ]);
+
+  for (const [directive, expectedSources] of requiredSources) {
+    const sources = csp.get(directive) ?? [];
+    for (const source of expectedSources) {
+      if (!sources.includes(source)) {
+        throw new Error(`Built page CSP is missing ${directive} ${source}: ${page}`);
+      }
+    }
+  }
+
+  const policySources = [...csp.values()].flat();
+  for (const blockedSource of ["'unsafe-inline'", "'unsafe-eval'"]) {
+    if (policySources.includes(blockedSource)) {
+      throw new Error(`Built page CSP contains ${blockedSource}: ${page}`);
+    }
+  }
+
+  for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    if (!/\bsrc=/i.test(match[1]) && !csp.get('script-src')?.includes(contentHash(match[2]))) {
+      throw new Error(`Built page CSP does not authorize an inline script: ${page}`);
+    }
+  }
+
+  for (const match of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+    if (!csp.get('style-src')?.includes(contentHash(match[1]))) {
+      throw new Error(`Built page CSP does not authorize an inline style: ${page}`);
+    }
+  }
+
+  if (/\sstyle="/i.test(html)) {
+    throw new Error(`Built page contains a style attribute that the site CSP blocks: ${page}`);
   }
 
   for (const match of html.matchAll(/(?:href|src)="([^"]+)"/g)) {

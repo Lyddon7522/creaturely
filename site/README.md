@@ -39,6 +39,24 @@ The two local photographs are licensed through Unsplash and documented in
 `docs/photography.md`. The website does not request images, fonts, scripts,
 or styles from third-party origins at runtime.
 
+## Content security policy
+
+Astro owns the website content security policy through `security.csp` in
+`astro.config.mjs`. Production builds generate per-page hashes for processed
+scripts and styles, so component-owned code can remain under `src/` without
+allowing unrestricted inline content.
+
+Azure retains the response-level `frame-ancestors 'none'` policy because that
+directive cannot be enforced by Astro's meta-delivered policy. Keep the two
+policies complementary: content-loading directives belong in Astro, while the
+Azure header is limited to anti-framing protection.
+
+Astro CSP is applied during `build` and `preview`, not by the development
+server. Use `npm run verify` and a production preview when changing scripts,
+styles, or CSP configuration. Markdown syntax highlighting is disabled because
+Astro's default Shiki output uses style attributes; use a CSP-compatible
+highlighter if the site later publishes highlighted code blocks.
+
 ## Production URL
 
 Set `SITE_URL` to the final HTTPS origin when building production. This enables

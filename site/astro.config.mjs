@@ -8,8 +8,21 @@ export default defineConfig({
   output: 'static',
   site: siteUrl || undefined,
   trailingSlash: 'always',
-  build: {
-    inlineStylesheets: 'never',
+  markdown: {
+    syntaxHighlight: false,
+  },
+  security: {
+    csp: {
+      directives: [
+        "default-src 'self'",
+        "img-src 'self' data:",
+        "connect-src 'self'",
+        "font-src 'self'",
+        "base-uri 'self'",
+        "form-action 'none'",
+        "object-src 'none'",
+      ],
+    },
   },
   integrations: siteUrl ? [sitemap()] : [],
 });

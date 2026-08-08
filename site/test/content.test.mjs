@@ -43,8 +43,8 @@ test('static hosting normalizes page and file URLs independently', () => {
   );
 
   assert.equal(config.trailingSlash, 'auto');
-  assert.match(config.globalHeaders['Content-Security-Policy'], /connect-src 'self'/);
-  assert.doesNotMatch(config.globalHeaders['Content-Security-Policy'], /connect-src 'none'/);
+  assert.equal(config.globalHeaders['Content-Security-Policy'], "frame-ancestors 'none'");
+  assert.equal(config.globalHeaders['X-Frame-Options'], 'DENY');
   assert.equal(
     readFileSync(resolve(siteDirectory, 'public', 'robots.txt'), 'utf8').includes(
       'sitemap-index.xml/',
