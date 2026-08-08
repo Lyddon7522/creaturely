@@ -26,8 +26,15 @@ export AZURE_SUBSCRIPTION_ID='<subscription-id>'
 
 The script creates the resource group and Static Web App, then configures a
 passwordless GitHub OIDC application with Contributor access limited to the
-Creaturely site resource group. Azure identifiers are stored as secrets in the
-`prod` GitHub environment. The public Azure hostname is stored as the
+Creaturely site resource group. It reads GitHub's effective OIDC subject prefix
+so Azure trusts both legacy and immutable repository-subject formats, and it
+updates an existing federated credential when that subject changes.
+
+The Azure client, tenant, and subscription IDs are identifiers rather than a
+client credential. They are intentionally stored as secrets in the `prod`
+GitHub environment instead of as repository secrets so access remains scoped to
+jobs that declare that environment and future environments can use different
+values under the same names. The public Azure hostname is stored as the
 `CREATURELY_SITE_URL` environment variable so production builds can generate
 canonical and sitemap URLs.
 

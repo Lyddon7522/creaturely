@@ -57,6 +57,15 @@ if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
 fi
 
 github_repository="${GITHUB_REPOSITORY:-$(gh repo view --json nameWithOwner --jq .nameWithOwner)}"
+github_oidc_subject_prefix="$(gh api \
+  --header 'X-GitHub-Api-Version: 2026-03-10' \
+  "repos/$github_repository/actions/oidc/customization/sub" \
+  --jq '.sub_claim_prefix // empty')"
+
+if [[ -z "$github_oidc_subject_prefix" ]]; then
+  echo "Unable to resolve the effective GitHub OIDC subject for $github_repository." >&2
+  exit 1
+fi
 
 echo "Deploying Creaturely site infrastructure to subscription $(az account show --query name -o tsv) ($subscription_id)..."
 az deployment sub create "${deployment_args[@]}" --output none
@@ -99,6 +108,7 @@ if [[ -z "$workflow_service_principal_id" ]]; then
 fi
 
 federated_credential_name="github-$github_environment"
+federated_credential_subject="$github_oidc_subject_prefix:environment:$github_environment"
 federated_credential_count="$(az ad app federated-credential list \
   --id "$workflow_application_object_id" \
   --query "length([?name == '$federated_credential_name'])" \
@@ -107,7 +117,13 @@ federated_credential_count="$(az ad app federated-credential list \
 if [[ "$federated_credential_count" == '0' ]]; then
   az ad app federated-credential create \
     --id "$workflow_application_object_id" \
-    --parameters "{\"name\":\"$federated_credential_name\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"repo:$github_repository:environment:$github_environment\",\"description\":\"GitHub Actions deployment for $github_repository\",\"audiences\":[\"api://AzureADTokenExchange\"]}" \
+    --parameters "{\"name\":\"$federated_credential_name\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"$federated_credential_subject\",\"description\":\"GitHub Actions deployment for $github_repository\",\"audiences\":[\"api://AzureADTokenExchange\"]}" \
+    --output none
+else
+  az ad app federated-credential update \
+    --id "$workflow_application_object_id" \
+    --federated-credential-id "$federated_credential_name" \
+    --parameters "{\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"$federated_credential_subject\",\"description\":\"GitHub Actions deployment for $github_repository\",\"audiences\":[\"api://AzureADTokenExchange\"]}" \
     --output none
 fi
 
