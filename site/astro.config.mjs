@@ -8,5 +8,8 @@ export default defineConfig({
   output: 'static',
   site: siteUrl || undefined,
   trailingSlash: 'always',
+  build: {
+    inlineStylesheets: 'never',
+  },
   integrations: siteUrl ? [sitemap()] : [],
 });

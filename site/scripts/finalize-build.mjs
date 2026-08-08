@@ -40,6 +40,9 @@ for (const page of expectedPages) {
   if (html.includes('—')) {
     throw new Error(`Built page contains an em dash: ${page}`);
   }
+  if (/<style(?:\s|>)/i.test(html)) {
+    throw new Error(`Built page contains an inline style element that the site CSP blocks: ${page}`);
+  }
 
   for (const match of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
     const reference = match[1];
