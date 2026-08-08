@@ -1,0 +1,29 @@
+{
+  "name": "creaturely-site",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "predev": "node scripts/sync-brand-assets.mjs",
+    "dev": "astro dev",
+    "prebuild": "node scripts/clean-build.mjs && node scripts/sync-brand-assets.mjs",
+    "build": "astro build",
+    "postbuild": "node scripts/finalize-build.mjs",
+    "preview": "astro preview",
+    "precheck": "node scripts/sync-brand-assets.mjs",
+    "check": "astro check",
+    "test": "node --test",
+    "verify": "npm run check && npm test && npm run build"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^7.1.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "typescript": "^5.9.3"
+  }
+}

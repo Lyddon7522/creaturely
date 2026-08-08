@@ -74,6 +74,19 @@ open-source license view.
 - iOS **14+**
 - Android and iOS only. A web target is intentionally not present.
 
+## Public website
+
+The Creaturely marketing, privacy, terms, and support website lives in
+[`site/`](site/). It is a separate static Astro build within this repository,
+not a Flutter web target. Azure Static Web Apps infrastructure and deployment
+setup live in [`infra/site/`](infra/site/).
+
+```sh
+cd site
+npm ci
+npm run verify
+```
+
 Install Flutter, an Android SDK with accepted licenses, and Android Studio's
 Java 17 runtime for Android work. iOS builds require macOS, a full supported
 Xcode installation, an available simulator runtime, and Apple signing for
