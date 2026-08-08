@@ -1,5 +1,5 @@
 {
-  "trailingSlash": "always",
+  "trailingSlash": "auto",
   "routes": [
     {
       "route": "/_astro/*",
@@ -9,12 +9,6 @@
     },
     {
       "route": "/brand/*",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
-      "route": "/images/*",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }

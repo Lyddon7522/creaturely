@@ -1,4 +1,7 @@
 ---
+import { Image } from 'astro:assets';
+import heroPhoto from '../assets/images/erin-vey-owner-dog.webp';
+import speciesPhoto from '../assets/images/phil-desforges-owner-cat.webp';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { siteConfig } from '../data/site';
 import './index.css';
@@ -69,12 +72,13 @@ const featureLines = [
 
       <div class="hero__visual">
         <figure class="hero-photo">
-          <img
-            src="/images/erin-vey-owner-dog.webp"
+          <Image
+            src={heroPhoto}
             alt="A woman gently petting her dog at home"
-            width="1800"
-            height="1200"
-            fetchpriority="high"
+            widths={[480, 768, 960, 1200, 1600, 1800]}
+            sizes="(max-width: 980px) 92vw, (max-width: 1320px) 50vw, 650px"
+            quality="high"
+            priority
           />
         </figure>
 
@@ -130,12 +134,12 @@ const featureLines = [
 
     <section class="species-story shell" aria-labelledby="species-title">
       <figure class="species-photo">
-        <img
-          src="/images/phil-desforges-owner-cat.webp"
+        <Image
+          src={speciesPhoto}
           alt="A woman holding her cat in warm afternoon light at home"
-          width="1400"
-          height="1866"
-          loading="lazy"
+          widths={[480, 768, 960, 1200, 1400]}
+          sizes="(max-width: 980px) calc(100vw - 2.3rem), (max-width: 1320px) 42vw, 540px"
+          quality="high"
         />
       </figure>
 

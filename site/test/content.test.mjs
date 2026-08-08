@@ -36,3 +36,17 @@ test('the site does not load remote image or script assets', () => {
     assert.doesNotMatch(source, /<script[^>]+src=["']https?:\/\//, path);
   }
 });
+
+test('static hosting normalizes page and file URLs independently', () => {
+  const config = JSON.parse(
+    readFileSync(resolve(siteDirectory, 'staticwebapp.config.json'), 'utf8'),
+  );
+
+  assert.equal(config.trailingSlash, 'auto');
+  assert.equal(
+    readFileSync(resolve(siteDirectory, 'public', 'robots.txt'), 'utf8').includes(
+      'sitemap-index.xml/',
+    ),
+    false,
+  );
+});

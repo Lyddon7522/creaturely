@@ -76,3 +76,21 @@ for (const statement of ['no advertising', 'no analytics', 'no account']) {
     throw new Error(`Privacy page is missing the required statement: ${statement}`);
   }
 }
+
+const indexHtml = readFileSync(resolve(distDirectory, 'index.html'), 'utf8');
+const heroImageTag = indexHtml.match(
+  /<img\b[^>]*alt="A woman gently petting her dog at home"[^>]*>/,
+)?.[0];
+
+if (!heroImageTag) {
+  throw new Error('Built home page is missing the hero image');
+}
+for (const attribute of ['srcset=', 'loading="eager"', 'fetchpriority="high"']) {
+  if (!heroImageTag.includes(attribute)) {
+    throw new Error(`Built hero image is missing ${attribute}`);
+  }
+}
+
+if (indexHtml.includes('/brand/design-tokens.css')) {
+  throw new Error('Built home page loads the design tokens stylesheet twice');
+}
