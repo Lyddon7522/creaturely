@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import './404.css';
+---
+
+<BaseLayout
+  title="Page not found | Creaturely"
+  description="The requested Creaturely page could not be found."
+  noindex={true}
+  bodyClass="not-found-body"
+>
+  <main id="main-content" class="not-found shell">
+    <img
+      src="/brand/logos/creaturely-mark-primary.svg"
+      alt=""
+      width="128"
+      height="128"
+    />
+    <p class="not-found__code">404</p>
+    <h1>This note wandered off.</h1>
+    <p>The page you followed is not here, but the rest of Creaturely is close by.</p>
+    <a class="button button--primary" href="/">Return home</a>
+  </main>
+</BaseLayout>

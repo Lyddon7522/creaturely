@@ -1,0 +1,281 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../data/site';
+import './index.css';
+
+const timelineEntries = [
+  {
+    time: '7:30 am',
+    label: 'Daily note',
+    title: 'Breakfast looked different.',
+    detail: 'Ate about half of breakfast and took longer than usual. Energy otherwise seemed normal.',
+  },
+  {
+    time: '2:10 pm',
+    label: 'Resting breathing',
+    title: '18 breaths per minute.',
+    detail: 'Taken while sleeping after lunch. Breathing looked steady.',
+  },
+  {
+    time: '8:00 pm',
+    label: 'Medication',
+    title: 'Evening dose recorded.',
+    detail: '2.5 ml given with dinner. No difficulty taking it.',
+  },
+];
+
+const featureLines = [
+  {
+    title: 'A profile that fits the animal',
+    body: 'Keep photos, age, weight, notes, allergies, conditions, and identifiers such as microchips, bands, tags, or tattoos.',
+  },
+  {
+    title: 'A care schedule you control',
+    body: 'Set medication, breathing-check, and weight reminders around the routine you already have.',
+  },
+  {
+    title: 'Follow weight and breathing trends',
+    body: 'Record weigh-ins and resting or sleeping breathing checks, then see how those measurements change over time.',
+  },
+  {
+    title: 'Their health history in one timeline',
+    body: 'Review daily notes, health records, documents, medication history, and trends together for each animal.',
+  },
+  {
+    title: 'Copies that belong to you',
+    body: 'Save or share PDF summaries, CSV data, ZIP packages, and complete open-format backups through your device.',
+  },
+];
+---
+
+<BaseLayout>
+  <main id="main-content">
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero__copy">
+        <h1 id="hero-title">
+          Know their
+          <span>normal.</span>
+        </h1>
+        <p class="hero__lede">
+          Creaturely is a free, private health journal for every animal in your care. Keep
+          medications, weight, breathing checks, documents, and daily notes together without an
+          account.
+        </p>
+        <div class="hero__actions">
+          <a class="button button--primary" href="#journal">Explore the journal</a>
+          <a class="text-link" href="#privacy">See the privacy promise</a>
+        </div>
+      </div>
+
+      <div class="hero__visual">
+        <figure class="hero-photo">
+          <img
+            src="/images/erin-vey-owner-dog.webp"
+            alt="A woman gently petting her dog at home"
+            width="1800"
+            height="1200"
+            fetchpriority="high"
+          />
+        </figure>
+
+        <article class="moment-note" aria-label="Example journal note">
+          <div class="moment-note__meta">
+            <span>Tuesday</span>
+            <time datetime="07:42">7:42 am</time>
+          </div>
+          <p>Luna seemed quieter after breakfast. Added a note to check in again this afternoon.</p>
+          <div class="moment-note__animal">
+            <span class="moment-note__avatar" aria-hidden="true">L</span>
+            <span><strong>Luna</strong> · daily observation</span>
+          </div>
+        </article>
+      </div>
+
+      <div class="truth-line" aria-label="Creaturely product principles">
+        <span>No account</span>
+        <span>No ads</span>
+        <span>No analytics</span>
+        <span>Open source</span>
+      </div>
+    </section>
+
+    <section class="care-story" id="journal" aria-labelledby="care-story-title">
+      <div class="shell care-story__layout">
+        <header class="section-intro">
+          <h2 id="care-story-title">Care lives in the details.</h2>
+          <p>
+            Appetite. Energy. A dose given on time. A number you want to remember for the next
+            appointment. Creaturely keeps those everyday details together so you can look back
+            and spot changes over time.
+          </p>
+        </header>
+
+        <ol class="dayline" aria-label="An example day in Creaturely">
+          {
+            timelineEntries.map((entry) => (
+              <li>
+                <time>{entry.time}</time>
+                <span class="dayline__dot" aria-hidden="true"></span>
+                <article>
+                  <p class="entry-kind">{entry.label}</p>
+                  <h3>{entry.title}</h3>
+                  <p>{entry.detail}</p>
+                </article>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+    </section>
+
+    <section class="species-story shell" aria-labelledby="species-title">
+      <figure class="species-photo">
+        <img
+          src="/images/phil-desforges-owner-cat.webp"
+          alt="A woman holding her cat in warm afternoon light at home"
+          width="1400"
+          height="1866"
+          loading="lazy"
+        />
+      </figure>
+
+      <div class="species-story__copy">
+        <h2 id="species-title">Made for the animals in your life.</h2>
+        <p>
+          Create a separate journal for every animal in your care. Species and breed are yours to
+          describe, and each animal gets their own health history, medications, measurements, and
+          daily notes.
+        </p>
+      </div>
+    </section>
+
+    <section class="inside-app" aria-labelledby="inside-app-title">
+      <div class="shell inside-app__layout">
+        <figure class="journal-paper" aria-label="Example Creaturely journal entries">
+          <div class="journal-paper__binding" aria-hidden="true"></div>
+          <div class="journal-paper__heading">
+            <div>
+              <p>Jude’s care log</p>
+              <span>Tuesday, August 4</span>
+            </div>
+            <img
+              src="/brand/logos/creaturely-mark-primary.svg"
+              alt=""
+              width="128"
+              height="128"
+            />
+          </div>
+          <div class="journal-entry">
+            <time>8:05</time>
+            <p><strong>Medication given</strong><span>2.5 ml · after breakfast</span></p>
+            <span class="journal-entry__check" aria-label="Recorded">✓</span>
+          </div>
+          <div class="journal-entry">
+            <time>12:40</time>
+            <p><strong>Weight</strong><span>20.3 lbs · home scale</span></p>
+            <span class="journal-entry__mark" aria-hidden="true"></span>
+          </div>
+          <div class="journal-entry journal-entry--note">
+            <time>17:15</time>
+            <p>
+              <strong>Observation</strong>
+              <span>More interested in the evening walk.</span>
+            </p>
+            <span class="journal-entry__mark" aria-hidden="true"></span>
+          </div>
+          <figcaption>Example entries use fictional animals and information.</figcaption>
+        </figure>
+
+        <div class="inside-app__copy">
+          <h2 id="inside-app-title">One place for the whole care story.</h2>
+          <div class="feature-lines">
+            {
+              featureLines.map((feature) => (
+                <article>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.body}</p>
+                </article>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy-promise" id="privacy" aria-labelledby="privacy-title">
+      <img
+        class="privacy-promise__mark"
+        src="/brand/logos/creaturely-mark-reversed.svg"
+        alt=""
+        width="128"
+        height="128"
+      />
+      <div class="shell privacy-promise__layout">
+        <header>
+          <h2 id="privacy-title">Your journal is not our data.</h2>
+          <p>
+            The complete journal works without a Creaturely account. Your entries remain on your
+            device unless you choose to export, share, or enable private recovery with your
+            platform provider.
+          </p>
+          <a class="button button--light" href="/privacy/">Read the full privacy policy</a>
+        </header>
+
+        <div class="privacy-statements">
+          <p><strong>Nothing to sign into.</strong> Open the app and start a journal.</p>
+          <p><strong>Nothing watching you.</strong> No advertising, analytics, or tracking.</p>
+          <p><strong>Nothing held hostage.</strong> Export readable files and complete backups when you choose.</p>
+          <p><strong>See the bigger picture.</strong> Review notes and measurements over time to spot changes and patterns.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="take-it shell" aria-labelledby="take-it-title">
+      <div class="take-it__copy">
+        <h2 id="take-it-title">Take the record with you.</h2>
+        <p>
+          Prepare a pet health summary for an appointment, share raw data for a closer look, or
+          keep a complete backup in a place you control. Creaturely creates files that can leave
+          the app because the record belongs to you.
+        </p>
+        <p class="take-it__fine-print">
+          Optional CloudKit and Google Drive recovery is private backup and restore. It is not
+          live multi-device sync.
+        </p>
+      </div>
+
+      <div class="file-stack" aria-label="Creaturely export formats">
+        <div class="file-sheet file-sheet--backup">
+          <span>.creaturely</span>
+          <strong>Complete backup</strong>
+          <small>Validated and portable</small>
+        </div>
+        <div class="file-sheet file-sheet--pdf">
+          <span>PDF</span>
+          <strong>Health summary</strong>
+          <small>Ready to save or share</small>
+        </div>
+        <div class="file-sheet file-sheet--data">
+          <span>CSV + ZIP</span>
+          <strong>Data and documents</strong>
+          <small>Selected by you</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing-call" id="availability" aria-labelledby="closing-title">
+      <div class="shell closing-call__inner">
+        <div>
+          <h2 id="closing-title">Free should mean free.</h2>
+          <p>
+            Creaturely has no subscription, advertising, or locked export. The source is public,
+            the backup format is documented, and the app is licensed under GPLv3.
+          </p>
+        </div>
+        <div class="closing-call__actions">
+          <a class="button button--ink" href={siteConfig.repositoryUrl}>Follow the project on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

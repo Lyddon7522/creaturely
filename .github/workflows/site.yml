@@ -1,0 +1,184 @@
+name: Creaturely Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "assets/brand/**"
+      - "infra/site/**"
+      - ".github/workflows/site.yml"
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - "site/**"
+      - "assets/brand/**"
+      - "infra/site/**"
+      - ".github/workflows/site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: creaturely-site-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-deploy:
+    name: Check, build, and deploy site
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    environment: prod
+    env:
+      AZURE_RESOURCE_GROUP_NAME: creaturely-prod-rg-01
+      STATIC_WEB_APP_NAME: creaturely-prod-swa-01
+      SITE_URL: ${{ vars.CREATURELY_SITE_URL }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install site dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Audit dependencies
+        working-directory: site
+        run: npm audit --audit-level=high
+
+      - name: Check Astro and TypeScript
+        working-directory: site
+        run: npm run check
+
+      - name: Run site tests
+        working-directory: site
+        run: npm test
+
+      - name: Build static site
+        working-directory: site
+        run: npm run build
+
+      - name: Sign in to Azure with OIDC
+        if: >-
+          (github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main') ||
+          (github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.event.pull_request.user.login != 'dependabot[bot]')
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Deploy Static Web App infrastructure
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: azure/bicep-deploy@v2
+        with:
+          action-on-unmanage-resources: delete
+          deny-settings-mode: none
+          name: creaturely-site-prod
+          operation: create
+          resource-group-name: ${{ env.AZURE_RESOURCE_GROUP_NAME }}
+          scope: resourceGroup
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          template-file: ./infra/site/main.bicep
+          type: deploymentStack
+
+      - name: Read deployment token
+        if: >-
+          (github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main') ||
+          (github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.event.pull_request.user.login != 'dependabot[bot]')
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(az staticwebapp secrets list \
+            --name "$STATIC_WEB_APP_NAME" \
+            --resource-group "$AZURE_RESOURCE_GROUP_NAME" \
+            --query properties.apiKey \
+            --output tsv)"
+
+          if [[ -z "$token" ]]; then
+            echo "Unable to read a deployment token for $STATIC_WEB_APP_NAME" >&2
+            exit 1
+          fi
+
+          echo "AZURE_STATIC_WEB_APPS_API_TOKEN=$token" >> "$GITHUB_ENV"
+
+      - name: Deploy prebuilt site to Azure Static Web Apps
+        if: >-
+          (github.event_name != 'pull_request' &&
+          github.ref == 'refs/heads/main') ||
+          (github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.event.pull_request.user.login != 'dependabot[bot]')
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          action: upload
+          app_location: site/dist
+          azure_static_web_apps_api_token: ${{ env.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          production_branch: main
+          repo_token: ${{ github.token }}
+          skip_api_build: true
+          skip_app_build: true
+
+  close-preview:
+    name: Close Azure preview environment
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    environment: prod
+    env:
+      AZURE_RESOURCE_GROUP_NAME: creaturely-prod-rg-01
+      STATIC_WEB_APP_NAME: creaturely-prod-swa-01
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Read deployment token
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(az staticwebapp secrets list \
+            --name "$STATIC_WEB_APP_NAME" \
+            --resource-group "$AZURE_RESOURCE_GROUP_NAME" \
+            --query properties.apiKey \
+            --output tsv)"
+
+          if [[ -z "$token" ]]; then
+            echo "Unable to read a deployment token for $STATIC_WEB_APP_NAME" >&2
+            exit 1
+          fi
+
+          echo "AZURE_STATIC_WEB_APPS_API_TOKEN=$token" >> "$GITHUB_ENV"
+
+      - name: Close preview
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          action: close
+          azure_static_web_apps_api_token: ${{ env.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ github.token }}

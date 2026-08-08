@@ -1,0 +1,138 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { siteConfig } from '../data/site';
+
+const effectiveDate = 'Effective August 7, 2026';
+---
+
+<LegalLayout
+  title="Terms of use | Creaturely"
+  description="Terms for using the Creaturely animal health journal, including the veterinary disclaimer and open-source license."
+  heading="Terms that respect the purpose of the tool."
+  intro="Creaturely helps you keep your own records. It does not replace professional veterinary care or make medical decisions."
+  effectiveDate={effectiveDate}
+>
+  <nav slot="contents">
+    <a href="#agreement">Agreement</a>
+    <a href="#journal">The journal</a>
+    <a href="#medical">Veterinary disclaimer</a>
+    <a href="#your-content">Your information</a>
+    <a href="#backups">Backups and services</a>
+    <a href="#open-source">Open source</a>
+    <a href="#availability">Availability</a>
+    <a href="#liability">Liability</a>
+    <a href="#changes">Changes and contact</a>
+  </nav>
+
+  <section id="agreement">
+    <h2>Agreement</h2>
+    <p>
+      These terms apply when you use the Creaturely mobile application or this website. By using
+      Creaturely, you agree to use it lawfully and in a way that does not interfere with other
+      people, systems, or services.
+    </p>
+    <p>If you do not agree with these terms, do not use Creaturely.</p>
+  </section>
+
+  <section id="journal">
+    <h2>What Creaturely provides</h2>
+    <p>
+      Creaturely is a free, local-first journal for information you choose to record about animals
+      in your care. Features can include profiles, observations, measurements, medication records,
+      reminders, documents, trends, exports, and backups.
+    </p>
+    <p>
+      You are responsible for deciding what to enter, checking its accuracy, and keeping any copies
+      you need. Creaturely does not verify user-entered information.
+    </p>
+  </section>
+
+  <section id="medical">
+    <h2>Veterinary and safety disclaimer</h2>
+    <p>
+      Creaturely is not a diagnostic tool, medical device, emergency service, or substitute for a
+      veterinarian. It does not diagnose, predict, treat, or confirm the health of an animal.
+    </p>
+    <p>
+      Measurements, trends, and reminders are record-keeping aids. They can be incomplete,
+      delayed, or affected by how information was entered. If you are worried about an animal,
+      contact a veterinarian. For an urgent concern, use an appropriate veterinary emergency
+      service rather than relying on the app or a notification.
+    </p>
+  </section>
+
+  <section id="your-content">
+    <h2>Your information and responsibilities</h2>
+    <p>
+      You retain responsibility for the journal content, photos, and documents you add. Only add
+      information that you have the right to store and share. Protect the device and any exported
+      copies in a way that fits the sensitivity of the information.
+    </p>
+    <p>
+      Do not post real animal health records, personal documents, or Creaturely backups in public
+      support issues. Use synthetic or carefully redacted examples when reporting a problem.
+    </p>
+  </section>
+
+  <section id="backups">
+    <h2>Backups, exports, and third-party services</h2>
+    <p>
+      System share sheets, file providers, Apple CloudKit, Google Drive, GitHub, app stores, and
+      other external services are operated by their respective providers. Their availability,
+      security, and terms are outside Creaturely's control.
+    </p>
+    <p>
+      Test important backups before depending on them. Keep more than one copy when the record
+      matters. Optional cloud recovery is not a promise of continuous sync or permanent storage.
+    </p>
+  </section>
+
+  <section id="open-source">
+    <h2>Open-source license</h2>
+    <p>
+      Creaturely's source code is free software under the GNU General Public License version 3.
+      Your rights to copy, study, modify, and distribute the software are governed by that license,
+      which is available in the <a href={siteConfig.licenseUrl}>public repository</a>.
+    </p>
+    <p>
+      The Creaturely name, logos, and other brand assets are not automatically licensed for use as
+      the identity of a different product merely because the application code is open source.
+    </p>
+  </section>
+
+  <section id="availability">
+    <h2>Availability and changes</h2>
+    <p>
+      Creaturely may change as the project develops. Features can be added, revised, or removed,
+      and support for operating-system versions can change. There is no guarantee that every
+      feature will always be available on every device.
+    </p>
+  </section>
+
+  <section id="liability">
+    <h2>Warranty and liability</h2>
+    <p>
+      Creaturely is provided without warranties to the extent permitted by law. Vector42 does not
+      guarantee that the software will be uninterrupted, error-free, or suitable for a particular
+      medical, legal, or record-retention purpose.
+    </p>
+    <p>
+      To the extent permitted by law, Vector42 is not liable for indirect, incidental, special, or
+      consequential loss arising from use of Creaturely, reliance on reminders or records, loss of
+      local data, or use of an external service. Rights that cannot legally be excluded remain in
+      effect.
+    </p>
+  </section>
+
+  <section id="changes">
+    <h2>Changes and contact</h2>
+    <p>
+      These terms may be updated as Creaturely changes. A revised effective date will appear at the
+      top of this page.
+    </p>
+    <p>
+      Questions can be submitted through the <a href={siteConfig.supportUrl}>Creaturely support form</a>.
+      Remember that GitHub issues are public.
+    </p>
+  </section>
+</LegalLayout>

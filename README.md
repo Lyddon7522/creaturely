@@ -74,6 +74,19 @@ open-source license view.
 - iOS **14+**
 - Android and iOS only. A web target is intentionally not present.
 
+## Public website
+
+The Creaturely marketing, privacy, terms, and support website lives in
+[`site/`](site/). It is a separate static Astro build within this repository,
+not a Flutter web target. Azure Static Web Apps infrastructure and deployment
+setup live in [`infra/site/`](infra/site/).
+
+```sh
+cd site
+npm ci
+npm run verify
+```
+
 Install Flutter, an Android SDK with accepted licenses, and Android Studio's
 Java 17 runtime for Android work. iOS builds require macOS, a full supported
 Xcode installation, an available simulator runtime, and Apple signing for
@@ -158,14 +171,17 @@ See [the open backup format](docs/BACKUP_FORMAT.md) and
 
 ## CI, release builds, and distribution
 
-Every push and pull request runs generation checks, formatting, analysis,
-tests, an Android integration journey, and Android/iOS development builds.
-Version tags run a separate approval-gated workflow that creates signed
-Android AAB/APK and iOS IPA/dSYM artifacts plus SHA-256 manifests, retains them
-as GitHub Actions artifacts for the public-repository maximum of 90 days, and
-assembles a durable draft GitHub Release archive. A manual release run can also
-send that exact build through Fastlane to Google Play Internal and TestFlight;
-tag pushes never deploy to a store, and production promotion remains manual.
+Every mobile-relevant push and pull request runs generation checks, formatting,
+analysis, tests, an Android integration journey, and Android/iOS development
+builds. Changes limited to the static site or its Azure infrastructure use the
+separate site workflow and skip Flutter CI. Documentation-only changes also
+skip Flutter CI. Version tags run a separate approval-gated workflow that
+creates signed Android AAB/APK and iOS IPA/dSYM artifacts plus SHA-256
+manifests, retains them as GitHub Actions artifacts for the public-repository
+maximum of 90 days, and assembles a durable draft GitHub Release archive. A
+manual release run can also send that exact build through Fastlane to Google
+Play Internal and TestFlight; tag pushes never deploy to a store, and
+production promotion remains manual.
 
 Signing material belongs in the protected `mobile-release` GitHub environment,
 and store API credentials belong in `mobile-beta`, never in the repository.

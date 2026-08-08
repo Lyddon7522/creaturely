@@ -1,0 +1,173 @@
+---
+import LegalLayout from '../layouts/LegalLayout.astro';
+import { siteConfig } from '../data/site';
+
+const effectiveDate = 'Effective August 7, 2026';
+---
+
+<LegalLayout
+  title="Privacy policy | Creaturely"
+  description="How Creaturely keeps animal health journals local, what leaves the device only by choice, and what Vector42 does not collect."
+  heading="Privacy, in plain language."
+  intro="Creaturely is designed so you can keep a complete animal health journal without giving that journal to us."
+  effectiveDate={effectiveDate}
+>
+  <nav slot="contents">
+    <a href="#scope">Scope</a>
+    <a href="#collection">What we collect</a>
+    <a href="#local-data">Data on your device</a>
+    <a href="#data-exits">When data leaves</a>
+    <a href="#recovery">Optional recovery</a>
+    <a href="#permissions">Permissions</a>
+    <a href="#retention">Retention and deletion</a>
+    <a href="#security">Security</a>
+    <a href="#changes">Changes and contact</a>
+  </nav>
+
+  <section id="scope">
+    <h2>Scope</h2>
+    <p>
+      This policy applies to the Creaturely mobile application for iOS and Android and to this
+      public Creaturely website. Creaturely is published by {siteConfig.publisher}.
+    </p>
+    <p>
+      Creaturely is a personal journal. It is not a medical device, veterinary service, or
+      diagnostic tool.
+    </p>
+  </section>
+
+  <section id="collection">
+    <h2>What Vector42 collects</h2>
+    <p>
+      Vector42 collects no Creaturely journal data. The app has no account of any kind, no
+      Vector42 backend, no advertising, no analytics, and no crash-reporting or remote-logging
+      SDK.
+    </p>
+    <p>
+      This website uses no analytics, advertising, tracking pixels, account system, or nonessential
+      cookies. Azure Static Web Apps and ordinary network infrastructure process technical request
+      information, such as an IP address and browser headers, when serving the site. That processing
+      is governed by the infrastructure provider and is not used by Creaturely to build profiles or
+      measure product behavior.
+    </p>
+  </section>
+
+  <section id="local-data">
+    <h2>Data kept on your device</h2>
+    <p>
+      Normal journaling uses local SQLite storage and app-managed files. Depending on what you
+      enter, this can include:
+    </p>
+    <ul>
+      <li>animal profiles, photos, species, breeds, approximate ages, and notes;</li>
+      <li>identifiers such as microchips, tags, bands, and tattoos;</li>
+      <li>weight entries and manual resting or sleeping breathing sessions;</li>
+      <li>medications, schedules, reminders, and dose status;</li>
+      <li>allergies, conditions or body issues, and custom observations;</li>
+      <li>documents and images that you choose to import; and</li>
+      <li>app preferences, units, and notification settings.</li>
+    </ul>
+    <p>
+      Creaturely does not send this information to Vector42 during normal use. Local data remains
+      the source of truth even when optional recovery is enabled.
+    </p>
+  </section>
+
+  <section id="data-exits">
+    <h2>When data leaves your device</h2>
+    <p>Data can leave the app only through an action you take or a feature you configure:</p>
+    <ul>
+      <li>
+        You can send a temporary PDF, CSV, or ZIP through the operating system share sheet. The
+        app removes its temporary share copy after the interaction returns.
+      </li>
+      <li>
+        You can save a <code>.creaturely</code> backup, health summary, raw-data export, or document
+        package through the system file picker. The destination provider applies its own terms.
+      </li>
+      <li>
+        Camera and photo-library features read only the media you capture, grant, or select, then
+        copy it into app-managed storage.
+      </li>
+      <li>
+        Source-code and support links open GitHub in your chosen browser. Creaturely does not add
+        journal data to those links.
+      </li>
+    </ul>
+    <p>
+      Think carefully before sharing a health summary or backup. Once another person or service
+      receives a copy, their handling of it is outside Creaturely's control.
+    </p>
+  </section>
+
+  <section id="recovery">
+    <h2>Optional private recovery</h2>
+    <p>
+      If you opt in, Creaturely can store validated backup snapshots in your own private platform
+      storage. iOS uses the private CloudKit database associated with your Apple account. Android
+      uses Google Drive's hidden app-data folder with the limited <code>drive.appdata</code> scope.
+    </p>
+    <p>
+      Recovery is backup and restore, not live sync. Creaturely does not receive your cloud account
+      credentials or the contents of those snapshots. Apple and Google process the copies under
+      their own privacy terms.
+    </p>
+  </section>
+
+  <section id="permissions">
+    <h2>Device permissions</h2>
+    <p>Creaturely asks for access only when a feature needs it:</p>
+    <ul>
+      <li>Notifications support medication, breathing-check, and weight reminders.</li>
+      <li>Camera and photo access support animal photos and selected records.</li>
+      <li>File access supports imports, exports, and backups through system pickers.</li>
+      <li>Network access supports optional private cloud recovery and external links.</li>
+    </ul>
+    <p>
+      Denying a permission limits the related feature but does not prevent ordinary local
+      journaling.
+    </p>
+  </section>
+
+  <section id="retention">
+    <h2>Retention and deletion</h2>
+    <p>
+      You control local journal entries inside the app. Removing an entry deletes it from the live
+      journal according to the app's normal safeguards. Uninstalling Creaturely removes its local
+      app data according to your operating system's behavior.
+    </p>
+    <p>
+      Exports and backups remain wherever you chose to save or share them. Private recovery
+      snapshots remain in your platform account until you remove them through Creaturely or the
+      provider's available controls.
+    </p>
+  </section>
+
+  <section id="security">
+    <h2>Security and backup files</h2>
+    <p>
+      Creaturely validates backup checksums and relationships before restore and creates a safety
+      snapshot before replacing the live journal. These controls help detect corruption and avoid
+      partial restores.
+    </p>
+    <p>
+      A <code>.creaturely</code> backup is not encrypted by the app. Protect exported files using a
+      trusted destination, device passcode, full-disk encryption, and any security controls offered
+      by your storage provider.
+    </p>
+  </section>
+
+  <section id="changes">
+    <h2>Policy changes and contact</h2>
+    <p>
+      If Creaturely's data practices change, this policy and the in-repository privacy boundary will
+      be updated before the new behavior is released. The effective date at the top will also
+      change.
+    </p>
+    <p>
+      Questions can be submitted through the <a href={siteConfig.supportUrl}>Creaturely support form</a>.
+      GitHub issues are public. Do not include real animal health information, backups, photos,
+      documents, addresses, or other personal information.
+    </p>
+  </section>
+</LegalLayout>

@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { siteConfig } from '../data/site';
+import './support.css';
+
+const questions = [
+  {
+    question: 'Does Creaturely need an account or internet connection?',
+    answer:
+      'No. The complete journal works locally without a Creaturely account. Network access is used only for external links and optional private recovery that you enable with Apple CloudKit or Google Drive.',
+  },
+  {
+    question: 'Where is my journal stored?',
+    answer:
+      'Entries live in local SQLite storage and app-managed files on the active device. Local data remains the source of truth during ordinary use.',
+  },
+  {
+    question: 'How do I back up the journal?',
+    answer:
+      'Use the backup controls in Settings to save a validated .creaturely file through the system file picker. Store it in a trusted location and keep another copy when the record matters.',
+  },
+  {
+    question: 'Is private recovery the same as sync?',
+    answer:
+      'No. Private recovery stores snapshots in your Apple or Google account for backup and restore. It does not continuously merge changes between devices.',
+  },
+  {
+    question: 'Can I share information with a veterinarian?',
+    answer:
+      'Yes. You can prepare a PDF health summary, CSV raw data, or a ZIP package with selected documents, then save or share it through your device. Review every export before sending it.',
+  },
+  {
+    question: 'Are medication and care reminders guaranteed?',
+    answer:
+      'No notification system is guaranteed. Operating systems can delay or suppress reminders. Treat notifications as an aid and keep another safeguard for time-sensitive care.',
+  },
+  {
+    question: 'What kinds of animals can I add?',
+    answer:
+      'Creaturely is species-neutral. You can choose a common species or enter a custom species and breed, so the journal can fit companion animals, farm animals, birds, reptiles, and others.',
+  },
+  {
+    question: 'What should I include in a bug report?',
+    answer:
+      'Include the Creaturely version, platform, operating-system version, locale, steps to reproduce, what you expected, and what happened. Use fictional or redacted examples only.',
+  },
+];
+---
+
+<BaseLayout
+  title="Support | Creaturely"
+  description="Help with Creaturely backups, privacy, reminders, exports, supported animals, and reporting a problem."
+  bodyClass="support-body"
+>
+  <main id="main-content" class="support-page">
+    <header class="support-hero shell">
+      <h1>Help for the person who keeps the notes.</h1>
+      <p>
+        Find a quick answer, learn how your journal is stored, or report a problem without sharing
+        private animal information.
+      </p>
+      <a class="button button--primary" href={siteConfig.supportUrl}>Open the support form</a>
+    </header>
+
+    <section class="support-paths shell" aria-labelledby="support-paths-title">
+      <h2 id="support-paths-title">Start with what you need.</h2>
+      <div class="support-paths__links">
+        <a href="#answers">
+          <strong>Use and recovery</strong>
+          <span>Local storage, backups, exports, and reminders</span>
+        </a>
+        <a href="/privacy/">
+          <strong>Privacy</strong>
+          <span>What stays local and when information can leave</span>
+        </a>
+        <a href={siteConfig.repositoryUrl}>
+          <strong>Source code</strong>
+          <span>Follow development and inspect how Creaturely works</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="support-answers shell" id="answers" aria-labelledby="answers-title">
+      <header>
+        <h2 id="answers-title">Common answers</h2>
+        <p>These answers describe the current Creaturely v1 design.</p>
+      </header>
+      <div class="question-list">
+        {
+          questions.map((item, index) => (
+            <details open={index === 0}>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
+            </details>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="report-guide" aria-labelledby="report-title">
+      <div class="shell report-guide__layout">
+        <div>
+          <h2 id="report-title">Report the behavior, not the private record.</h2>
+          <p>
+            GitHub support issues are public. Never attach a real <code>.creaturely</code> backup,
+            animal health report, photo, medical document, address, or other personal information.
+          </p>
+        </div>
+        <div class="report-list">
+          <p><strong>Useful:</strong> app version, platform, OS version, locale, and clear steps.</p>
+          <p><strong>Safe:</strong> fictional names, made-up measurements, and redacted screenshots.</p>
+          <p><strong>Leave out:</strong> real records, backup files, identifiers, and private documents.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="safety-note shell" aria-labelledby="safety-title">
+      <img
+        src="/brand/logos/creaturely-mark-primary.svg"
+        alt=""
+        width="128"
+        height="128"
+      />
+      <div>
+        <h2 id="safety-title">Worried about an animal right now?</h2>
+        <p>
+          Contact a veterinarian or an appropriate veterinary emergency service. Creaturely is a
+          journal and reminder aid, not a diagnostic or emergency tool.
+        </p>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

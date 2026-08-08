@@ -1,0 +1,34 @@
+---
+import { siteConfig } from '../data/site';
+import './SiteFooter.css';
+
+const year = new Date().getUTCFullYear();
+---
+
+<footer class="site-footer">
+  <div class="site-footer__top">
+    <a class="footer-mark" href="/" aria-label="Creaturely home">
+      <img
+        src="/brand/logos/creaturely-mark-reversed.svg"
+        alt=""
+        width="128"
+        height="128"
+      />
+    </a>
+    <p>
+      <strong>Know their normal.</strong>
+      The details that matter, kept together.
+    </p>
+    <nav aria-label="Footer navigation">
+      <a href="/privacy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="/support/">Support</a>
+      <a href={siteConfig.repositoryUrl}>Source code</a>
+    </nav>
+  </div>
+  <div class="site-footer__bottom">
+    <span>&copy; {year} {siteConfig.publisher}</span>
+    <span>Free software licensed under GPLv3.</span>
+    <span>Creaturely is a journal, not a diagnostic tool.</span>
+  </div>
+</footer>

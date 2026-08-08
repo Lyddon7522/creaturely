@@ -1,0 +1,59 @@
+---
+import './SiteHeader.css';
+
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const links = [
+  { href: '/#journal', label: 'The journal' },
+  { href: '/#privacy', label: 'Privacy' },
+  { href: '/support/', label: 'Support' },
+];
+
+const isCurrent = (href: string) =>
+  href.startsWith('/support') && currentPath.startsWith('/support');
+---
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand-link" href="/" aria-label="Creaturely home">
+      <img
+        src="/brand/logos/creaturely-logo-horizontal-primary.svg"
+        alt="Creaturely"
+        width="520"
+        height="128"
+      />
+    </a>
+
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      {
+        links.map((link) => (
+          <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+            {link.label}
+          </a>
+        ))
+      }
+      <a class="nav-source" href="https://github.com/Lyddon7522/creaturely">View source</a>
+    </nav>
+
+    <details class="mobile-nav">
+      <summary>
+        <span>Menu</span>
+        <span class="mobile-nav__lines" aria-hidden="true"></span>
+      </summary>
+      <nav aria-label="Mobile navigation">
+        {
+          links.map((link) => (
+            <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+              {link.label}
+            </a>
+          ))
+        }
+        <a href="https://github.com/Lyddon7522/creaturely">View source</a>
+      </nav>
+    </details>
+  </div>
+</header>
