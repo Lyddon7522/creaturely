@@ -182,6 +182,30 @@ abstract class AppLocalizations {
   /// **'Resting breathing'**
   String get respiratoryRate;
 
+  /// No description provided for @quickActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick actions'**
+  String get quickActions;
+
+  /// No description provided for @countBreaths.
+  ///
+  /// In en, this message translates to:
+  /// **'Count breaths'**
+  String get countBreaths;
+
+  /// No description provided for @logWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Log weight'**
+  String get logWeight;
+
+  /// No description provided for @observation.
+  ///
+  /// In en, this message translates to:
+  /// **'Observation'**
+  String get observation;
+
   /// No description provided for @medications.
   ///
   /// In en, this message translates to:

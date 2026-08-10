@@ -9,7 +9,7 @@ import '../support/fixtures.dart';
 import '../support/widget_harness.dart';
 
 void main() {
-  testWidgets('animal home prioritizes today and routes shortcuts to management views', (
+  testWidgets('animal home leads with scrollable quick actions and routes management views', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -19,17 +19,20 @@ void main() {
     addTearDown(() => harness.close(tester));
     await harness.pumpApp(tester);
 
+    expect(find.text('Quick actions'), findsOneWidget);
     expect(find.text('Today at a glance'), findsOneWidget);
     expect(find.text('Latest breathing'), findsOneWidget);
     expect(find.text('Current weight'), findsOneWidget);
-    final animalsHome = find.byKey(const PageStorageKey<String>('animals_home'));
-    await tester.drag(animalsHome, const Offset(0, -500));
-    await WidgetHarness.pumpFrames(tester);
-    expect(find.text('Review doses'), findsOneWidget);
-    expect(find.text('View files'), findsOneWidget);
+    final quickActions = find.byKey(const ValueKey<String>('quick_actions_scroll'));
+    final animalHero = find.byKey(const ValueKey<String>('animal_hero'));
+    final documents = find.byKey(const ValueKey<String>('quick_action_documents'));
+    expect(tester.getTopLeft(quickActions).dy, lessThan(tester.getTopLeft(animalHero).dy));
+    final quickActionsRect = tester.getRect(quickActions);
+    final initialDocumentsRect = tester.getRect(documents);
+    expect(initialDocumentsRect.left, lessThan(quickActionsRect.right));
+    expect(initialDocumentsRect.right, greaterThan(quickActionsRect.right));
 
-    final medications = find.bySemanticsLabel('Medications for Moss. Review doses.');
-    expect(tester.getCenter(medications).dy, lessThan(950));
+    final medications = find.byKey(const ValueKey<String>('quick_action_medications'));
     await tester.tap(medications);
     await WidgetHarness.pumpFrames(tester);
     expect(find.text('Moss’s schedule'), findsOneWidget);
@@ -37,13 +40,47 @@ void main() {
 
     harness.container.read(routerProvider).go('/animals');
     await WidgetHarness.pumpFrames(tester);
-    final documents = find.bySemanticsLabel('Documents for Moss. View files.');
-    expect(tester.getCenter(documents).dy, lessThan(950));
+    await tester.drag(quickActions, const Offset(-140, 0));
+    await WidgetHarness.pumpFrames(tester);
+    expect(tester.getRect(documents).right, lessThanOrEqualTo(quickActionsRect.right));
     await tester.tap(documents);
     await WidgetHarness.pumpFrames(tester);
     expect(find.text('Rabies certificate'), findsOneWidget);
     expect(find.text('Resting breathing'), findsNothing);
     expect(find.byTooltip('Add document'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('quick actions reflow for large text without hiding labels or touch targets', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1200);
+    tester.platformDispatcher.textScaleFactorTestValue = 1.6;
+    addTearDown(tester.view.reset);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final harness = await WidgetHarness.create(snapshot: fixtureSnapshot());
+    addTearDown(() => harness.close(tester));
+    await harness.pumpApp(tester);
+
+    expect(find.byKey(const ValueKey<String>('quick_actions_scroll')), findsNothing);
+    expect(find.byKey(const ValueKey<String>('quick_actions_grid')), findsOneWidget);
+    for (final key in <String>[
+      'quick_action_breathing',
+      'quick_action_weight',
+      'quick_action_observation',
+      'quick_action_medications',
+      'quick_action_documents',
+    ]) {
+      final action = find.byKey(ValueKey<String>(key));
+      expect(action, findsOneWidget);
+      expect(tester.getSize(action).height, greaterThanOrEqualTo(68));
+    }
+    expect(find.text('Count breaths'), findsOneWidget);
+    expect(find.text('Log weight'), findsOneWidget);
+    expect(find.text('Observation'), findsOneWidget);
+    expect(find.text('Medication'), findsWidgets);
+    expect(find.text('Documents'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

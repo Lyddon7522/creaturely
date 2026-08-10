@@ -99,6 +99,336 @@ class SectionHeading extends StatelessWidget {
   );
 }
 
+enum QuickActionTone { primary, accent, primaryTonal, secondaryTonal, neutral }
+
+@immutable
+class QuickActionItem {
+  const QuickActionItem({
+    required this.key,
+    required this.icon,
+    required this.label,
+    required this.semanticLabel,
+    required this.tone,
+    required this.onTap,
+  });
+
+  final Key key;
+  final IconData icon;
+  final String label;
+  final String semanticLabel;
+  final QuickActionTone tone;
+  final VoidCallback onTap;
+}
+
+class QuickActionRail extends StatelessWidget {
+  const QuickActionRail({required this.actions, this.maxWidth = 680, super.key});
+
+  final List<QuickActionItem> actions;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final labelScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+            final useIconLeadingLayout = constraints.maxWidth < 340 || labelScale > 1.3;
+            if (useIconLeadingLayout) {
+              return _buildIconLeadingLayout(context, constraints.maxWidth);
+            }
+            return _buildScrollableLayout(context, constraints.maxWidth);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconLeadingLayout(BuildContext context, double availableWidth) {
+    const spacing = 8.0;
+    final columns = availableWidth < 280 ? 1 : 2;
+    final width = (availableWidth - (spacing * (columns - 1))) / columns;
+    return Wrap(
+      key: const ValueKey<String>('quick_actions_grid'),
+      spacing: spacing,
+      runSpacing: spacing,
+      children: [
+        for (final action in actions)
+          SizedBox(
+            width: width,
+            child: _QuickActionButton(
+              key: action.key,
+              action: action,
+              iconLeading: true,
+              iconStyle: _iconStyle(context, action.tone),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildScrollableLayout(BuildContext context, double availableWidth) {
+    const spacing = 8.0;
+    final visibleActionCount = actions.length < 4 ? actions.length : 4;
+    final showsOverflowHint = actions.length > visibleActionCount;
+    final nextActionPeek = showsOverflowHint ? 40.0 : 0.0;
+    final spacingCount = (visibleActionCount - 1) + (showsOverflowHint ? 1 : 0);
+    final preferredWidth =
+        (availableWidth - nextActionPeek - (spacing * spacingCount)) / visibleActionCount;
+    final actionWidth = preferredWidth.clamp(80.0, 104.0).toDouble();
+    return SizedBox(
+      height: 94,
+      child: SingleChildScrollView(
+        key: const ValueKey<String>('quick_actions_scroll'),
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          key: const ValueKey<String>('quick_actions_row'),
+          children: [
+            for (var index = 0; index < actions.length; index++) ...[
+              if (index > 0) const SizedBox(width: spacing),
+              SizedBox(
+                width: actionWidth,
+                child: _QuickActionButton(
+                  key: actions[index].key,
+                  action: actions[index],
+                  iconLeading: false,
+                  iconStyle: _iconStyle(context, actions[index].tone),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  ({Color foreground, BoxDecoration decoration}) _iconStyle(
+    BuildContext context,
+    QuickActionTone tone,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(CreaturelyRadii.standard);
+    return switch (tone) {
+      QuickActionTone.primary => (
+        foreground: CreaturelyColors.white,
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [CreaturelyColors.deepTeal, CreaturelyColors.vitalTeal],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: CreaturelyColors.vitalTeal.withValues(alpha: 0.24),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+      ),
+      QuickActionTone.accent => (
+        foreground: scheme.onSecondary,
+        decoration: BoxDecoration(
+          color: scheme.secondary,
+          borderRadius: radius,
+          boxShadow: [
+            BoxShadow(
+              color: scheme.secondary.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+      ),
+      QuickActionTone.primaryTonal => (
+        foreground: scheme.onPrimaryContainer,
+        decoration: BoxDecoration(
+          color: scheme.primaryContainer,
+          borderRadius: radius,
+          border: Border.all(color: scheme.primary.withValues(alpha: 0.16)),
+        ),
+      ),
+      QuickActionTone.secondaryTonal => (
+        foreground: scheme.onSecondaryContainer,
+        decoration: BoxDecoration(
+          color: scheme.secondaryContainer,
+          borderRadius: radius,
+          border: Border.all(color: scheme.secondary.withValues(alpha: 0.16)),
+        ),
+      ),
+      QuickActionTone.neutral => (
+        foreground: scheme.onSurfaceVariant,
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: radius,
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+      ),
+    };
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  const _QuickActionButton({
+    required this.action,
+    required this.iconLeading,
+    required this.iconStyle,
+    super.key,
+  });
+
+  final QuickActionItem action;
+  final bool iconLeading;
+  final ({Color foreground, BoxDecoration decoration}) iconStyle;
+
+  @override
+  Widget build(BuildContext context) => _TactileSurface(
+    semanticLabel: action.semanticLabel,
+    onTap: action.onTap,
+    child: iconLeading ? _buildIconLeading(context) : _buildIconAbove(context),
+  );
+
+  Widget _buildIconAbove(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 94),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          _QuickActionIcon(
+            icon: action.icon,
+            foreground: iconStyle.foreground,
+            decoration: iconStyle.decoration,
+          ),
+          const SizedBox(height: 9),
+          SizedBox(
+            height: 17,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                action.label,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                  height: 1.15,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildIconLeading(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 68),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      child: Row(
+        children: [
+          _QuickActionIcon(
+            icon: action.icon,
+            foreground: iconStyle.foreground,
+            decoration: iconStyle.decoration,
+            size: 48,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              action.label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+                height: 1.15,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _QuickActionIcon extends StatelessWidget {
+  const _QuickActionIcon({
+    required this.icon,
+    required this.foreground,
+    required this.decoration,
+    this.size = 52,
+  });
+
+  final IconData icon;
+  final Color foreground;
+  final BoxDecoration decoration;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: DecoratedBox(
+      decoration: decoration,
+      child: SizedBox.square(
+        dimension: size,
+        child: Icon(icon, color: foreground, size: 24),
+      ),
+    ),
+  );
+}
+
+class _TactileSurface extends StatefulWidget {
+  const _TactileSurface({required this.semanticLabel, required this.onTap, required this.child});
+
+  final String semanticLabel;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_TactileSurface> createState() => _TactileSurfaceState();
+}
+
+class _TactileSurfaceState extends State<_TactileSurface> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final radius = BorderRadius.circular(CreaturelyRadii.standard);
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      onTap: widget.onTap,
+      excludeSemantics: true,
+      child: AnimatedScale(
+        scale: _pressed ? 0.985 : 1,
+        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: widget.onTap,
+            onHighlightChanged: (value) {
+              if (_pressed != value) {
+                setState(() => _pressed = value);
+              }
+            },
+            child: widget.child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class EmptyState extends StatelessWidget {
   const EmptyState({
     required this.icon,

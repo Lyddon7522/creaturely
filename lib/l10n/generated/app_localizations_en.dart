@@ -56,6 +56,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get respiratoryRate => 'Resting breathing';
 
   @override
+  String get quickActions => 'Quick actions';
+
+  @override
+  String get countBreaths => 'Count breaths';
+
+  @override
+  String get logWeight => 'Log weight';
+
+  @override
+  String get observation => 'Observation';
+
+  @override
   String get medications => 'Medication';
 
   @override
