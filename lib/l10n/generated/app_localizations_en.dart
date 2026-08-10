@@ -68,6 +68,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String get observation => 'Observation';
 
   @override
+  String get todayAtAGlance => 'Today at a glance';
+
+  @override
+  String get latestBreathing => 'Latest breathing';
+
+  @override
+  String get breathing => 'Breathing';
+
+  @override
+  String get weight => 'Weight';
+
+  @override
+  String get currentWeight => 'Current weight';
+
+  @override
+  String get medicationStatus => 'Medications';
+
+  @override
+  String get dosesDueSoon => 'Doses due soon';
+
+  @override
+  String get notRecorded => 'Not recorded';
+
+  @override
+  String get currentRecordedWeight => 'Current recorded weight';
+
+  @override
+  String get reviewSchedules => 'Review schedules';
+
+  @override
+  String get next24Hours => 'Next 24 hours';
+
+  @override
+  String get countBreathsToStartTrend => 'Count breaths to start a trend';
+
+  @override
+  String get logWeightToStartTrend => 'Log a weight to start a trend';
+
+  @override
+  String recordedDate(String date) {
+    return 'Recorded $date';
+  }
+
+  @override
+  String activeMedicationCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count active',
+      one: '1 active',
+      zero: '0 active',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shortDoseCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count doses',
+      one: '1 dose',
+      zero: '0 doses',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String editAnimal(String animalName) {
+    return 'Edit $animalName';
+  }
+
+  @override
+  String exportAnimal(String animalName) {
+    return 'Export $animalName';
+  }
+
+  @override
+  String animalDashboard(String animalName) {
+    return '$animalName dashboard';
+  }
+
+  @override
   String get medications => 'Medication';
 
   @override

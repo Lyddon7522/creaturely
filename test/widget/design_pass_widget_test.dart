@@ -81,6 +81,61 @@ void main() {
     expect(find.text('Observation'), findsOneWidget);
     expect(find.text('Medication'), findsWidgets);
     expect(find.text('Documents'), findsOneWidget);
+    final animalsHome = find.byKey(const PageStorageKey<String>('animals_home'));
+    await tester.drag(animalsHome, const Offset(0, -900));
+    await WidgetHarness.pumpFrames(tester);
+    final breathingCard = find.byKey(const ValueKey<String>('care_summary_breathing'));
+    final weightCard = find.byKey(const ValueKey<String>('care_summary_weight'));
+    final breathingRect = tester.getRect(breathingCard);
+    final weightRect = tester.getRect(weightCard);
+    expect(breathingRect.left, closeTo(weightRect.left, 0.01));
+    expect(weightRect.top, greaterThan(breathingRect.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('animal snapshot and glance cards are dense, accessible, and navigable', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1100);
+    addTearDown(tester.view.reset);
+    final harness = await WidgetHarness.create(snapshot: fixtureSnapshot());
+    addTearDown(() => harness.close(tester));
+    await harness.pumpApp(tester);
+
+    expect(find.text('20/min'), findsNWidgets(2));
+    expect(find.text('0.26 lb'), findsNWidgets(2));
+    expect(find.text('1 active'), findsNWidgets(2));
+
+    final edit = find.byKey(const ValueKey<String>('animal_edit'));
+    final export = find.byKey(const ValueKey<String>('animal_export'));
+    expect(find.byTooltip('Edit Moss'), findsOneWidget);
+    expect(find.byTooltip('Export Moss'), findsOneWidget);
+    expect(find.descendant(of: edit, matching: find.byIcon(Icons.edit_rounded)), findsOneWidget);
+    expect(tester.getSize(edit).width, greaterThanOrEqualTo(48));
+    expect(tester.getSize(edit).height, greaterThanOrEqualTo(48));
+    expect(tester.getSize(export).width, greaterThanOrEqualTo(48));
+    expect(tester.getSize(export).height, greaterThanOrEqualTo(48));
+
+    final breathing = find.byKey(const ValueKey<String>('care_summary_breathing'));
+    final weight = find.byKey(const ValueKey<String>('care_summary_weight'));
+    final medications = find.byKey(const ValueKey<String>('care_summary_medications'));
+    final doses = find.byKey(const ValueKey<String>('care_summary_doses'));
+    final breathingRect = tester.getRect(breathing);
+    final weightRect = tester.getRect(weight);
+    final medicationsRect = tester.getRect(medications);
+    final dosesRect = tester.getRect(doses);
+    expect(breathingRect.top, closeTo(weightRect.top, 0.01));
+    expect(medicationsRect.top, closeTo(dosesRect.top, 0.01));
+    expect(medicationsRect.top, greaterThan(breathingRect.bottom));
+    expect(breathingRect.width, closeTo(weightRect.width, 0.01));
+    expect(breathingRect.height, greaterThanOrEqualTo(150));
+
+    await tester.tap(weight);
+    await WidgetHarness.pumpFrames(tester);
+    final uri = harness.container.read(routerProvider).routeInformationProvider.value.uri;
+    expect(uri.path, '/trends');
+    expect(uri.queryParameters['tab'], 'weight');
     expect(tester.takeException(), isNull);
   });
 
