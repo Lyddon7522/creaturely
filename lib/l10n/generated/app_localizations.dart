@@ -326,6 +326,78 @@ abstract class AppLocalizations {
   /// **'Medication'**
   String get medications;
 
+  /// No description provided for @medicationPrescriptionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Prescription & supply'**
+  String get medicationPrescriptionDetails;
+
+  /// No description provided for @medicationPrescriptionDetailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional medicine, veterinarian, and refill information.'**
+  String get medicationPrescriptionDetailsHint;
+
+  /// No description provided for @medicationStrengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength or concentration'**
+  String get medicationStrengthLabel;
+
+  /// No description provided for @medicationStrengthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, 20 mg/mL'**
+  String get medicationStrengthHint;
+
+  /// No description provided for @medicationPrescriberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Prescribing veterinarian or clinic'**
+  String get medicationPrescriberLabel;
+
+  /// No description provided for @medicationPharmacyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pharmacy'**
+  String get medicationPharmacyLabel;
+
+  /// No description provided for @medicationPrescriptionNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Prescription number'**
+  String get medicationPrescriptionNumberLabel;
+
+  /// No description provided for @medicationRefillsRemainingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Refills remaining'**
+  String get medicationRefillsRemainingLabel;
+
+  /// No description provided for @medicationNextRefillDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next refill date'**
+  String get medicationNextRefillDateLabel;
+
+  /// No description provided for @medicationNoRefillDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No refill date'**
+  String get medicationNoRefillDate;
+
+  /// No description provided for @medicationClearNextRefillDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear next refill date'**
+  String get medicationClearNextRefillDate;
+
+  /// No description provided for @medicationRefillsValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a whole number of zero or more.'**
+  String get medicationRefillsValidation;
+
   /// No description provided for @documents.
   ///
   /// In en, this message translates to:

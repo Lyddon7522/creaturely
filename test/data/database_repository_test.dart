@@ -415,10 +415,15 @@ void main() {
     expect(controller.state.snapshot.settings.notificationPermissionAsked, isTrue);
   });
 
-  test('actual Drift v1 schema migrates through weight reminders in v4', () async {
+  test('actual Drift v1 schema migrates through medication details in v5', () async {
     await database.close();
     final executor = NativeDatabase.memory(
       setup: (sqlite) {
+        sqlite.execute('''
+          CREATE TABLE medication_rows (
+            id TEXT NOT NULL PRIMARY KEY
+          )
+        ''');
         sqlite.execute('''
           CREATE TABLE medication_schedule_rows (
             id TEXT NOT NULL PRIMARY KEY,
@@ -449,12 +454,58 @@ void main() {
     expect(tables.map((row) => row.read<String>('name')), contains('care_document_rows'));
     expect(tables.map((row) => row.read<String>('name')), contains('respiratory_reminder_rows'));
     expect(tables.map((row) => row.read<String>('name')), contains('weight_reminder_rows'));
+    final medicationColumns = await migrated
+        .customSelect('PRAGMA table_info(medication_rows)')
+        .get();
+    expect(
+      medicationColumns.map((row) => row.read<String>('name')),
+      containsAll(<String>[
+        'strength',
+        'pharmacy',
+        'prescription_number',
+        'refills_remaining',
+        'next_refill_date',
+      ]),
+    );
+  });
+
+  test('v5 migration preserves medication rows and adds nullable prescription details', () async {
+    await database.close();
+    final executor = NativeDatabase.memory(
+      setup: (sqlite) {
+        sqlite.execute('''
+          CREATE TABLE medication_rows (
+            id TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL
+          )
+        ''');
+        sqlite.execute("INSERT INTO medication_rows (id, name) VALUES ('legacy-med', 'Legacy')");
+        sqlite.userVersion = 4;
+      },
+    );
+    final migrated = AppDatabase.forTesting(executor);
+    addTearDown(migrated.close);
+
+    final row = await migrated
+        .customSelect("SELECT * FROM medication_rows WHERE id = 'legacy-med'")
+        .getSingle();
+    expect(row.read<String>('name'), 'Legacy');
+    expect(row.data['strength'], isNull);
+    expect(row.data['pharmacy'], isNull);
+    expect(row.data['prescription_number'], isNull);
+    expect(row.data['refills_remaining'], isNull);
+    expect(row.data['next_refill_date'], isNull);
   });
 
   test('v4 migration retires legacy document reminder timestamps', () async {
     await database.close();
     final executor = NativeDatabase.memory(
       setup: (sqlite) {
+        sqlite.execute('''
+          CREATE TABLE medication_rows (
+            id TEXT NOT NULL PRIMARY KEY
+          )
+        ''');
         sqlite.execute('''
           CREATE TABLE care_document_rows (
             id TEXT NOT NULL PRIMARY KEY,

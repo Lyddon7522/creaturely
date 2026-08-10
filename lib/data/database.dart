@@ -123,7 +123,12 @@ class MedicationRows extends Table {
   TextColumn get instructions => text()();
   DateTimeColumn get startDate => dateTime()();
   DateTimeColumn get endDate => dateTime().nullable()();
+  TextColumn get strength => text().nullable()();
   TextColumn get prescriber => text().nullable()();
+  TextColumn get pharmacy => text().nullable()();
+  TextColumn get prescriptionNumber => text().nullable()();
+  IntColumn get refillsRemaining => integer().nullable()();
+  DateTimeColumn get nextRefillDate => dateTime().nullable()();
   TextColumn get notes => text().nullable()();
   BoolColumn get active => boolean().withDefault(const Constant(true))();
 
@@ -271,6 +276,13 @@ class AppDatabase extends _$AppDatabase {
         // The nullable legacy column remains for a portable migration, but
         // document reminders are retired and must not remain scheduled.
         await customStatement('UPDATE care_document_rows SET reminder_at = NULL');
+      }
+      if (from < 5) {
+        await migrator.addColumn(medicationRows, medicationRows.strength);
+        await migrator.addColumn(medicationRows, medicationRows.pharmacy);
+        await migrator.addColumn(medicationRows, medicationRows.prescriptionNumber);
+        await migrator.addColumn(medicationRows, medicationRows.refillsRemaining);
+        await migrator.addColumn(medicationRows, medicationRows.nextRefillDate);
       }
     },
     beforeOpen: (details) async {
@@ -505,7 +517,16 @@ class AppDatabase extends _$AppDatabase {
           endDate: Value(
             medication.endDate == null ? null : domain.canonicalCalendarDate(medication.endDate!),
           ),
+          strength: Value(medication.strength),
           prescriber: Value(medication.prescriber),
+          pharmacy: Value(medication.pharmacy),
+          prescriptionNumber: Value(medication.prescriptionNumber),
+          refillsRemaining: Value(medication.refillsRemaining),
+          nextRefillDate: Value(
+            medication.nextRefillDate == null
+                ? null
+                : domain.canonicalCalendarDate(medication.nextRefillDate!),
+          ),
           notes: Value(medication.notes),
           active: Value(medication.active),
         ),
@@ -738,7 +759,14 @@ class AppDatabase extends _$AppDatabase {
     instructions: row.instructions,
     startDate: domain.canonicalCalendarDate(row.startDate),
     endDate: row.endDate == null ? null : domain.canonicalCalendarDate(row.endDate!),
+    strength: row.strength,
     prescriber: row.prescriber,
+    pharmacy: row.pharmacy,
+    prescriptionNumber: row.prescriptionNumber,
+    refillsRemaining: row.refillsRemaining,
+    nextRefillDate: row.nextRefillDate == null
+        ? null
+        : domain.canonicalCalendarDate(row.nextRefillDate!),
     notes: row.notes,
     active: row.active,
   );

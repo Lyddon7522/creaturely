@@ -26,7 +26,7 @@ The manifest is UTF-8 JSON:
 {
   "format": "creaturely-backup",
   "formatVersion": 1,
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "createdAt": "2026-07-28T18:00:00.000Z",
   "dataFile": "data.json",
   "dataChecksumSha256": "<64 lowercase hexadecimal characters>",
@@ -44,10 +44,12 @@ The manifest is UTF-8 JSON:
 - `formatVersion` versions the archive/container contract independently of the
   data schema. Creaturely v1 accepts exactly format version 1.
 - `schemaVersion` must match the version inside `data.json`. Current writers
-  emit data schema version 4. Readers accept schemas 2 and 3 after complete
+  emit data schema version 5. Readers accept schemas 2, 3, and 4 after complete
   archive/checksum validation. Schema 2 gains empty respiratory- and
   weight-reminder collections; schema 3 gains an empty weight-reminder
-  collection. Unknown older or newer schemas are rejected.
+  collection; and schema 4 gains empty optional medication strength,
+  prescription, pharmacy, and refill fields. Unknown older or newer schemas
+  are rejected.
 - `createdAt` is an ISO-8601 UTC instant.
 - `dataChecksumSha256` is the SHA-256 of the exact uncompressed `data.json`
   bytes.
@@ -83,6 +85,13 @@ Created/updated and event instants are ISO-8601 timestamps. Local medication
 scheduling intent is preserved separately through the chosen wall-clock time,
 selected weekdays or interval, and IANA time-zone identifier; readers must not
 infer recurring wall time by repeatedly adding 24-hour UTC durations.
+
+Medication records distinguish the product's optional free-text strength or
+concentration from the required administered dose amount and unit. They may
+also include a prescriber, pharmacy, prescription number, non-negative refills
+remaining, a next-refill calendar date, and keeper notes. These details remain
+optional and do not imply a diagnosis, automatic inventory count, or refill
+notification.
 
 Weight is stored canonically in kilograms even when the keeper displays pounds.
 Respiratory sessions preserve actual elapsed milliseconds, raw breath count,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../domain/models.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../app_controller.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -25,11 +26,16 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   late final TextEditingController _dose;
   late final TextEditingController _unit;
   late final TextEditingController _instructions;
+  late final TextEditingController _strength;
   late final TextEditingController _prescriber;
+  late final TextEditingController _pharmacy;
+  late final TextEditingController _prescriptionNumber;
+  late final TextEditingController _refillsRemaining;
   late final TextEditingController _notes;
   Medication? _existing;
   late DateTime _startDate;
   DateTime? _endDate;
+  DateTime? _nextRefillDate;
   bool _active = true;
   bool _saving = false;
   final List<_ScheduleDraft> _schedules = <_ScheduleDraft>[];
@@ -45,10 +51,15 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     _dose = TextEditingController(text: existing?.doseAmount.toString());
     _unit = TextEditingController(text: existing?.doseUnit);
     _instructions = TextEditingController(text: existing?.instructions);
+    _strength = TextEditingController(text: existing?.strength);
     _prescriber = TextEditingController(text: existing?.prescriber);
+    _pharmacy = TextEditingController(text: existing?.pharmacy);
+    _prescriptionNumber = TextEditingController(text: existing?.prescriptionNumber);
+    _refillsRemaining = TextEditingController(text: existing?.refillsRemaining?.toString());
     _notes = TextEditingController(text: existing?.notes);
     _startDate = existing?.startDate ?? DateTime.now();
     _endDate = existing?.endDate;
+    _nextRefillDate = existing?.nextRefillDate;
     _active = existing?.active ?? true;
     final savedSchedules = snapshot.medicationSchedules
         .where((value) => value.medicationId == widget.medicationId)
@@ -75,7 +86,11 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
       _dose,
       _unit,
       _instructions,
+      _strength,
       _prescriber,
+      _pharmacy,
+      _prescriptionNumber,
+      _refillsRemaining,
       _notes,
     ]) {
       controller.dispose();
@@ -86,6 +101,7 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appControllerProvider);
+    final l10n = AppLocalizations.of(context);
     final animal = state.snapshot.animals.where((value) => value.id == widget.animalId).firstOrNull;
     if (animal == null) {
       return const Scaffold(body: Center(child: Text('Animal not found.')));
@@ -191,17 +207,83 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _prescriber,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Prescriber'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _notes,
-                      minLines: 2,
-                      maxLines: 4,
-                      decoration: const InputDecoration(labelText: 'Notes'),
+                    Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: ExpansionTile(
+                        key: const ValueKey('medication_optional_details'),
+                        initiallyExpanded: _hasOptionalDetails,
+                        leading: const Icon(Icons.medical_information_outlined),
+                        title: Text(l10n.medicationPrescriptionDetails),
+                        subtitle: Text(l10n.medicationPrescriptionDetailsHint),
+                        childrenPadding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+                        children: [
+                          TextFormField(
+                            key: const ValueKey('medication_strength'),
+                            controller: _strength,
+                            decoration: InputDecoration(
+                              labelText: l10n.medicationStrengthLabel,
+                              hintText: l10n.medicationStrengthHint,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            key: const ValueKey('medication_prescriber'),
+                            controller: _prescriber,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(labelText: l10n.medicationPrescriberLabel),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            key: const ValueKey('medication_pharmacy'),
+                            controller: _pharmacy,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: InputDecoration(labelText: l10n.medicationPharmacyLabel),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            key: const ValueKey('medication_prescription_number'),
+                            controller: _prescriptionNumber,
+                            decoration: InputDecoration(
+                              labelText: l10n.medicationPrescriptionNumberLabel,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextFormField(
+                                key: const ValueKey('medication_refills_remaining'),
+                                controller: _refillsRemaining,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: l10n.medicationRefillsRemainingLabel,
+                                ),
+                                validator: _nonNegativeInteger,
+                              ),
+                              const SizedBox(height: 12),
+                              _DateField(
+                                key: const ValueKey('medication_next_refill_date'),
+                                label: l10n.medicationNextRefillDateLabel,
+                                value: _nextRefillDate,
+                                emptyLabel: l10n.medicationNoRefillDate,
+                                clearTooltip: l10n.medicationClearNextRefillDate,
+                                onClear: _nextRefillDate == null
+                                    ? null
+                                    : () => setState(() => _nextRefillDate = null),
+                                onTap: _pickNextRefillDate,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _notes,
+                            minLines: 2,
+                            maxLines: 4,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: const InputDecoration(labelText: 'Notes'),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 26),
                     SectionHeading(
@@ -252,6 +334,15 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     );
   }
 
+  bool get _hasOptionalDetails =>
+      _existing?.strength != null ||
+      _existing?.prescriber != null ||
+      _existing?.pharmacy != null ||
+      _existing?.prescriptionNumber != null ||
+      _existing?.refillsRemaining != null ||
+      _existing?.nextRefillDate != null ||
+      _existing?.notes != null;
+
   void _addSchedule() {
     setState(() {
       _schedules.add(
@@ -282,6 +373,18 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
         _endDate = value;
       }
     });
+  }
+
+  Future<void> _pickNextRefillDate() async {
+    final value = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+      initialDate: _nextRefillDate ?? DateTime.now(),
+    );
+    if (value != null) {
+      setState(() => _nextRefillDate = value);
+    }
   }
 
   Future<void> _save() async {
@@ -317,7 +420,12 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
         instructions: _instructions.text.trim(),
         startDate: _startDate,
         endDate: _endDate,
+        strength: _nullable(_strength.text),
         prescriber: _nullable(_prescriber.text),
+        pharmacy: _nullable(_pharmacy.text),
+        prescriptionNumber: _nullable(_prescriptionNumber.text),
+        refillsRemaining: _nullableInteger(_refillsRemaining.text),
+        nextRefillDate: _nextRefillDate,
         notes: _nullable(_notes.text),
         active: _active,
       );
@@ -363,7 +471,19 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     return parsed == null || !parsed.isFinite || parsed <= 0 ? 'Use a positive number.' : null;
   }
 
+  String? _nonNegativeInteger(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    final parsed = int.tryParse(value.trim());
+    return parsed == null || parsed < 0
+        ? AppLocalizations.of(context).medicationRefillsValidation
+        : null;
+  }
+
   String? _nullable(String value) => value.trim().isEmpty ? null : value.trim();
+
+  int? _nullableInteger(String value) => value.trim().isEmpty ? null : int.parse(value.trim());
 }
 
 class _DateField extends StatelessWidget {
@@ -372,12 +492,17 @@ class _DateField extends StatelessWidget {
     required this.value,
     required this.onTap,
     this.emptyLabel = 'Choose date',
+    this.onClear,
+    this.clearTooltip,
+    super.key,
   });
 
   final String label;
   final DateTime? value;
   final VoidCallback onTap;
   final String emptyLabel;
+  final VoidCallback? onClear;
+  final String? clearTooltip;
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -385,8 +510,22 @@ class _DateField extends StatelessWidget {
     borderRadius: BorderRadius.circular(14),
     child: InputDecorator(
       decoration: InputDecoration(labelText: label),
-      child: Text(
-        value == null ? emptyLabel : MaterialLocalizations.of(context).formatMediumDate(value!),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              value == null
+                  ? emptyLabel
+                  : MaterialLocalizations.of(context).formatMediumDate(value!),
+            ),
+          ),
+          if (onClear != null)
+            IconButton(
+              tooltip: clearTooltip,
+              onPressed: onClear,
+              icon: const Icon(Icons.clear_rounded),
+            ),
+        ],
       ),
     ),
   );
@@ -445,6 +584,7 @@ class _ScheduleEditor extends StatelessWidget {
               Expanded(
                 child: DropdownButtonFormField<ScheduleKind>(
                   initialValue: draft.kind,
+                  isExpanded: true,
                   decoration: const InputDecoration(labelText: 'Schedule type'),
                   items: const [
                     DropdownMenuItem(value: ScheduleKind.daily, child: Text('Every day')),

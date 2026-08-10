@@ -49,9 +49,10 @@ open-source license view.
 - Manual resting or sleeping respiratory sessions using 15, 20, 30, or
   60-second timers. Rates use actual elapsed time and sessions support undo,
   interruption recovery, haptic/sound preferences, and owner-supplied ranges.
-- Medication records, interval/daily/weekday schedules with local-time intent,
-  local reminders, notification actions, and a dose ledger for given, skipped,
-  missed, and unrecorded doses.
+- Medication records with optional strength, veterinarian/clinic, pharmacy,
+  prescription, and refill details; interval/daily/weekday schedules with
+  local-time intent; local reminders; notification actions; and a dose ledger
+  for given, skipped, missed, and unrecorded doses.
 - A unified Schedule destination for medication doses, keeper-configured
   resting/sleeping breathing checks, and weight-check reminders.
 - Weigh-ins, allergies, conditions/body issues, custom observations, imported

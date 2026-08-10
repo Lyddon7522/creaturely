@@ -393,6 +393,7 @@ class CreaturelyBackupService {
               value.instructions.trim().isEmpty ||
               !value.doseAmount.isFinite ||
               value.doseAmount <= 0 ||
+              (value.refillsRemaining != null && value.refillsRemaining! < 0) ||
               (value.endDate != null && compareCalendarDates(value.endDate!, value.startDate) < 0),
         ) ||
         snapshot.medicationSchedules.any((value) {
@@ -451,7 +452,7 @@ class CreaturelyBackupService {
     if (snapshot.schemaVersion == CreaturelySnapshot.currentSchemaVersion) {
       return snapshot;
     }
-    if (snapshot.schemaVersion == 2 || snapshot.schemaVersion == 3) {
+    if (snapshot.schemaVersion == 2 || snapshot.schemaVersion == 3 || snapshot.schemaVersion == 4) {
       return CreaturelySnapshot(
         schemaVersion: CreaturelySnapshot.currentSchemaVersion,
         exportedAt: snapshot.exportedAt,
@@ -461,7 +462,9 @@ class CreaturelyBackupService {
         respiratoryReminders: snapshot.schemaVersion == 2
             ? const <RespiratoryReminder>[]
             : snapshot.respiratoryReminders,
-        weightReminders: const <WeightCheckReminder>[],
+        weightReminders: snapshot.schemaVersion < 4
+            ? const <WeightCheckReminder>[]
+            : snapshot.weightReminders,
         medications: snapshot.medications,
         medicationSchedules: snapshot.medicationSchedules,
         doseLedger: snapshot.doseLedger,

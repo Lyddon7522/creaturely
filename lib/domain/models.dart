@@ -489,7 +489,12 @@ class Medication {
     required this.instructions,
     required this.startDate,
     this.endDate,
+    this.strength,
     this.prescriber,
+    this.pharmacy,
+    this.prescriptionNumber,
+    this.refillsRemaining,
+    this.nextRefillDate,
     this.notes,
     this.active = true,
   });
@@ -506,7 +511,12 @@ class Medication {
     instructions: json['instructions'] as String,
     startDate: _requiredCalendarDate(json, 'startDate'),
     endDate: _optionalCalendarDate(json, 'endDate'),
+    strength: json['strength'] as String?,
     prescriber: json['prescriber'] as String?,
+    pharmacy: json['pharmacy'] as String?,
+    prescriptionNumber: json['prescriptionNumber'] as String?,
+    refillsRemaining: _optionalInt(json, 'refillsRemaining'),
+    nextRefillDate: _optionalCalendarDate(json, 'nextRefillDate'),
     notes: json['notes'] as String?,
     active: json['active'] as bool? ?? true,
   );
@@ -522,7 +532,12 @@ class Medication {
   final String instructions;
   final DateTime startDate;
   final DateTime? endDate;
+  final String? strength;
   final String? prescriber;
+  final String? pharmacy;
+  final String? prescriptionNumber;
+  final int? refillsRemaining;
+  final DateTime? nextRefillDate;
   final String? notes;
   final bool active;
 
@@ -534,7 +549,12 @@ class Medication {
     String? instructions,
     DateTime? startDate,
     DateTime? endDate,
+    String? strength,
     String? prescriber,
+    String? pharmacy,
+    String? prescriptionNumber,
+    int? refillsRemaining,
+    DateTime? nextRefillDate,
     String? notes,
     bool? active,
     DateTime? updatedAt,
@@ -550,7 +570,12 @@ class Medication {
     instructions: instructions ?? this.instructions,
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
+    strength: strength ?? this.strength,
     prescriber: prescriber ?? this.prescriber,
+    pharmacy: pharmacy ?? this.pharmacy,
+    prescriptionNumber: prescriptionNumber ?? this.prescriptionNumber,
+    refillsRemaining: refillsRemaining ?? this.refillsRemaining,
+    nextRefillDate: nextRefillDate ?? this.nextRefillDate,
     notes: notes ?? this.notes,
     active: active ?? this.active,
   );
@@ -567,7 +592,12 @@ class Medication {
     'instructions': instructions,
     'startDate': calendarDateToIso8601(startDate),
     'endDate': endDate == null ? null : calendarDateToIso8601(endDate!),
+    'strength': strength,
     'prescriber': prescriber,
+    'pharmacy': pharmacy,
+    'prescriptionNumber': prescriptionNumber,
+    'refillsRemaining': refillsRemaining,
+    'nextRefillDate': nextRefillDate == null ? null : calendarDateToIso8601(nextRefillDate!),
     'notes': notes,
     'active': active,
   };
@@ -1301,7 +1331,7 @@ class CreaturelySnapshot {
     settings: AppSettings.fromJson(json['settings'] as Map<String, Object?>),
   );
 
-  static const int currentSchemaVersion = 4;
+  static const int currentSchemaVersion = 5;
 
   final int schemaVersion;
   final DateTime exportedAt;

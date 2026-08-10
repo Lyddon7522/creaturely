@@ -154,6 +154,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get medications => 'Medication';
 
   @override
+  String get medicationPrescriptionDetails => 'Prescription & supply';
+
+  @override
+  String get medicationPrescriptionDetailsHint =>
+      'Optional medicine, veterinarian, and refill information.';
+
+  @override
+  String get medicationStrengthLabel => 'Strength or concentration';
+
+  @override
+  String get medicationStrengthHint => 'For example, 20 mg/mL';
+
+  @override
+  String get medicationPrescriberLabel => 'Prescribing veterinarian or clinic';
+
+  @override
+  String get medicationPharmacyLabel => 'Pharmacy';
+
+  @override
+  String get medicationPrescriptionNumberLabel => 'Prescription number';
+
+  @override
+  String get medicationRefillsRemainingLabel => 'Refills remaining';
+
+  @override
+  String get medicationNextRefillDateLabel => 'Next refill date';
+
+  @override
+  String get medicationNoRefillDate => 'No refill date';
+
+  @override
+  String get medicationClearNextRefillDate => 'Clear next refill date';
+
+  @override
+  String get medicationRefillsValidation => 'Use a whole number of zero or more.';
+
+  @override
   String get documents => 'Documents';
 
   @override

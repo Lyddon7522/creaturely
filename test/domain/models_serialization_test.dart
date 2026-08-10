@@ -15,6 +15,11 @@ void main() {
     expect(restored.respiratorySessions.single.durationMilliseconds, 30000);
     expect(restored.healthRecords.single.canonicalValue, 0.12);
     expect(restored.medicationSchedules.single.timeZoneId, 'America/Chicago');
+    expect(restored.medications.single.strength, '20 mg/mL');
+    expect(restored.medications.single.pharmacy, 'Lakeside Veterinary Pharmacy');
+    expect(restored.medications.single.prescriptionNumber, 'RX-042');
+    expect(restored.medications.single.refillsRemaining, 2);
+    expect(restored.medications.single.nextRefillDate, DateTime.utc(2026, 4, 1));
     expect(restored.respiratoryReminders.single.context, RespiratoryContext.sleeping);
     expect(restored.weightReminders.single.recurrence, ReminderRecurrence.daily);
   });
@@ -50,6 +55,10 @@ void main() {
     expect(
       ((json['medications'] as List<Object?>).single as Map<String, Object?>)['startDate'],
       '2026-03-07',
+    );
+    expect(
+      ((json['medications'] as List<Object?>).single as Map<String, Object?>)['nextRefillDate'],
+      '2026-04-01',
     );
     final document = (json['documents'] as List<Object?>).single as Map<String, Object?>;
     expect(document['documentDate'], '2026-03-08');

@@ -28,10 +28,21 @@ void main() {
     harness.container.read(routerProvider).push<void>('/medication/med-1/edit/animal-1');
     await WidgetHarness.pumpFrames(tester);
     expect(find.byKey(const ValueKey('medication_name')), findsOneWidget);
+    expect(find.byKey(const ValueKey('medication_strength')), findsOneWidget);
+    expect(find.byKey(const ValueKey('medication_pharmacy')), findsOneWidget);
     expect(find.textContaining('local clock time'), findsNothing);
     expect(find.textContaining('exact alarms'), findsNothing);
     final instructions = find.byKey(const ValueKey('medication_instructions'));
     await tester.enterText(instructions, 'Updated after veterinarian review');
+    await tester.enterText(
+      find.byKey(const ValueKey('medication_pharmacy')),
+      'Harbor Veterinary Pharmacy',
+    );
+    final clearRefillDate = find.byTooltip('Clear next refill date');
+    await tester.ensureVisible(clearRefillDate);
+    await tester.pump();
+    await tester.tap(clearRefillDate);
+    await tester.pump();
     await tester.dragUntilVisible(
       find.byKey(const ValueKey('save_medication')),
       find.byType(ListView),
@@ -43,6 +54,11 @@ void main() {
 
     final saved = await harness.database.snapshot();
     expect(saved.medications.single.instructions, 'Updated after veterinarian review');
+    expect(saved.medications.single.strength, '20 mg/mL');
+    expect(saved.medications.single.pharmacy, 'Harbor Veterinary Pharmacy');
+    expect(saved.medications.single.prescriptionNumber, 'RX-042');
+    expect(saved.medications.single.refillsRemaining, 2);
+    expect(saved.medications.single.nextRefillDate, isNull);
     expect(saved.medicationSchedules, hasLength(1));
     final future = saved.doseLedger.where((dose) => dose.status == DoseStatus.unrecorded).toList();
     expect(future, isNotEmpty);
@@ -87,6 +103,36 @@ void main() {
     await tester.pump();
     expect(find.byKey(const ValueKey('schedule_time_09:00')), findsNothing);
     expect(find.text('Add time'), findsOneWidget);
+  });
+
+  testWidgets('optional medication details remain usable with large text on a narrow screen', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 1000);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.reset();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+    final harness = await WidgetHarness.create(snapshot: fixtureSnapshot());
+    addTearDown(() => harness.close(tester));
+    await harness.pumpApp(tester);
+
+    harness.container.read(routerProvider).push<void>('/medication/med-1/edit/animal-1');
+    await WidgetHarness.pumpFrames(tester);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('medication_next_refill_date')),
+      240,
+      scrollable: find
+          .descendant(of: find.byType(ListView), matching: find.byType(Scrollable))
+          .first,
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('medication_refills_remaining')), findsOneWidget);
+    expect(find.byKey(const ValueKey('medication_next_refill_date')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('creating a backup opens the document saver with a valid open archive', (

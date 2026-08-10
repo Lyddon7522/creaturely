@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../domain/models.dart';
 import '../../../domain/units.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../app_controller.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -18,6 +19,7 @@ class MedicationDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appControllerProvider);
+    final l10n = AppLocalizations.of(context);
     final medication = state.snapshot.medications
         .where((value) => value.id == medicationId && value.animalId == animalId)
         .firstOrNull;
@@ -105,15 +107,6 @@ class MedicationDetailsScreen extends ConsumerWidget {
                             medication.instructions,
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
-                          if (medication.prescriber != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Prescribed by ${medication.prescriber}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -186,6 +179,11 @@ class MedicationDetailsScreen extends ConsumerWidget {
                       ],
                     ),
             ),
+            if (_hasPrescriptionDetails(medication)) ...[
+              const SizedBox(height: 18),
+              SectionHeading(l10n.medicationPrescriptionDetails),
+              _MedicationPrescriptionDetails(medication: medication, l10n: l10n),
+            ],
             const SizedBox(height: 18),
             const SectionHeading('Last 30 days'),
             _DoseSummary(doses: recent),
@@ -255,6 +253,79 @@ class MedicationDetailsScreen extends ConsumerWidget {
     };
     final values = weekdays.toList()..sort();
     return values.map((value) => labels[value]).whereType<String>().join(', ');
+  }
+
+  static bool _hasPrescriptionDetails(Medication medication) =>
+      medication.strength != null ||
+      medication.prescriber != null ||
+      medication.pharmacy != null ||
+      medication.prescriptionNumber != null ||
+      medication.refillsRemaining != null ||
+      medication.nextRefillDate != null;
+}
+
+class _MedicationPrescriptionDetails extends StatelessWidget {
+  const _MedicationPrescriptionDetails({required this.medication, required this.l10n});
+
+  final Medication medication;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = <({IconData icon, String label, String value})>[
+      if (medication.strength != null)
+        (
+          icon: Icons.science_outlined,
+          label: l10n.medicationStrengthLabel,
+          value: medication.strength!,
+        ),
+      if (medication.prescriber != null)
+        (
+          icon: Icons.medical_services_outlined,
+          label: l10n.medicationPrescriberLabel,
+          value: medication.prescriber!,
+        ),
+      if (medication.pharmacy != null)
+        (
+          icon: Icons.local_pharmacy_outlined,
+          label: l10n.medicationPharmacyLabel,
+          value: medication.pharmacy!,
+        ),
+      if (medication.prescriptionNumber != null)
+        (
+          icon: Icons.receipt_long_outlined,
+          label: l10n.medicationPrescriptionNumberLabel,
+          value: medication.prescriptionNumber!,
+        ),
+      if (medication.refillsRemaining != null)
+        (
+          icon: Icons.repeat_rounded,
+          label: l10n.medicationRefillsRemainingLabel,
+          value: medication.refillsRemaining!.toString(),
+        ),
+      if (medication.nextRefillDate != null)
+        (
+          icon: Icons.event_repeat_outlined,
+          label: l10n.medicationNextRefillDateLabel,
+          value: MaterialLocalizations.of(context).formatMediumDate(medication.nextRefillDate!),
+        ),
+    ];
+    return Card(
+      key: const ValueKey('medication_prescription_details'),
+      child: Column(
+        children: [
+          for (var index = 0; index < details.length; index++) ...[
+            ListTile(
+              minTileHeight: 68,
+              leading: Icon(details[index].icon),
+              title: Text(details[index].label),
+              subtitle: Text(details[index].value),
+            ),
+            if (index < details.length - 1) const Divider(height: 1),
+          ],
+        ],
+      ),
+    );
   }
 }
 

@@ -228,6 +228,12 @@ void main() {
     expect(find.byKey(const ValueKey('medication_details')), findsOneWidget);
     expect(find.text('Directions'), findsOneWidget);
     expect(find.text('Give with food'), findsOneWidget);
+    expect(find.byKey(const ValueKey('medication_prescription_details')), findsOneWidget);
+    expect(find.text('Prescription & supply'), findsOneWidget);
+    expect(find.text('20 mg/mL'), findsOneWidget);
+    expect(find.text('Dr. Rivera'), findsOneWidget);
+    expect(find.text('Lakeside Veterinary Pharmacy'), findsOneWidget);
+    expect(find.text('RX-042'), findsOneWidget);
     expect(find.byKey(const ValueKey('medication_next_dose')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('record_next_dose_given')));

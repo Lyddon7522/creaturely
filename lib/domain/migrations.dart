@@ -10,7 +10,7 @@ class MigrationPlanner {
   const MigrationPlanner();
 
   List<MigrationStep> plan(int fromVersion, int toVersion) {
-    if (fromVersion < 1 || toVersion < fromVersion || toVersion > 4) {
+    if (fromVersion < 1 || toVersion < fromVersion || toVersion > 5) {
       throw UnsupportedError('Unsupported schema migration $fromVersion → $toVersion.');
     }
     final steps = <MigrationStep>[];
@@ -34,6 +34,15 @@ class MigrationPlanner {
           3,
           4,
           'Add recurring weight-check reminders and retire document reminder scheduling.',
+        ),
+      );
+    }
+    if (fromVersion <= 4 && toVersion >= 5) {
+      steps.add(
+        const MigrationStep(
+          4,
+          5,
+          'Add optional medication strength, prescription and refill details.',
         ),
       );
     }

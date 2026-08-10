@@ -34,7 +34,12 @@ Medication fixtureMedication() => Medication(
   doseUnit: 'mL',
   instructions: 'Give with food',
   startDate: fixtureTime,
+  strength: '20 mg/mL',
   prescriber: 'Dr. Rivera',
+  pharmacy: 'Lakeside Veterinary Pharmacy',
+  prescriptionNumber: 'RX-042',
+  refillsRemaining: 2,
+  nextRefillDate: DateTime.utc(2026, 4, 1),
   notes: 'Keeper-entered instruction.',
 );
 
