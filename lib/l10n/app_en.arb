@@ -18,7 +18,84 @@
   "medicalDisclaimer": "Creaturely is a journal, not a diagnostic tool. Measurements and reminders do not replace advice from a veterinarian.",
   "privacySummary": "Your journal stays on this device. Vector42 collects no data.",
   "respiratoryRate": "Resting breathing",
+  "quickActions": "Quick actions",
+  "countBreaths": "Count breaths",
+  "logWeight": "Log weight",
+  "observation": "Observation",
+  "todayAtAGlance": "Today at a glance",
+  "latestBreathing": "Latest breathing",
+  "breathing": "Breathing",
+  "weight": "Weight",
+  "currentWeight": "Current weight",
+  "medicationStatus": "Medications",
+  "dosesDueSoon": "Doses due soon",
+  "notRecorded": "Not recorded",
+  "currentRecordedWeight": "Current recorded weight",
+  "reviewSchedules": "Review schedules",
+  "next24Hours": "Next 24 hours",
+  "countBreathsToStartTrend": "Count breaths to start a trend",
+  "logWeightToStartTrend": "Log a weight to start a trend",
+  "recordedDate": "Recorded {date}",
+  "@recordedDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "activeMedicationCount": "{count, plural, =0{0 active} =1{1 active} other{{count} active}}",
+  "@activeMedicationCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shortDoseCount": "{count, plural, =0{0 doses} =1{1 dose} other{{count} doses}}",
+  "@shortDoseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "editAnimal": "Edit {animalName}",
+  "@editAnimal": {
+    "placeholders": {
+      "animalName": {
+        "type": "String"
+      }
+    }
+  },
+  "exportAnimal": "Export {animalName}",
+  "@exportAnimal": {
+    "placeholders": {
+      "animalName": {
+        "type": "String"
+      }
+    }
+  },
+  "animalDashboard": "{animalName} dashboard",
+  "@animalDashboard": {
+    "placeholders": {
+      "animalName": {
+        "type": "String"
+      }
+    }
+  },
   "medications": "Medication",
+  "medicationPrescriptionDetails": "Prescription & supply",
+  "medicationPrescriptionDetailsHint": "Optional medicine, veterinarian, and refill information.",
+  "medicationStrengthLabel": "Strength or concentration",
+  "medicationStrengthHint": "For example, 20 mg/mL",
+  "medicationPrescriberLabel": "Prescribing veterinarian or clinic",
+  "medicationPharmacyLabel": "Pharmacy",
+  "medicationPrescriptionNumberLabel": "Prescription number",
+  "medicationRefillsRemainingLabel": "Refills remaining",
+  "medicationNextRefillDateLabel": "Next refill date",
+  "medicationNoRefillDate": "No refill date",
+  "medicationClearNextRefillDate": "Clear next refill date",
+  "medicationRefillsValidation": "Use a whole number of zero or more.",
   "documents": "Documents",
   "healthRecords": "Health records",
   "emptyTimeline": "Nothing recorded in this range yet.",

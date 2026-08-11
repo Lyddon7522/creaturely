@@ -105,6 +105,10 @@ void main() {
     expect(csv, contains('2026-03-08T14:35:00.000Z'));
     expect(csv, contains('8.0,16.0,28.0'));
     expect(csv, contains('medication,2026-03-07,Supportive care'));
+    expect(csv, contains('20 mg/mL'));
+    expect(csv, contains('Lakeside Veterinary Pharmacy'));
+    expect(csv, contains('RX-042'));
+    expect(csv, contains('2026-04-01'));
     expect(csv, contains('medication_schedule'));
     expect(csv, contains('2027-03-08'));
     expect(csv, isNot(contains('reminder_at_utc')));

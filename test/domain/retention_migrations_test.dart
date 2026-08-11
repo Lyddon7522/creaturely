@@ -19,19 +19,22 @@ void main() {
     expect(retained.any((value) => value.createdAt.month < DateTime.utc(2026, 7).month), isTrue);
   });
 
-  test('migration planner declares v1 through v4 and rejects unsupported versions', () {
-    final steps = const MigrationPlanner().plan(1, 4);
-    expect(steps, hasLength(3));
+  test('migration planner declares v1 through v5 and rejects unsupported versions', () {
+    final steps = const MigrationPlanner().plan(1, 5);
+    expect(steps, hasLength(4));
     expect(steps.first.fromVersion, 1);
     expect(steps.first.toVersion, 2);
     expect(steps.first.description, contains('time-zone'));
     expect(steps[1].fromVersion, 2);
     expect(steps[1].toVersion, 3);
     expect(steps[1].description, contains('respiratory-rate reminders'));
-    expect(steps.last.fromVersion, 3);
-    expect(steps.last.toVersion, 4);
-    expect(steps.last.description, contains('weight-check reminders'));
-    expect(() => const MigrationPlanner().plan(0, 4), throwsUnsupportedError);
-    expect(() => const MigrationPlanner().plan(4, 5), throwsUnsupportedError);
+    expect(steps[2].fromVersion, 3);
+    expect(steps[2].toVersion, 4);
+    expect(steps[2].description, contains('weight-check reminders'));
+    expect(steps.last.fromVersion, 4);
+    expect(steps.last.toVersion, 5);
+    expect(steps.last.description, contains('prescription and refill details'));
+    expect(() => const MigrationPlanner().plan(0, 5), throwsUnsupportedError);
+    expect(() => const MigrationPlanner().plan(5, 6), throwsUnsupportedError);
   });
 }

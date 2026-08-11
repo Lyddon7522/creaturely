@@ -3695,6 +3695,15 @@ class $MedicationRowsTable extends MedicationRows
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _strengthMeta = const VerificationMeta('strength');
+  @override
+  late final GeneratedColumn<String> strength = GeneratedColumn<String>(
+    'strength',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _prescriberMeta = const VerificationMeta('prescriber');
   @override
   late final GeneratedColumn<String> prescriber = GeneratedColumn<String>(
@@ -3702,6 +3711,44 @@ class $MedicationRowsTable extends MedicationRows
     aliasedName,
     true,
     type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pharmacyMeta = const VerificationMeta('pharmacy');
+  @override
+  late final GeneratedColumn<String> pharmacy = GeneratedColumn<String>(
+    'pharmacy',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _prescriptionNumberMeta = const VerificationMeta(
+    'prescriptionNumber',
+  );
+  @override
+  late final GeneratedColumn<String> prescriptionNumber = GeneratedColumn<String>(
+    'prescription_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _refillsRemainingMeta = const VerificationMeta('refillsRemaining');
+  @override
+  late final GeneratedColumn<int> refillsRemaining = GeneratedColumn<int>(
+    'refills_remaining',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nextRefillDateMeta = const VerificationMeta('nextRefillDate');
+  @override
+  late final GeneratedColumn<DateTime> nextRefillDate = GeneratedColumn<DateTime>(
+    'next_refill_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
@@ -3737,7 +3784,12 @@ class $MedicationRowsTable extends MedicationRows
     instructions,
     startDate,
     endDate,
+    strength,
     prescriber,
+    pharmacy,
+    prescriptionNumber,
+    refillsRemaining,
+    nextRefillDate,
     notes,
     active,
   ];
@@ -3827,10 +3879,43 @@ class $MedicationRowsTable extends MedicationRows
     if (data.containsKey('end_date')) {
       context.handle(_endDateMeta, endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta));
     }
+    if (data.containsKey('strength')) {
+      context.handle(
+        _strengthMeta,
+        strength.isAcceptableOrUnknown(data['strength']!, _strengthMeta),
+      );
+    }
     if (data.containsKey('prescriber')) {
       context.handle(
         _prescriberMeta,
         prescriber.isAcceptableOrUnknown(data['prescriber']!, _prescriberMeta),
+      );
+    }
+    if (data.containsKey('pharmacy')) {
+      context.handle(
+        _pharmacyMeta,
+        pharmacy.isAcceptableOrUnknown(data['pharmacy']!, _pharmacyMeta),
+      );
+    }
+    if (data.containsKey('prescription_number')) {
+      context.handle(
+        _prescriptionNumberMeta,
+        prescriptionNumber.isAcceptableOrUnknown(
+          data['prescription_number']!,
+          _prescriptionNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('refills_remaining')) {
+      context.handle(
+        _refillsRemainingMeta,
+        refillsRemaining.isAcceptableOrUnknown(data['refills_remaining']!, _refillsRemainingMeta),
+      );
+    }
+    if (data.containsKey('next_refill_date')) {
+      context.handle(
+        _nextRefillDateMeta,
+        nextRefillDate.isAcceptableOrUnknown(data['next_refill_date']!, _nextRefillDateMeta),
       );
     }
     if (data.containsKey('notes')) {
@@ -3883,9 +3968,29 @@ class $MedicationRowsTable extends MedicationRows
         DriftSqlType.dateTime,
         data['${effectivePrefix}end_date'],
       ),
+      strength: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}strength'],
+      ),
       prescriber: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}prescriber'],
+      ),
+      pharmacy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pharmacy'],
+      ),
+      prescriptionNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prescription_number'],
+      ),
+      refillsRemaining: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}refills_remaining'],
+      ),
+      nextRefillDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_refill_date'],
       ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -3916,7 +4021,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
   final String instructions;
   final DateTime startDate;
   final DateTime? endDate;
+  final String? strength;
   final String? prescriber;
+  final String? pharmacy;
+  final String? prescriptionNumber;
+  final int? refillsRemaining;
+  final DateTime? nextRefillDate;
   final String? notes;
   final bool active;
   const MedicationEntity({
@@ -3931,7 +4041,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
     required this.instructions,
     required this.startDate,
     this.endDate,
+    this.strength,
     this.prescriber,
+    this.pharmacy,
+    this.prescriptionNumber,
+    this.refillsRemaining,
+    this.nextRefillDate,
     this.notes,
     required this.active,
   });
@@ -3951,8 +4066,23 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
     if (!nullToAbsent || endDate != null) {
       map['end_date'] = Variable<DateTime>(endDate);
     }
+    if (!nullToAbsent || strength != null) {
+      map['strength'] = Variable<String>(strength);
+    }
     if (!nullToAbsent || prescriber != null) {
       map['prescriber'] = Variable<String>(prescriber);
+    }
+    if (!nullToAbsent || pharmacy != null) {
+      map['pharmacy'] = Variable<String>(pharmacy);
+    }
+    if (!nullToAbsent || prescriptionNumber != null) {
+      map['prescription_number'] = Variable<String>(prescriptionNumber);
+    }
+    if (!nullToAbsent || refillsRemaining != null) {
+      map['refills_remaining'] = Variable<int>(refillsRemaining);
+    }
+    if (!nullToAbsent || nextRefillDate != null) {
+      map['next_refill_date'] = Variable<DateTime>(nextRefillDate);
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
@@ -3974,7 +4104,18 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
       instructions: Value(instructions),
       startDate: Value(startDate),
       endDate: endDate == null && nullToAbsent ? const Value.absent() : Value(endDate),
+      strength: strength == null && nullToAbsent ? const Value.absent() : Value(strength),
       prescriber: prescriber == null && nullToAbsent ? const Value.absent() : Value(prescriber),
+      pharmacy: pharmacy == null && nullToAbsent ? const Value.absent() : Value(pharmacy),
+      prescriptionNumber: prescriptionNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(prescriptionNumber),
+      refillsRemaining: refillsRemaining == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refillsRemaining),
+      nextRefillDate: nextRefillDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextRefillDate),
       notes: notes == null && nullToAbsent ? const Value.absent() : Value(notes),
       active: Value(active),
     );
@@ -3994,7 +4135,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
       instructions: serializer.fromJson<String>(json['instructions']),
       startDate: serializer.fromJson<DateTime>(json['startDate']),
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      strength: serializer.fromJson<String?>(json['strength']),
       prescriber: serializer.fromJson<String?>(json['prescriber']),
+      pharmacy: serializer.fromJson<String?>(json['pharmacy']),
+      prescriptionNumber: serializer.fromJson<String?>(json['prescriptionNumber']),
+      refillsRemaining: serializer.fromJson<int?>(json['refillsRemaining']),
+      nextRefillDate: serializer.fromJson<DateTime?>(json['nextRefillDate']),
       notes: serializer.fromJson<String?>(json['notes']),
       active: serializer.fromJson<bool>(json['active']),
     );
@@ -4014,7 +4160,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
       'instructions': serializer.toJson<String>(instructions),
       'startDate': serializer.toJson<DateTime>(startDate),
       'endDate': serializer.toJson<DateTime?>(endDate),
+      'strength': serializer.toJson<String?>(strength),
       'prescriber': serializer.toJson<String?>(prescriber),
+      'pharmacy': serializer.toJson<String?>(pharmacy),
+      'prescriptionNumber': serializer.toJson<String?>(prescriptionNumber),
+      'refillsRemaining': serializer.toJson<int?>(refillsRemaining),
+      'nextRefillDate': serializer.toJson<DateTime?>(nextRefillDate),
       'notes': serializer.toJson<String?>(notes),
       'active': serializer.toJson<bool>(active),
     };
@@ -4032,7 +4183,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
     String? instructions,
     DateTime? startDate,
     Value<DateTime?> endDate = const Value.absent(),
+    Value<String?> strength = const Value.absent(),
     Value<String?> prescriber = const Value.absent(),
+    Value<String?> pharmacy = const Value.absent(),
+    Value<String?> prescriptionNumber = const Value.absent(),
+    Value<int?> refillsRemaining = const Value.absent(),
+    Value<DateTime?> nextRefillDate = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     bool? active,
   }) => MedicationEntity(
@@ -4047,7 +4203,14 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
     instructions: instructions ?? this.instructions,
     startDate: startDate ?? this.startDate,
     endDate: endDate.present ? endDate.value : this.endDate,
+    strength: strength.present ? strength.value : this.strength,
     prescriber: prescriber.present ? prescriber.value : this.prescriber,
+    pharmacy: pharmacy.present ? pharmacy.value : this.pharmacy,
+    prescriptionNumber: prescriptionNumber.present
+        ? prescriptionNumber.value
+        : this.prescriptionNumber,
+    refillsRemaining: refillsRemaining.present ? refillsRemaining.value : this.refillsRemaining,
+    nextRefillDate: nextRefillDate.present ? nextRefillDate.value : this.nextRefillDate,
     notes: notes.present ? notes.value : this.notes,
     active: active ?? this.active,
   );
@@ -4064,7 +4227,16 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
       instructions: data.instructions.present ? data.instructions.value : this.instructions,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      strength: data.strength.present ? data.strength.value : this.strength,
       prescriber: data.prescriber.present ? data.prescriber.value : this.prescriber,
+      pharmacy: data.pharmacy.present ? data.pharmacy.value : this.pharmacy,
+      prescriptionNumber: data.prescriptionNumber.present
+          ? data.prescriptionNumber.value
+          : this.prescriptionNumber,
+      refillsRemaining: data.refillsRemaining.present
+          ? data.refillsRemaining.value
+          : this.refillsRemaining,
+      nextRefillDate: data.nextRefillDate.present ? data.nextRefillDate.value : this.nextRefillDate,
       notes: data.notes.present ? data.notes.value : this.notes,
       active: data.active.present ? data.active.value : this.active,
     );
@@ -4084,7 +4256,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
           ..write('instructions: $instructions, ')
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
+          ..write('strength: $strength, ')
           ..write('prescriber: $prescriber, ')
+          ..write('pharmacy: $pharmacy, ')
+          ..write('prescriptionNumber: $prescriptionNumber, ')
+          ..write('refillsRemaining: $refillsRemaining, ')
+          ..write('nextRefillDate: $nextRefillDate, ')
           ..write('notes: $notes, ')
           ..write('active: $active')
           ..write(')'))
@@ -4104,7 +4281,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
     instructions,
     startDate,
     endDate,
+    strength,
     prescriber,
+    pharmacy,
+    prescriptionNumber,
+    refillsRemaining,
+    nextRefillDate,
     notes,
     active,
   );
@@ -4123,7 +4305,12 @@ class MedicationEntity extends DataClass implements Insertable<MedicationEntity>
           other.instructions == this.instructions &&
           other.startDate == this.startDate &&
           other.endDate == this.endDate &&
+          other.strength == this.strength &&
           other.prescriber == this.prescriber &&
+          other.pharmacy == this.pharmacy &&
+          other.prescriptionNumber == this.prescriptionNumber &&
+          other.refillsRemaining == this.refillsRemaining &&
+          other.nextRefillDate == this.nextRefillDate &&
           other.notes == this.notes &&
           other.active == this.active);
 }
@@ -4140,7 +4327,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
   final Value<String> instructions;
   final Value<DateTime> startDate;
   final Value<DateTime?> endDate;
+  final Value<String?> strength;
   final Value<String?> prescriber;
+  final Value<String?> pharmacy;
+  final Value<String?> prescriptionNumber;
+  final Value<int?> refillsRemaining;
+  final Value<DateTime?> nextRefillDate;
   final Value<String?> notes;
   final Value<bool> active;
   final Value<int> rowid;
@@ -4156,7 +4348,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
     this.instructions = const Value.absent(),
     this.startDate = const Value.absent(),
     this.endDate = const Value.absent(),
+    this.strength = const Value.absent(),
     this.prescriber = const Value.absent(),
+    this.pharmacy = const Value.absent(),
+    this.prescriptionNumber = const Value.absent(),
+    this.refillsRemaining = const Value.absent(),
+    this.nextRefillDate = const Value.absent(),
     this.notes = const Value.absent(),
     this.active = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4173,7 +4370,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
     required String instructions,
     required DateTime startDate,
     this.endDate = const Value.absent(),
+    this.strength = const Value.absent(),
     this.prescriber = const Value.absent(),
+    this.pharmacy = const Value.absent(),
+    this.prescriptionNumber = const Value.absent(),
+    this.refillsRemaining = const Value.absent(),
+    this.nextRefillDate = const Value.absent(),
     this.notes = const Value.absent(),
     this.active = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4199,7 +4401,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
     Expression<String>? instructions,
     Expression<DateTime>? startDate,
     Expression<DateTime>? endDate,
+    Expression<String>? strength,
     Expression<String>? prescriber,
+    Expression<String>? pharmacy,
+    Expression<String>? prescriptionNumber,
+    Expression<int>? refillsRemaining,
+    Expression<DateTime>? nextRefillDate,
     Expression<String>? notes,
     Expression<bool>? active,
     Expression<int>? rowid,
@@ -4216,7 +4423,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
       if (instructions != null) 'instructions': instructions,
       if (startDate != null) 'start_date': startDate,
       if (endDate != null) 'end_date': endDate,
+      if (strength != null) 'strength': strength,
       if (prescriber != null) 'prescriber': prescriber,
+      if (pharmacy != null) 'pharmacy': pharmacy,
+      if (prescriptionNumber != null) 'prescription_number': prescriptionNumber,
+      if (refillsRemaining != null) 'refills_remaining': refillsRemaining,
+      if (nextRefillDate != null) 'next_refill_date': nextRefillDate,
       if (notes != null) 'notes': notes,
       if (active != null) 'active': active,
       if (rowid != null) 'rowid': rowid,
@@ -4235,7 +4447,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
     Value<String>? instructions,
     Value<DateTime>? startDate,
     Value<DateTime?>? endDate,
+    Value<String?>? strength,
     Value<String?>? prescriber,
+    Value<String?>? pharmacy,
+    Value<String?>? prescriptionNumber,
+    Value<int?>? refillsRemaining,
+    Value<DateTime?>? nextRefillDate,
     Value<String?>? notes,
     Value<bool>? active,
     Value<int>? rowid,
@@ -4252,7 +4469,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
       instructions: instructions ?? this.instructions,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
+      strength: strength ?? this.strength,
       prescriber: prescriber ?? this.prescriber,
+      pharmacy: pharmacy ?? this.pharmacy,
+      prescriptionNumber: prescriptionNumber ?? this.prescriptionNumber,
+      refillsRemaining: refillsRemaining ?? this.refillsRemaining,
+      nextRefillDate: nextRefillDate ?? this.nextRefillDate,
       notes: notes ?? this.notes,
       active: active ?? this.active,
       rowid: rowid ?? this.rowid,
@@ -4295,8 +4517,23 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
     if (endDate.present) {
       map['end_date'] = Variable<DateTime>(endDate.value);
     }
+    if (strength.present) {
+      map['strength'] = Variable<String>(strength.value);
+    }
     if (prescriber.present) {
       map['prescriber'] = Variable<String>(prescriber.value);
+    }
+    if (pharmacy.present) {
+      map['pharmacy'] = Variable<String>(pharmacy.value);
+    }
+    if (prescriptionNumber.present) {
+      map['prescription_number'] = Variable<String>(prescriptionNumber.value);
+    }
+    if (refillsRemaining.present) {
+      map['refills_remaining'] = Variable<int>(refillsRemaining.value);
+    }
+    if (nextRefillDate.present) {
+      map['next_refill_date'] = Variable<DateTime>(nextRefillDate.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -4324,7 +4561,12 @@ class MedicationRowsCompanion extends UpdateCompanion<MedicationEntity> {
           ..write('instructions: $instructions, ')
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
+          ..write('strength: $strength, ')
           ..write('prescriber: $prescriber, ')
+          ..write('pharmacy: $pharmacy, ')
+          ..write('prescriptionNumber: $prescriptionNumber, ')
+          ..write('refillsRemaining: $refillsRemaining, ')
+          ..write('nextRefillDate: $nextRefillDate, ')
           ..write('notes: $notes, ')
           ..write('active: $active, ')
           ..write('rowid: $rowid')
@@ -10021,7 +10263,12 @@ typedef $$MedicationRowsTableCreateCompanionBuilder =
       required String instructions,
       required DateTime startDate,
       Value<DateTime?> endDate,
+      Value<String?> strength,
       Value<String?> prescriber,
+      Value<String?> pharmacy,
+      Value<String?> prescriptionNumber,
+      Value<int?> refillsRemaining,
+      Value<DateTime?> nextRefillDate,
       Value<String?> notes,
       Value<bool> active,
       Value<int> rowid,
@@ -10039,7 +10286,12 @@ typedef $$MedicationRowsTableUpdateCompanionBuilder =
       Value<String> instructions,
       Value<DateTime> startDate,
       Value<DateTime?> endDate,
+      Value<String?> strength,
       Value<String?> prescriber,
+      Value<String?> pharmacy,
+      Value<String?> prescriptionNumber,
+      Value<int?> refillsRemaining,
+      Value<DateTime?> nextRefillDate,
       Value<String?> notes,
       Value<bool> active,
       Value<int> rowid,
@@ -10136,8 +10388,27 @@ class $$MedicationRowsTableFilterComposer extends Composer<_$AppDatabase, $Medic
   ColumnFilters<DateTime> get endDate =>
       $composableBuilder(column: $table.endDate, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get strength =>
+      $composableBuilder(column: $table.strength, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get prescriber =>
       $composableBuilder(column: $table.prescriber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get pharmacy =>
+      $composableBuilder(column: $table.pharmacy, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get prescriptionNumber => $composableBuilder(
+    column: $table.prescriptionNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get refillsRemaining => $composableBuilder(
+    column: $table.refillsRemaining,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextRefillDate =>
+      $composableBuilder(column: $table.nextRefillDate, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => ColumnFilters(column));
@@ -10242,8 +10513,29 @@ class $$MedicationRowsTableOrderingComposer extends Composer<_$AppDatabase, $Med
   ColumnOrderings<DateTime> get endDate =>
       $composableBuilder(column: $table.endDate, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get strength =>
+      $composableBuilder(column: $table.strength, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get prescriber =>
       $composableBuilder(column: $table.prescriber, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get pharmacy =>
+      $composableBuilder(column: $table.pharmacy, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get prescriptionNumber => $composableBuilder(
+    column: $table.prescriptionNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get refillsRemaining => $composableBuilder(
+    column: $table.refillsRemaining,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextRefillDate => $composableBuilder(
+    column: $table.nextRefillDate,
+    builder: (column) => ColumnOrderings(column),
+  );
 
   ColumnOrderings<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => ColumnOrderings(column));
@@ -10309,8 +10601,23 @@ class $$MedicationRowsTableAnnotationComposer
   GeneratedColumn<DateTime> get endDate =>
       $composableBuilder(column: $table.endDate, builder: (column) => column);
 
+  GeneratedColumn<String> get strength =>
+      $composableBuilder(column: $table.strength, builder: (column) => column);
+
   GeneratedColumn<String> get prescriber =>
       $composableBuilder(column: $table.prescriber, builder: (column) => column);
+
+  GeneratedColumn<String> get pharmacy =>
+      $composableBuilder(column: $table.pharmacy, builder: (column) => column);
+
+  GeneratedColumn<String> get prescriptionNumber =>
+      $composableBuilder(column: $table.prescriptionNumber, builder: (column) => column);
+
+  GeneratedColumn<int> get refillsRemaining =>
+      $composableBuilder(column: $table.refillsRemaining, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextRefillDate =>
+      $composableBuilder(column: $table.nextRefillDate, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -10420,7 +10727,12 @@ class $$MedicationRowsTableTableManager
                 Value<String> instructions = const Value.absent(),
                 Value<DateTime> startDate = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
+                Value<String?> strength = const Value.absent(),
                 Value<String?> prescriber = const Value.absent(),
+                Value<String?> pharmacy = const Value.absent(),
+                Value<String?> prescriptionNumber = const Value.absent(),
+                Value<int?> refillsRemaining = const Value.absent(),
+                Value<DateTime?> nextRefillDate = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<bool> active = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -10436,7 +10748,12 @@ class $$MedicationRowsTableTableManager
                 instructions: instructions,
                 startDate: startDate,
                 endDate: endDate,
+                strength: strength,
                 prescriber: prescriber,
+                pharmacy: pharmacy,
+                prescriptionNumber: prescriptionNumber,
+                refillsRemaining: refillsRemaining,
+                nextRefillDate: nextRefillDate,
                 notes: notes,
                 active: active,
                 rowid: rowid,
@@ -10454,7 +10771,12 @@ class $$MedicationRowsTableTableManager
                 required String instructions,
                 required DateTime startDate,
                 Value<DateTime?> endDate = const Value.absent(),
+                Value<String?> strength = const Value.absent(),
                 Value<String?> prescriber = const Value.absent(),
+                Value<String?> pharmacy = const Value.absent(),
+                Value<String?> prescriptionNumber = const Value.absent(),
+                Value<int?> refillsRemaining = const Value.absent(),
+                Value<DateTime?> nextRefillDate = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<bool> active = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -10470,7 +10792,12 @@ class $$MedicationRowsTableTableManager
                 instructions: instructions,
                 startDate: startDate,
                 endDate: endDate,
+                strength: strength,
                 prescriber: prescriber,
+                pharmacy: pharmacy,
+                prescriptionNumber: prescriptionNumber,
+                refillsRemaining: refillsRemaining,
+                nextRefillDate: nextRefillDate,
                 notes: notes,
                 active: active,
                 rowid: rowid,

@@ -182,11 +182,221 @@ abstract class AppLocalizations {
   /// **'Resting breathing'**
   String get respiratoryRate;
 
+  /// No description provided for @quickActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick actions'**
+  String get quickActions;
+
+  /// No description provided for @countBreaths.
+  ///
+  /// In en, this message translates to:
+  /// **'Count breaths'**
+  String get countBreaths;
+
+  /// No description provided for @logWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Log weight'**
+  String get logWeight;
+
+  /// No description provided for @observation.
+  ///
+  /// In en, this message translates to:
+  /// **'Observation'**
+  String get observation;
+
+  /// No description provided for @todayAtAGlance.
+  ///
+  /// In en, this message translates to:
+  /// **'Today at a glance'**
+  String get todayAtAGlance;
+
+  /// No description provided for @latestBreathing.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest breathing'**
+  String get latestBreathing;
+
+  /// No description provided for @breathing.
+  ///
+  /// In en, this message translates to:
+  /// **'Breathing'**
+  String get breathing;
+
+  /// No description provided for @weight.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get weight;
+
+  /// No description provided for @currentWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Current weight'**
+  String get currentWeight;
+
+  /// No description provided for @medicationStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Medications'**
+  String get medicationStatus;
+
+  /// No description provided for @dosesDueSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Doses due soon'**
+  String get dosesDueSoon;
+
+  /// No description provided for @notRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recorded'**
+  String get notRecorded;
+
+  /// No description provided for @currentRecordedWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Current recorded weight'**
+  String get currentRecordedWeight;
+
+  /// No description provided for @reviewSchedules.
+  ///
+  /// In en, this message translates to:
+  /// **'Review schedules'**
+  String get reviewSchedules;
+
+  /// No description provided for @next24Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Next 24 hours'**
+  String get next24Hours;
+
+  /// No description provided for @countBreathsToStartTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Count breaths to start a trend'**
+  String get countBreathsToStartTrend;
+
+  /// No description provided for @logWeightToStartTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Log a weight to start a trend'**
+  String get logWeightToStartTrend;
+
+  /// No description provided for @recordedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded {date}'**
+  String recordedDate(String date);
+
+  /// No description provided for @activeMedicationCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{0 active} =1{1 active} other{{count} active}}'**
+  String activeMedicationCount(int count);
+
+  /// No description provided for @shortDoseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{0 doses} =1{1 dose} other{{count} doses}}'**
+  String shortDoseCount(int count);
+
+  /// No description provided for @editAnimal.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {animalName}'**
+  String editAnimal(String animalName);
+
+  /// No description provided for @exportAnimal.
+  ///
+  /// In en, this message translates to:
+  /// **'Export {animalName}'**
+  String exportAnimal(String animalName);
+
+  /// No description provided for @animalDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'{animalName} dashboard'**
+  String animalDashboard(String animalName);
+
   /// No description provided for @medications.
   ///
   /// In en, this message translates to:
   /// **'Medication'**
   String get medications;
+
+  /// No description provided for @medicationPrescriptionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Prescription & supply'**
+  String get medicationPrescriptionDetails;
+
+  /// No description provided for @medicationPrescriptionDetailsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional medicine, veterinarian, and refill information.'**
+  String get medicationPrescriptionDetailsHint;
+
+  /// No description provided for @medicationStrengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength or concentration'**
+  String get medicationStrengthLabel;
+
+  /// No description provided for @medicationStrengthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example, 20 mg/mL'**
+  String get medicationStrengthHint;
+
+  /// No description provided for @medicationPrescriberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Prescribing veterinarian or clinic'**
+  String get medicationPrescriberLabel;
+
+  /// No description provided for @medicationPharmacyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pharmacy'**
+  String get medicationPharmacyLabel;
+
+  /// No description provided for @medicationPrescriptionNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Prescription number'**
+  String get medicationPrescriptionNumberLabel;
+
+  /// No description provided for @medicationRefillsRemainingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Refills remaining'**
+  String get medicationRefillsRemainingLabel;
+
+  /// No description provided for @medicationNextRefillDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next refill date'**
+  String get medicationNextRefillDateLabel;
+
+  /// No description provided for @medicationNoRefillDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No refill date'**
+  String get medicationNoRefillDate;
+
+  /// No description provided for @medicationClearNextRefillDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear next refill date'**
+  String get medicationClearNextRefillDate;
+
+  /// No description provided for @medicationRefillsValidation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a whole number of zero or more.'**
+  String get medicationRefillsValidation;
 
   /// No description provided for @documents.
   ///

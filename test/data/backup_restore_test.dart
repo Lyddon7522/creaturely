@@ -125,7 +125,7 @@ void main() {
     );
   });
 
-  test('schema v2 backups migrate to v4 after checksum validation', () {
+  test('schema v2 backups migrate to v5 after checksum validation', () {
     final valid = backups.create(
       snapshot: fixtureSnapshot(),
       attachments: <String, Uint8List>{fixtureChecksum: fixtureAttachment},
@@ -152,7 +152,7 @@ void main() {
     expect(restored.animals.single.name, 'Moss');
   });
 
-  test('schema v3 backups migrate to v4 after checksum validation', () {
+  test('schema v3 backups migrate to v5 after checksum validation', () {
     final valid = backups.create(
       snapshot: fixtureSnapshot(),
       attachments: <String, Uint8List>{fixtureChecksum: fixtureAttachment},
@@ -178,6 +178,57 @@ void main() {
     expect(restored.respiratoryReminders.single.id, 'respiratory-reminder-1');
     expect(restored.weightReminders, isEmpty);
     expect(restored.documents.single.toJson(), isNot(contains('reminderAt')));
+  });
+
+  test('schema v4 backups migrate to v5 with empty medication details', () {
+    final valid = backups.create(
+      snapshot: fixtureSnapshot(),
+      attachments: <String, Uint8List>{fixtureChecksum: fixtureAttachment},
+    );
+    final archive = ZipDecoder().decodeBytes(valid);
+    final dataFile = archive.find('data.json')!;
+    final data = jsonDecode(utf8.decode(dataFile.readBytes()!)) as Map<String, Object?>;
+    data['schemaVersion'] = 4;
+    final legacyMedication = (data['medications']! as List<Object?>).single as Map<String, Object?>;
+    for (final key in <String>[
+      'strength',
+      'pharmacy',
+      'prescriptionNumber',
+      'refillsRemaining',
+      'nextRefillDate',
+    ]) {
+      legacyMedication.remove(key);
+    }
+    final encodedData = utf8.encode(jsonEncode(data));
+    archive.add(ArchiveFile.bytes('data.json', encodedData));
+
+    final manifestFile = archive.find('manifest.json')!;
+    final manifest = jsonDecode(utf8.decode(manifestFile.readBytes()!)) as Map<String, Object?>;
+    manifest['schemaVersion'] = 4;
+    manifest['dataChecksumSha256'] = sha256.convert(encodedData).toString();
+    archive.add(ArchiveFile.string('manifest.json', jsonEncode(manifest)));
+
+    final restored = backups.validate(ZipEncoder().encodeBytes(archive)).snapshot;
+    expect(restored.schemaVersion, CreaturelySnapshot.currentSchemaVersion);
+    expect(restored.weightReminders.single.id, 'weight-reminder-1');
+    expect(restored.medications.single.strength, isNull);
+    expect(restored.medications.single.pharmacy, isNull);
+    expect(restored.medications.single.prescriptionNumber, isNull);
+    expect(restored.medications.single.refillsRemaining, isNull);
+    expect(restored.medications.single.nextRefillDate, isNull);
+  });
+
+  test('negative refill counts reject the entire archive', () {
+    final json = fixtureSnapshot().toJson();
+    final medication = (json['medications']! as List<Object?>).single as Map<String, Object?>;
+    medication['refillsRemaining'] = -1;
+    final snapshot = CreaturelySnapshot.fromJson(json);
+    final bytes = backups.create(
+      snapshot: snapshot,
+      attachments: <String, Uint8List>{fixtureChecksum: fixtureAttachment},
+    );
+
+    expect(() => backups.validate(bytes), throwsA(isA<CorruptBackupException>()));
   });
 
   test('broken animal ownership references reject the entire archive', () {

@@ -164,6 +164,11 @@ class PetExportService {
       'media_type',
       'document_category',
       'expiry_date',
+      'medication_strength',
+      'pharmacy',
+      'prescription_number',
+      'refills_remaining',
+      'next_refill_date',
     ];
     final rows = <List<Object?>>[headers];
 
@@ -203,10 +208,17 @@ class PetExportService {
         'status': medication.active ? 'active' : 'inactive',
         'note': medication.notes,
         'medication_form': medication.form,
+        'medication_strength': medication.strength,
         'dose_amount': medication.doseAmount,
         'dose_unit': medication.doseUnit,
         'instructions': medication.instructions,
         'prescriber': medication.prescriber,
+        'pharmacy': medication.pharmacy,
+        'prescription_number': medication.prescriptionNumber,
+        'refills_remaining': medication.refillsRemaining,
+        'next_refill_date': medication.nextRefillDate == null
+            ? null
+            : calendarDateToIso8601(medication.nextRefillDate!),
         'start_date': calendarDateToIso8601(medication.startDate),
         'end_date': medication.endDate == null ? null : calendarDateToIso8601(medication.endDate!),
       });
@@ -360,9 +372,14 @@ class PetExportService {
                 child: pw.Text(
                   '${value.name} - ${value.doseAmount} ${value.doseUnit}, '
                   '${value.form}. ${value.instructions}. '
+                  '${value.strength == null ? '' : 'Strength: ${value.strength}. '}'
                   'From ${dates.format(value.startDate)}'
                   '${value.endDate == null ? '' : ' through ${dates.format(value.endDate!)}'}'
                   '${value.prescriber == null ? '' : '. Prescriber: ${value.prescriber}'}'
+                  '${value.pharmacy == null ? '' : '. Pharmacy: ${value.pharmacy}'}'
+                  '${value.prescriptionNumber == null ? '' : '. Prescription: ${value.prescriptionNumber}'}'
+                  '${value.refillsRemaining == null ? '' : '. Refills remaining: ${value.refillsRemaining}'}'
+                  '${value.nextRefillDate == null ? '' : '. Next refill: ${dates.format(value.nextRefillDate!)}'}'
                   '${value.notes == null ? '' : '. Notes: ${value.notes}'}'
                   '${value.active ? '' : ' (inactive)'}',
                 ),

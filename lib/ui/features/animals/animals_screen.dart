@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../domain/models.dart';
 import '../../../domain/units.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../app_controller.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -83,6 +84,11 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
       );
     }
     final selected = state.selectedAnimal ?? animals.first;
+    final careOverview = _AnimalCareOverview.from(
+      animal: selected,
+      snapshot: state.snapshot,
+      now: DateTime.now(),
+    );
     final otherAnimals = animals
         .where((animal) => animal.id != selected.id)
         .toList(growable: false);
@@ -105,19 +111,20 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
           controller: _scrollController,
           key: const PageStorageKey<String>('animals_home'),
           slivers: [
+            SliverToBoxAdapter(child: _QuickActions(animal: selected)),
+            const SliverToBoxAdapter(child: SizedBox(height: 18)),
             SliverToBoxAdapter(
               child: _AnimalHero(
                 animal: selected,
+                overview: careOverview,
                 onEdit: () => context.push('/animal/${selected.id}/edit'),
                 onExport: () => context.push('/animal/${selected.id}/export'),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 18)),
             SliverToBoxAdapter(
-              child: _CareSummary(animal: selected, snapshot: state.snapshot),
+              child: _CareSummary(animal: selected, overview: careOverview),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-            SliverToBoxAdapter(child: _QuickActions(animal: selected)),
             if (otherAnimals.isNotEmpty) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
               SliverToBoxAdapter(
@@ -140,6 +147,64 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
         ),
       ),
     );
+  }
+}
+
+class _AnimalCareOverview {
+  const _AnimalCareOverview({
+    required this.latestBreathing,
+    required this.activeMedicationCount,
+    required this.dosesDueSoon,
+    required this.weightUnit,
+  });
+
+  factory _AnimalCareOverview.from({
+    required Animal animal,
+    required CreaturelySnapshot snapshot,
+    required DateTime now,
+  }) {
+    final sessions =
+        snapshot.respiratorySessions
+            .where((session) => session.animalId == animal.id)
+            .toList(growable: false)
+          ..sort((first, second) => second.recordedAt.compareTo(first.recordedAt));
+    final activeMedicationCount = snapshot.medications
+        .where((medication) => medication.animalId == animal.id && medication.active)
+        .length;
+    final dosesDueSoon = snapshot.doseLedger
+        .where(
+          (dose) =>
+              dose.animalId == animal.id &&
+              dose.status == DoseStatus.unrecorded &&
+              dose.dueAt.isBefore(now.add(const Duration(hours: 24))) &&
+              dose.dueAt.isAfter(now.subtract(const Duration(hours: 2))),
+        )
+        .length;
+    return _AnimalCareOverview(
+      latestBreathing: sessions.firstOrNull,
+      activeMedicationCount: activeMedicationCount,
+      dosesDueSoon: dosesDueSoon,
+      weightUnit: snapshot.settings.weightUnit,
+    );
+  }
+
+  final RespiratorySession? latestBreathing;
+  final int activeMedicationCount;
+  final int dosesDueSoon;
+  final WeightUnit weightUnit;
+
+  String breathingValue(AppLocalizations l10n) => latestBreathing == null
+      ? l10n.notRecorded
+      : '${formatRespiratoryRate(latestBreathing!.ratePerMinute)}/min';
+
+  String weightValue(Animal animal, AppLocalizations l10n) {
+    final weightKg = animal.currentWeightKg;
+    if (weightKg == null) {
+      return l10n.notRecorded;
+    }
+    final unitLabel = weightUnit == WeightUnit.kilograms ? 'kg' : 'lb';
+    final value = WeightValue.from(weightKg, WeightUnit.kilograms).inUnit(weightUnit);
+    return '${value.toStringAsFixed(2)} $unitLabel';
   }
 }
 
@@ -175,107 +240,194 @@ class _ArchivedAnimals extends StatelessWidget {
 }
 
 class _AnimalHero extends StatelessWidget {
-  const _AnimalHero({required this.animal, required this.onEdit, required this.onExport});
+  const _AnimalHero({
+    required this.animal,
+    required this.overview,
+    required this.onEdit,
+    required this.onExport,
+  });
 
   final Animal animal;
+  final _AnimalCareOverview overview;
   final VoidCallback onEdit;
   final VoidCallback onExport;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     final ageMonths = animal.dateOfBirth == null
         ? animal.approximateAgeMonths
         : completedAgeMonths(animal.dateOfBirth!, DateTime.now());
+    final metadata = <String?>[animal.species, animal.breed].whereType<String>().join(' • ');
+    final actionStyle = IconButton.styleFrom(
+      foregroundColor: CreaturelyColors.white,
+      backgroundColor: CreaturelyColors.white.withValues(alpha: 0.12),
+      minimumSize: const Size.square(CreaturelySpacing.minTouchTarget),
+      shape: CircleBorder(side: BorderSide(color: CreaturelyColors.white.withValues(alpha: 0.2))),
+    );
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          animal.name,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            color: CreaturelyColors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          metadata,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: CreaturelyColors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (ageMonths != null)
+          Text(
+            _friendlyAge(ageMonths, approximate: animal.dateOfBirth == null),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: CreaturelyColors.white),
+          ),
+      ],
+    );
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: const ValueKey<String>('animal_edit'),
+          tooltip: l10n.editAnimal(animal.name),
+          style: actionStyle,
+          onPressed: onEdit,
+          icon: const Icon(Icons.edit_rounded, size: 21),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          key: const ValueKey<String>('animal_export'),
+          tooltip: l10n.exportAnimal(animal.name),
+          style: actionStyle,
+          onPressed: onExport,
+          icon: const Icon(Icons.ios_share_rounded, size: 21),
+        ),
+      ],
+    );
+    final avatar = DecoratedBox(
+      decoration: BoxDecoration(
+        color: CreaturelyColors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: CreaturelyColors.white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: AnimalAvatar(animal: animal, radius: 30),
+      ),
+    );
+    final metrics = <_HeroMetricData>[
+      _HeroMetricData(
+        icon: Icons.air_rounded,
+        label: l10n.breathing,
+        value: overview.breathingValue(l10n),
+      ),
+      _HeroMetricData(
+        icon: Icons.monitor_weight_outlined,
+        label: l10n.weight,
+        value: overview.weightValue(animal, l10n),
+      ),
+      _HeroMetricData(
+        icon: Icons.medication_outlined,
+        label: l10n.medications,
+        value: l10n.activeMedicationCount(overview.activeMedicationCount),
+      ),
+    ];
     return Semantics(
+      key: const ValueKey<String>('animal_hero'),
       container: true,
-      label: '${animal.name} dashboard',
-      child: Card(
+      explicitChildNodes: true,
+      label: l10n.animalDashboard(animal.name),
+      child: Container(
         clipBehavior: Clip.antiAlias,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.alphaBlend(
-                  scheme.primary.withValues(alpha: dark ? 0.25 : 0.12),
-                  scheme.surface,
-                ),
-                Color.alphaBlend(
-                  scheme.secondary.withValues(alpha: dark ? 0.18 : 0.09),
-                  scheme.surface,
-                ),
-              ],
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(CreaturelyRadii.feature),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: dark
+                ? [CreaturelyColors.teal600, CreaturelyColors.deepTeal]
+                : [CreaturelyColors.deepTeal, CreaturelyColors.vitalTeal],
+          ),
+          border: Border.all(color: CreaturelyColors.white.withValues(alpha: 0.16)),
+          boxShadow: [
+            BoxShadow(
+              color: dark
+                  ? Colors.black.withValues(alpha: 0.28)
+                  : CreaturelyColors.vitalTeal.withValues(alpha: 0.22),
+              blurRadius: 28,
+              offset: const Offset(0, 14),
             ),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -28,
-                top: -38,
-                child: _DecorativeCircle(
-                  diameter: 132,
-                  color: scheme.secondary.withValues(alpha: dark ? 0.14 : 0.1),
-                ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -28,
+              top: -38,
+              child: _DecorativeCircle(
+                diameter: 132,
+                color: CreaturelyColors.heartCoral.withValues(alpha: dark ? 0.18 : 0.16),
               ),
-              Positioned(
-                right: 42,
-                bottom: -38,
-                child: _DecorativeCircle(
-                  diameter: 84,
-                  color: scheme.primary.withValues(alpha: dark ? 0.14 : 0.08),
-                ),
+            ),
+            Positioned(
+              right: 44,
+              bottom: -38,
+              child: _DecorativeCircle(
+                diameter: 84,
+                color: CreaturelyColors.white.withValues(alpha: 0.08),
               ),
-              Padding(
-                padding: const EdgeInsets.all(18),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AnimalAvatar(animal: animal, radius: 38),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(animal.name, style: Theme.of(context).textTheme.headlineMedium),
-                          const SizedBox(height: 3),
-                          Text(
-                            <String?>[animal.species, animal.breed].whereType<String>().join(' • '),
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          if (ageMonths != null)
-                            Text(
-                              _friendlyAge(ageMonths, approximate: animal.dateOfBirth == null),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
-                            children: [
-                              TextButton.icon(
-                                onPressed: onEdit,
-                                icon: const Icon(Icons.edit_outlined, size: 19),
-                                label: const Text('Edit'),
-                              ),
-                              TextButton.icon(
-                                key: const ValueKey('animal_export'),
-                                onPressed: onExport,
-                                icon: const Icon(Icons.ios_share_rounded, size: 19),
-                                label: const Text('Export'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final textScale = MediaQuery.textScalerOf(context).scale(1);
+                  final stackedHeader = constraints.maxWidth < 330 || textScale > 1.3;
+                  final header = stackedHeader
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [avatar, const Spacer(), actions]),
+                            const SizedBox(height: 12),
+                            details,
+                          ],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            avatar,
+                            const SizedBox(width: 14),
+                            Expanded(child: details),
+                            const SizedBox(width: 8),
+                            actions,
+                          ],
+                        );
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      header,
+                      const SizedBox(height: 16),
+                      _HeroMetricGrid(metrics: metrics),
+                    ],
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -290,6 +442,114 @@ class _AnimalHero extends StatelessWidget {
     final remainder = months % 12;
     return '$years ${years == 1 ? 'year' : 'years'}'
         '${remainder == 0 ? '' : ', $remainder months'} old$qualifier';
+  }
+}
+
+@immutable
+class _HeroMetricData {
+  const _HeroMetricData({required this.icon, required this.label, required this.value});
+
+  final IconData icon;
+  final String label;
+  final String value;
+}
+
+class _HeroMetricGrid extends StatelessWidget {
+  const _HeroMetricGrid({required this.metrics});
+
+  final List<_HeroMetricData> metrics;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final labelScale = MediaQuery.textScalerOf(context).scale(12) / 12;
+      final stacked = constraints.maxWidth < 310 || labelScale > 1.35;
+      if (stacked) {
+        return Column(
+          children: [
+            for (var index = 0; index < metrics.length; index++) ...[
+              _HeroMetric(metric: metrics[index], horizontal: true),
+              if (index < metrics.length - 1) const SizedBox(height: 8),
+            ],
+          ],
+        );
+      }
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            Expanded(child: _HeroMetric(metric: metrics[index])),
+            if (index < metrics.length - 1) const SizedBox(width: 8),
+          ],
+        ],
+      );
+    },
+  );
+}
+
+class _HeroMetric extends StatelessWidget {
+  const _HeroMetric({required this.metric, this.horizontal = false});
+
+  final _HeroMetricData metric;
+  final bool horizontal;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: CreaturelyColors.white.withValues(alpha: 0.82),
+      fontWeight: FontWeight.w600,
+    );
+    final valueStyle = Theme.of(
+      context,
+    ).textTheme.titleMedium?.copyWith(color: CreaturelyColors.white, fontWeight: FontWeight.w800);
+    final content = horizontal
+        ? Row(
+            children: [
+              Icon(metric.icon, color: CreaturelyColors.white, size: 19),
+              const SizedBox(width: 10),
+              Expanded(child: Text(metric.label, style: labelStyle)),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(metric.value, textAlign: TextAlign.end, style: valueStyle),
+              ),
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(metric.icon, color: CreaturelyColors.white, size: 17),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      metric.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(metric.value, maxLines: 2, overflow: TextOverflow.ellipsis, style: valueStyle),
+            ],
+          );
+    return Semantics(
+      label: '${metric.label}: ${metric.value}',
+      excludeSemantics: true,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: horizontal ? 48 : 76),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: CreaturelyColors.white.withValues(alpha: 0.11),
+            borderRadius: BorderRadius.circular(CreaturelyRadii.standard),
+            border: Border.all(color: CreaturelyColors.white.withValues(alpha: 0.14)),
+          ),
+          child: Padding(padding: const EdgeInsets.all(11), child: content),
+        ),
+      ),
+    );
   }
 }
 
@@ -319,225 +579,116 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final usesLargeText = textScale > 1.4;
-    final actionHeight = 120.0 + ((textScale - 1.0).clamp(0.0, 2.0) * 56.0).toDouble();
-    final actions =
-        <({IconData icon, String label, String supporting, VoidCallback onTap, Color color})>[
-          (
-            icon: Icons.air_rounded,
-            label: 'Count breaths',
-            supporting: 'Start timer',
-            onTap: () => context.push('/record/breaths/${animal.id}'),
-            color: CreaturelyColors.vitalTeal,
-          ),
-          (
-            icon: Icons.monitor_weight_outlined,
-            label: 'Log weight',
-            supporting: 'Add measurement',
-            onTap: () => context.push('/health/new/${animal.id}?kind=weight'),
-            color: CreaturelyColors.information,
-          ),
-          (
-            icon: Icons.medication_outlined,
-            label: 'Medications',
-            supporting: 'Review doses',
-            onTap: () => context.go('/schedule'),
-            color: CreaturelyColors.success,
-          ),
-          (
-            icon: Icons.description_outlined,
-            label: 'Documents',
-            supporting: 'View files',
-            onTap: () => context.go('/timeline?filter=document'),
-            color: CreaturelyColors.warning,
-          ),
-        ];
+    final l10n = AppLocalizations.of(context);
+    final actions = [
+      QuickActionItem(
+        key: const ValueKey<String>('quick_action_breathing'),
+        icon: Icons.air_rounded,
+        label: l10n.countBreaths,
+        semanticLabel: '${l10n.countBreaths}, ${animal.name}',
+        tone: QuickActionTone.primary,
+        onTap: () => context.push('/record/breaths/${animal.id}'),
+      ),
+      QuickActionItem(
+        key: const ValueKey<String>('quick_action_weight'),
+        icon: Icons.monitor_weight_outlined,
+        label: l10n.logWeight,
+        semanticLabel: '${l10n.logWeight}, ${animal.name}',
+        tone: QuickActionTone.accent,
+        onTap: () => context.push('/health/new/${animal.id}?kind=weight'),
+      ),
+      QuickActionItem(
+        key: const ValueKey<String>('quick_action_observation'),
+        icon: Icons.visibility_outlined,
+        label: l10n.observation,
+        semanticLabel: '${l10n.observation}, ${animal.name}',
+        tone: QuickActionTone.primaryTonal,
+        onTap: () => context.push('/health/new/${animal.id}?kind=observation'),
+      ),
+      QuickActionItem(
+        key: const ValueKey<String>('quick_action_medications'),
+        icon: Icons.medication_outlined,
+        label: l10n.medications,
+        semanticLabel: '${l10n.medications}, ${animal.name}',
+        tone: QuickActionTone.secondaryTonal,
+        onTap: () => context.go('/schedule'),
+      ),
+      QuickActionItem(
+        key: const ValueKey<String>('quick_action_documents'),
+        icon: Icons.description_outlined,
+        label: l10n.documents,
+        semanticLabel: '${l10n.documents}, ${animal.name}',
+        tone: QuickActionTone.neutral,
+        onTap: () => context.go('/timeline?filter=document'),
+      ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeading('Care shortcuts'),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: actions.length,
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: usesLargeText ? 480 : 240,
-            mainAxisExtent: actionHeight,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-          ),
-          itemBuilder: (context, index) {
-            final action = actions[index];
-            return Semantics(
-              button: true,
-              label: '${action.label} for ${animal.name}. ${action.supporting}.',
-              child: Card(
-                clipBehavior: Clip.antiAlias,
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color.alphaBlend(
-                          action.color.withValues(alpha: 0.1),
-                          Theme.of(context).colorScheme.surface,
-                        ),
-                        Color.alphaBlend(
-                          action.color.withValues(alpha: 0.025),
-                          Theme.of(context).colorScheme.surface,
-                        ),
-                      ],
-                    ),
-                  ),
-                  child: InkWell(
-                    onTap: action.onTap,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          right: -10,
-                          bottom: -14,
-                          child: ExcludeSemantics(
-                            child: Icon(
-                              action.icon,
-                              color: action.color.withValues(alpha: 0.07),
-                              size: 82,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: action.color.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: Icon(action.icon, color: action.color, size: 22),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                action.label,
-                                maxLines: usesLargeText ? 2 : 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w700),
-                              ),
-                              Text(
-                                action.supporting,
-                                maxLines: usesLargeText ? 2 : 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+        SectionHeading(l10n.quickActions),
+        QuickActionRail(actions: actions),
       ],
     );
   }
 }
 
 class _CareSummary extends StatelessWidget {
-  const _CareSummary({required this.animal, required this.snapshot});
+  const _CareSummary({required this.animal, required this.overview});
 
   final Animal animal;
-  final CreaturelySnapshot snapshot;
+  final _AnimalCareOverview overview;
 
   @override
   Widget build(BuildContext context) {
-    final sessions =
-        snapshot.respiratorySessions
-            .where((value) => value.animalId == animal.id)
-            .toList(growable: false)
-          ..sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
-    final activeMeds = snapshot.medications
-        .where((value) => value.animalId == animal.id && value.active)
-        .length;
-    final now = DateTime.now();
-    final due = snapshot.doseLedger
-        .where(
-          (value) =>
-              value.animalId == animal.id &&
-              value.status == DoseStatus.unrecorded &&
-              value.dueAt.isBefore(now.add(const Duration(hours: 24))) &&
-              value.dueAt.isAfter(now.subtract(const Duration(hours: 2))),
-        )
-        .length;
-    final weightUnit = snapshot.settings.weightUnit;
-    final weightLabel = weightUnit == WeightUnit.kilograms ? 'kg' : 'lb';
-    final rows = <({IconData icon, Color color, String label, String value, VoidCallback onTap})>[
-      (
+    final l10n = AppLocalizations.of(context);
+    final latestBreathing = overview.latestBreathing;
+    final cards = <_CareCardData>[
+      _CareCardData(
+        key: const ValueKey<String>('care_summary_breathing'),
         icon: Icons.air_rounded,
-        color: CreaturelyColors.vitalTeal,
-        label: 'Latest breathing',
-        value: sessions.isEmpty
-            ? 'Not recorded'
-            : '${formatRespiratoryRate(sessions.first.ratePerMinute)}/min • '
-                  '${DateFormat.MMMd().format(sessions.first.recordedAt.toLocal())}',
+        tone: CreaturelyColors.vitalTeal,
+        label: l10n.latestBreathing,
+        value: overview.breathingValue(l10n),
+        detail: latestBreathing == null
+            ? l10n.countBreathsToStartTrend
+            : l10n.recordedDate(DateFormat.MMMd().format(latestBreathing.recordedAt.toLocal())),
         onTap: () => context.go('/trends?tab=breathing'),
       ),
-      (
+      _CareCardData(
+        key: const ValueKey<String>('care_summary_weight'),
         icon: Icons.monitor_weight_outlined,
-        color: CreaturelyColors.information,
-        label: 'Current weight',
-        value: animal.currentWeightKg == null
-            ? 'Not recorded'
-            : '${WeightValue.from(animal.currentWeightKg!, WeightUnit.kilograms).inUnit(weightUnit).toStringAsFixed(2)} $weightLabel',
+        tone: CreaturelyColors.information,
+        label: l10n.currentWeight,
+        value: overview.weightValue(animal, l10n),
+        detail: animal.currentWeightKg == null
+            ? l10n.logWeightToStartTrend
+            : l10n.currentRecordedWeight,
         onTap: () => context.go('/trends?tab=weight'),
       ),
-      (
+      _CareCardData(
+        key: const ValueKey<String>('care_summary_medications'),
         icon: Icons.medication_outlined,
-        color: CreaturelyColors.success,
-        label: 'Medications',
-        value: '$activeMeds active',
+        tone: CreaturelyColors.success,
+        label: l10n.medicationStatus,
+        value: l10n.activeMedicationCount(overview.activeMedicationCount),
+        detail: l10n.reviewSchedules,
         onTap: () => context.go('/schedule?view=schedules'),
       ),
-      (
+      _CareCardData(
+        key: const ValueKey<String>('care_summary_doses'),
         icon: Icons.schedule_rounded,
-        color: CreaturelyColors.heartCoral,
-        label: 'Doses due soon',
-        value: '$due ${due == 1 ? 'dose' : 'doses'} in the next 24 hours',
+        tone: CreaturelyColors.heartCoral,
+        label: l10n.dosesDueSoon,
+        value: l10n.shortDoseCount(overview.dosesDueSoon),
+        detail: l10n.next24Hours,
         onTap: () => context.go('/schedule'),
       ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeading('Today at a glance'),
-        Card(
-          child: Column(
-            children: [
-              for (var index = 0; index < rows.length; index++) ...[
-                ListTile(
-                  minTileHeight: 64,
-                  leading: _CareIcon(icon: rows[index].icon, color: rows[index].color),
-                  title: Text(rows[index].label),
-                  subtitle: Text(
-                    rows[index].value,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: rows[index].onTap,
-                ),
-                if (index < rows.length - 1) const Divider(height: 1),
-              ],
-            ],
-          ),
-        ),
+        SectionHeading(l10n.todayAtAGlance),
+        _CareCardGrid(cards: cards),
         if (animal.thresholds.isConfigured) ...[
           const SizedBox(height: 12),
           CalmNotice(
@@ -555,6 +706,153 @@ class _CareSummary extends StatelessWidget {
   }
 }
 
+@immutable
+class _CareCardData {
+  const _CareCardData({
+    required this.key,
+    required this.icon,
+    required this.tone,
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.onTap,
+  });
+
+  final Key key;
+  final IconData icon;
+  final Color tone;
+  final String label;
+  final String value;
+  final String detail;
+  final VoidCallback onTap;
+}
+
+class _CareCardGrid extends StatelessWidget {
+  const _CareCardGrid({required this.cards});
+
+  final List<_CareCardData> cards;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      const spacing = 12.0;
+      final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+      final columns = switch (constraints.maxWidth) {
+        >= 760 when textScale <= 1.2 => 4,
+        >= 340 when textScale <= 1.3 => 2,
+        _ => 1,
+      };
+      final cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+      return Wrap(
+        key: const ValueKey<String>('care_summary_grid'),
+        spacing: spacing,
+        runSpacing: spacing,
+        children: [
+          for (final card in cards)
+            SizedBox(
+              width: cardWidth,
+              child: _CareSummaryCard(key: card.key, data: card),
+            ),
+        ],
+      );
+    },
+  );
+}
+
+class _CareSummaryCard extends StatefulWidget {
+  const _CareSummaryCard({required this.data, super.key});
+
+  final _CareCardData data;
+
+  @override
+  State<_CareSummaryCard> createState() => _CareSummaryCardState();
+}
+
+class _CareSummaryCardState extends State<_CareSummaryCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final tone = dark
+        ? Color.lerp(widget.data.tone, CreaturelyColors.white, 0.32)!
+        : widget.data.tone;
+    final containerColor = Color.alphaBlend(
+      tone.withValues(alpha: dark ? 0.12 : 0.08),
+      scheme.surfaceContainerLow,
+    );
+    final radius = BorderRadius.circular(20);
+    final semanticLabel = '${widget.data.label}: ${widget.data.value}. ${widget.data.detail}';
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      onTap: widget.data.onTap,
+      excludeSemantics: true,
+      child: AnimatedScale(
+        scale: _pressed ? 0.985 : 1,
+        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Card(
+          color: containerColor,
+          elevation: dark ? 0 : 1.5,
+          shadowColor: tone.withValues(alpha: 0.18),
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: radius,
+            side: BorderSide(color: tone.withValues(alpha: dark ? 0.28 : 0.18)),
+          ),
+          child: InkWell(
+            onTap: widget.data.onTap,
+            onHighlightChanged: (value) {
+              if (_pressed != value) {
+                setState(() => _pressed = value);
+              }
+            },
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 150),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _CareIcon(icon: widget.data.icon, color: tone),
+                        const Spacer(),
+                        Icon(Icons.arrow_forward_rounded, color: scheme.onSurfaceVariant, size: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.data.label,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.data.value,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(widget.data.detail, style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CareIcon extends StatelessWidget {
   const _CareIcon({required this.icon, required this.color});
 
@@ -563,11 +861,8 @@ class _CareIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.13),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: SizedBox.square(dimension: 40, child: Icon(icon, color: color, size: 21)),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.13), shape: BoxShape.circle),
+    child: SizedBox.square(dimension: 42, child: Icon(icon, color: color, size: 22)),
   );
 }
 

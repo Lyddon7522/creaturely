@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 abstract final class CreaturelyColors {
   static const Color vitalTeal = Color(0xFF087E78);
@@ -41,6 +42,12 @@ abstract final class CreaturelySpacing {
   static const double maxContentWidth = 960;
   static const double maxFormWidth = 680;
   static const double minTouchTarget = 48;
+}
+
+abstract final class CreaturelyRadii {
+  static const double small = 8;
+  static const double standard = 14;
+  static const double feature = 24;
 }
 
 class CreaturelyTheme {
@@ -118,10 +125,14 @@ class CreaturelyTheme {
             fontWeight: FontWeight.w600,
           ),
         );
+    final controlShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(CreaturelyRadii.standard),
+    );
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
+      shadowColor: scheme.shadow,
       scaffoldBackgroundColor: isDark
           ? CreaturelyColors.darkBackground
           : CreaturelyColors.cloudCanvas,
@@ -129,18 +140,21 @@ class CreaturelyTheme {
       appBarTheme: AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: isDark ? CreaturelyColors.darkBackground : CreaturelyColors.cloudCanvas,
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: textTheme.titleLarge,
+        systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       ),
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 1,
         color: isDark ? CreaturelyColors.darkSurface : CreaturelyColors.white,
         surfaceTintColor: Colors.transparent,
+        shadowColor: scheme.shadow,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(CreaturelyRadii.standard),
           side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
@@ -149,31 +163,42 @@ class CreaturelyTheme {
         fillColor: isDark ? CreaturelyColors.darkSurface : CreaturelyColors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(CreaturelyRadii.standard),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(CreaturelyRadii.standard),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(CreaturelyRadii.standard),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(48, CreaturelySpacing.minTouchTarget),
+          minimumSize: const Size(48, 52),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          elevation: 1,
+          shadowColor: scheme.shadow,
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: controlShape,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, CreaturelySpacing.minTouchTarget),
+          minimumSize: const Size(48, 52),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          side: BorderSide(color: scheme.outlineVariant, width: 1.2),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          shape: controlShape,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, CreaturelySpacing.minTouchTarget),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          shape: controlShape,
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -182,12 +207,17 @@ class CreaturelyTheme {
             CreaturelySpacing.minTouchTarget,
             CreaturelySpacing.minTouchTarget,
           ),
+          shape: controlShape,
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 72,
+        elevation: 0,
         backgroundColor: isDark ? CreaturelyColors.darkSurface : CreaturelyColors.white,
         indicatorColor: scheme.primaryContainer,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(CreaturelyRadii.standard),
+        ),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontSize: 12,
@@ -201,16 +231,28 @@ class CreaturelyTheme {
         useIndicator: true,
         minWidth: 88,
         labelType: NavigationRailLabelType.all,
+        selectedLabelTextStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
       listTileTheme: ListTileThemeData(iconColor: scheme.onSurfaceVariant),
       dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 1),
       dialogTheme: DialogThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: isDark ? CreaturelyColors.darkSurface : CreaturelyColors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(CreaturelyRadii.feature)),
       ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: isDark ? CreaturelyColors.darkSurface : CreaturelyColors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(CreaturelyRadii.feature)),
+        ),
       ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        elevation: 3,
+        highlightElevation: 1,
+        shape: controlShape,
+      ),
+      snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: controlShape),
       visualDensity: VisualDensity.standard,
     );
   }
@@ -247,6 +289,8 @@ class CreaturelyTheme {
         onSurfaceVariant: CreaturelyColors.quietSlate,
         outline: CreaturelyColors.quietSlate,
         outlineVariant: CreaturelyColors.mistBorder,
+        shadow: CreaturelyColors.softInk.withValues(alpha: 0.18),
+        scrim: Colors.black.withValues(alpha: 0.48),
         inverseSurface: CreaturelyColors.softInk,
         onInverseSurface: CreaturelyColors.darkText,
         inversePrimary: CreaturelyColors.freshMint,
@@ -284,7 +328,9 @@ class CreaturelyTheme {
         surfaceContainerHighest: CreaturelyColors.deepTeal,
         onSurfaceVariant: CreaturelyColors.darkMutedText,
         outline: CreaturelyColors.darkBorder,
-        outlineVariant: CreaturelyColors.darkBorder,
+        outlineVariant: CreaturelyColors.darkBorder.withValues(alpha: 0.58),
+        shadow: Colors.black.withValues(alpha: 0.52),
+        scrim: Colors.black.withValues(alpha: 0.72),
         inverseSurface: CreaturelyColors.darkText,
         onInverseSurface: CreaturelyColors.softInk,
         inversePrimary: CreaturelyColors.vitalTeal,
