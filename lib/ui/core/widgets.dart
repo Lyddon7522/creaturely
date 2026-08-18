@@ -483,9 +483,8 @@ class EmptyState extends StatelessWidget {
                   Text(
                     body,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   if (action != null) ...[SizedBox(height: compact ? 8 : 20), action!],
                 ],

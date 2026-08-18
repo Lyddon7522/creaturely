@@ -31,7 +31,7 @@ concurrency:
 env:
   FASTLANE_OPT_OUT_USAGE: "YES"
   FASTLANE_SKIP_UPDATE_CHECK: "YES"
-  FLUTTER_VERSION: 3.44.8
+  FLUTTER_VERSION: 3.47.0
 
 jobs:
   metadata:
@@ -107,7 +107,7 @@ jobs:
           cache: true
 
       - name: Resolve packages
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Reproduce generated artifacts
         run: |
@@ -161,7 +161,7 @@ jobs:
           cache: true
 
       - name: Resolve packages
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Install Android upload key
         shell: bash
@@ -291,7 +291,7 @@ jobs:
           cache: true
 
       - name: Resolve packages
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Install Apple distribution identity
         shell: bash

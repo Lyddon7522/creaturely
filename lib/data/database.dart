@@ -609,8 +609,8 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
-  Future<void> saveSettings(domain.AppSettings settings) =>
-      into(settingRows).insertOnConflictUpdate(
+  Future<void> saveSettings(domain.AppSettings settings) => into(settingRows)
+      .insertOnConflictUpdate(
         SettingRowsCompanion(
           key: const Value('app'),
           jsonValue: Value(jsonEncode(settings.toJson())),

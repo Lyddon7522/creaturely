@@ -271,18 +271,14 @@ class _AnimalHero extends StatelessWidget {
       children: [
         Text(
           animal.name,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            color: CreaturelyColors.white,
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(context).textTheme.headlineMedium
+              ?.copyWith(color: CreaturelyColors.white, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
         Text(
           metadata,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: CreaturelyColors.white,
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
+              ?.copyWith(color: CreaturelyColors.white, fontWeight: FontWeight.w600),
         ),
         if (ageMonths != null)
           Text(
@@ -499,9 +495,8 @@ class _HeroMetric extends StatelessWidget {
       color: CreaturelyColors.white.withValues(alpha: 0.82),
       fontWeight: FontWeight.w600,
     );
-    final valueStyle = Theme.of(
-      context,
-    ).textTheme.titleMedium?.copyWith(color: CreaturelyColors.white, fontWeight: FontWeight.w800);
+    final valueStyle = Theme.of(context).textTheme.titleMedium
+        ?.copyWith(color: CreaturelyColors.white, fontWeight: FontWeight.w800);
     final content = horizontal
         ? Row(
             children: [
@@ -827,18 +822,14 @@ class _CareSummaryCardState extends State<_CareSummaryCard> {
                     const SizedBox(height: 12),
                     Text(
                       widget.data.label,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: Theme.of(context).textTheme.labelLarge
+                          ?.copyWith(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       widget.data.value,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(color: scheme.onSurface, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 2),
                     Text(widget.data.detail, style: Theme.of(context).textTheme.bodySmall),

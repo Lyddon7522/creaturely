@@ -159,9 +159,8 @@ class _RespiratoryReminderFormScreenState extends ConsumerState<RespiratoryRemin
                   if (_times.isEmpty)
                     Text(
                       'Add at least one time.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     )
                   else
                     Wrap(
@@ -305,9 +304,9 @@ class _RespiratoryReminderFormScreenState extends ConsumerState<RespiratoryRemin
     }
   }
 
-  String _formatTime(BuildContext context, LocalClockTime time) => MaterialLocalizations.of(
-    context,
-  ).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute));
+  String _formatTime(BuildContext context, LocalClockTime time) =>
+      MaterialLocalizations.of(context)
+          .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute));
 
   void _message(String value) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));

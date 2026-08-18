@@ -249,9 +249,8 @@ class _StepBody extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               body,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge
+                  ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 28),
             ...children,

@@ -191,7 +191,7 @@ name is preferred, add a non-secret `TESTFLIGHT_INTERNAL_GROUP` variable to the
 
 ## Local tool readiness
 
-Creaturely uses Flutter 3.44's default Swift Package Manager integration. A
+Creaturely uses Flutter 3.47's default Swift Package Manager integration. A
 successful `flutter build ios --simulator --debug --no-codesign` confirms that
 the current plugins resolve without CocoaPods, so Flutter Doctor's CocoaPods
 warning does not block this repository. Install CocoaPods only if a future

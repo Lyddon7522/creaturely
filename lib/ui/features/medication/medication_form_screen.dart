@@ -398,9 +398,8 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
       return;
     }
     if (_schedules.any((draft) => !draft.isValid)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Complete every schedule before saving.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Complete every schedule before saving.')));
       return;
     }
     setState(() => _saving = true);
@@ -660,9 +659,8 @@ class _ScheduleEditor extends StatelessWidget {
                 InputChip(
                   key: ValueKey('schedule_time_${time.encoded}'),
                   label: Text(
-                    MaterialLocalizations.of(
-                      context,
-                    ).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
+                    MaterialLocalizations.of(context)
+                        .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
                   ),
                   deleteButtonTooltipMessage:
                       'Remove ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute))}',

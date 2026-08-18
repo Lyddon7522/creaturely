@@ -3,12 +3,16 @@ name: Creaturely CI
 # Shared assets/brand changes intentionally continue to validate the Flutter app.
 on:
   push:
+    branches:
+      - main
     paths-ignore:
       - "site/**"
       - "infra/site/**"
       - ".github/workflows/site.yml"
       - "**/*.md"
   pull_request:
+    branches:
+      - main
     paths-ignore:
       - "site/**"
       - "infra/site/**"
@@ -45,12 +49,12 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version: 3.47.0
           channel: stable
           cache: true
 
       - name: Resolve packages
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Reproduce generated artifacts
         run: |
@@ -145,12 +149,12 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version: 3.47.0
           channel: stable
           cache: true
 
       - name: Resolve packages
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Build unsigned iOS simulator app
         run: flutter build ios --simulator --debug --no-codesign

@@ -436,9 +436,8 @@ class _OccurrenceCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       item.detail,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                   if (dose != null && !actionableDose) ...[
@@ -515,9 +514,9 @@ class _RespiratoryScheduleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final times = reminder.times
         .map(
-          (time) => MaterialLocalizations.of(
-            context,
-          ).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
+          (time) =>
+              MaterialLocalizations.of(context)
+                  .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
         )
         .join(', ');
     final repeat = reminder.recurrence == ReminderRecurrence.daily
@@ -588,9 +587,9 @@ class _WeightScheduleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final times = reminder.times
         .map(
-          (time) => MaterialLocalizations.of(
-            context,
-          ).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
+          (time) =>
+              MaterialLocalizations.of(context)
+                  .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
         )
         .join(', ');
     final repeat = reminder.recurrence == ReminderRecurrence.daily
@@ -668,9 +667,9 @@ class _MedicationScheduleCard extends StatelessWidget {
   static String _summary(BuildContext context, MedicationSchedule schedule) {
     final times = schedule.times
         .map(
-          (time) => MaterialLocalizations.of(
-            context,
-          ).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
+          (time) =>
+              MaterialLocalizations.of(context)
+                  .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
         )
         .join(', ');
     return switch (schedule.kind) {
