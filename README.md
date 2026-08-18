@@ -68,11 +68,11 @@ open-source license view.
 
 ## Supported platforms and toolchain
 
-- Flutter **3.44.8** (stable)
-- Dart **3.12.2**
+- Flutter **3.47.0** (stable)
+- Dart **3.13.0**
 - Android API **24+**; compile/target SDK supplied by Flutter (API 36 in the
   current toolchain); Java 17
-- iOS **14+**
+- iOS **15+**
 - Android and iOS only. A web target is intentionally not present.
 
 ## Public website

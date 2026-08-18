@@ -293,9 +293,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _openExternal(Uri uri) async {
     final opened = await ref.read(externalLinkServiceProvider).open(uri);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Could not open the link on this device.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Could not open the link on this device.')));
     }
   }
 
@@ -308,9 +307,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         'Locale: ${locale.toLanguageTag()}';
     await Clipboard.setData(ClipboardData(text: details));
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Technical details copied.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Technical details copied.')));
     }
   }
 

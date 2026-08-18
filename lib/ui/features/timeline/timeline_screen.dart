@@ -364,9 +364,8 @@ class _RespiratoryDetailsSheet extends StatelessWidget {
             const SizedBox(height: 18),
             Text(
               '${formatRespiratoryRate(session.ratePerMinute)} breaths/min',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 16),
             _DetailRow(
@@ -432,9 +431,8 @@ class _DetailRow extends StatelessWidget {
           width: 92,
           child: Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
         Expanded(child: Text(value)),

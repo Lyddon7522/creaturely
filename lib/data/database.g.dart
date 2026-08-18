@@ -7633,48 +7633,46 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ]);
 }
 
-typedef $$AnimalRowsTableCreateCompanionBuilder =
-    AnimalRowsCompanion Function({
-      required String id,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      required String name,
-      Value<String?> photoPath,
-      required String species,
-      Value<String?> breed,
-      Value<String?> sexOrStatus,
-      Value<DateTime?> dateOfBirth,
-      Value<int?> approximateAgeMonths,
-      Value<String?> colorMarkings,
-      Value<double?> currentWeightKg,
-      Value<String?> notes,
-      Value<bool> archived,
-      Value<double?> thresholdMinimum,
-      Value<double?> thresholdTarget,
-      Value<double?> thresholdMaximum,
-      Value<int> rowid,
-    });
-typedef $$AnimalRowsTableUpdateCompanionBuilder =
-    AnimalRowsCompanion Function({
-      Value<String> id,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<String> name,
-      Value<String?> photoPath,
-      Value<String> species,
-      Value<String?> breed,
-      Value<String?> sexOrStatus,
-      Value<DateTime?> dateOfBirth,
-      Value<int?> approximateAgeMonths,
-      Value<String?> colorMarkings,
-      Value<double?> currentWeightKg,
-      Value<String?> notes,
-      Value<bool> archived,
-      Value<double?> thresholdMinimum,
-      Value<double?> thresholdTarget,
-      Value<double?> thresholdMaximum,
-      Value<int> rowid,
-    });
+typedef $$AnimalRowsTableCreateCompanionBuilder = AnimalRowsCompanion Function({
+  required String id,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  required String name,
+  Value<String?> photoPath,
+  required String species,
+  Value<String?> breed,
+  Value<String?> sexOrStatus,
+  Value<DateTime?> dateOfBirth,
+  Value<int?> approximateAgeMonths,
+  Value<String?> colorMarkings,
+  Value<double?> currentWeightKg,
+  Value<String?> notes,
+  Value<bool> archived,
+  Value<double?> thresholdMinimum,
+  Value<double?> thresholdTarget,
+  Value<double?> thresholdMaximum,
+  Value<int> rowid,
+});
+typedef $$AnimalRowsTableUpdateCompanionBuilder = AnimalRowsCompanion Function({
+  Value<String> id,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<String> name,
+  Value<String?> photoPath,
+  Value<String> species,
+  Value<String?> breed,
+  Value<String?> sexOrStatus,
+  Value<DateTime?> dateOfBirth,
+  Value<int?> approximateAgeMonths,
+  Value<String?> colorMarkings,
+  Value<double?> currentWeightKg,
+  Value<String?> notes,
+  Value<bool> archived,
+  Value<double?> thresholdMinimum,
+  Value<double?> thresholdTarget,
+  Value<double?> thresholdMaximum,
+  Value<int> rowid,
+});
 
 final class $$AnimalRowsTableReferences
     extends BaseReferences<_$AppDatabase, $AnimalRowsTable, AnimalEntity> {
@@ -8693,38 +8691,36 @@ typedef $$AnimalRowsTableProcessedTableManager =
         bool careDocumentRowsRefs,
       })
     >;
-typedef $$IdentifierRowsTableCreateCompanionBuilder =
-    IdentifierRowsCompanion Function({
-      required String id,
-      required String animalId,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      required String type,
-      required String value,
-      Value<String?> issuer,
-      Value<String?> url,
-      Value<String?> phone,
-      Value<DateTime?> issuedOn,
-      Value<String?> notes,
-      Value<bool> archived,
-      Value<int> rowid,
-    });
-typedef $$IdentifierRowsTableUpdateCompanionBuilder =
-    IdentifierRowsCompanion Function({
-      Value<String> id,
-      Value<String> animalId,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<String> type,
-      Value<String> value,
-      Value<String?> issuer,
-      Value<String?> url,
-      Value<String?> phone,
-      Value<DateTime?> issuedOn,
-      Value<String?> notes,
-      Value<bool> archived,
-      Value<int> rowid,
-    });
+typedef $$IdentifierRowsTableCreateCompanionBuilder = IdentifierRowsCompanion Function({
+  required String id,
+  required String animalId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  required String type,
+  required String value,
+  Value<String?> issuer,
+  Value<String?> url,
+  Value<String?> phone,
+  Value<DateTime?> issuedOn,
+  Value<String?> notes,
+  Value<bool> archived,
+  Value<int> rowid,
+});
+typedef $$IdentifierRowsTableUpdateCompanionBuilder = IdentifierRowsCompanion Function({
+  Value<String> id,
+  Value<String> animalId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<String> type,
+  Value<String> value,
+  Value<String?> issuer,
+  Value<String?> url,
+  Value<String?> phone,
+  Value<DateTime?> issuedOn,
+  Value<String?> notes,
+  Value<bool> archived,
+  Value<int> rowid,
+});
 
 final class $$IdentifierRowsTableReferences
     extends BaseReferences<_$AppDatabase, $IdentifierRowsTable, IdentifierEntity> {
@@ -9037,16 +9033,12 @@ class $$IdentifierRowsTableTableManager
                     >
                   >(state) {
                     if (animalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.animalId,
-                                referencedTable: $$IdentifierRowsTableReferences._animalIdTable(db),
-                                referencedColumn: $$IdentifierRowsTableReferences
-                                    ._animalIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.animalId,
+                        referencedTable: $$IdentifierRowsTableReferences._animalIdTable(db),
+                        referencedColumn: $$IdentifierRowsTableReferences._animalIdTable(db).id,
+                      ) as T;
                     }
 
                     return state;
@@ -9455,17 +9447,14 @@ class $$RespiratorySessionRowsTableTableManager
                     >
                   >(state) {
                     if (animalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.animalId,
-                                referencedTable: $$RespiratorySessionRowsTableReferences
-                                    ._animalIdTable(db),
-                                referencedColumn: $$RespiratorySessionRowsTableReferences
-                                    ._animalIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.animalId,
+                        referencedTable: $$RespiratorySessionRowsTableReferences._animalIdTable(db),
+                        referencedColumn: $$RespiratorySessionRowsTableReferences
+                            ._animalIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -9842,17 +9831,16 @@ class $$RespiratoryReminderRowsTableTableManager
                     >
                   >(state) {
                     if (animalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.animalId,
-                                referencedTable: $$RespiratoryReminderRowsTableReferences
-                                    ._animalIdTable(db),
-                                referencedColumn: $$RespiratoryReminderRowsTableReferences
-                                    ._animalIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.animalId,
+                        referencedTable: $$RespiratoryReminderRowsTableReferences._animalIdTable(
+                          db,
+                        ),
+                        referencedColumn: $$RespiratoryReminderRowsTableReferences
+                            ._animalIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -9880,36 +9868,34 @@ typedef $$RespiratoryReminderRowsTableProcessedTableManager =
       RespiratoryReminderEntity,
       PrefetchHooks Function({bool animalId})
     >;
-typedef $$WeightReminderRowsTableCreateCompanionBuilder =
-    WeightReminderRowsCompanion Function({
-      required String id,
-      required String animalId,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      required DateTime startDate,
-      Value<DateTime?> endDate,
-      required String recurrence,
-      required String timeZoneId,
-      Value<String> timesJson,
-      Value<String> weekdaysJson,
-      Value<bool> enabled,
-      Value<int> rowid,
-    });
-typedef $$WeightReminderRowsTableUpdateCompanionBuilder =
-    WeightReminderRowsCompanion Function({
-      Value<String> id,
-      Value<String> animalId,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<DateTime> startDate,
-      Value<DateTime?> endDate,
-      Value<String> recurrence,
-      Value<String> timeZoneId,
-      Value<String> timesJson,
-      Value<String> weekdaysJson,
-      Value<bool> enabled,
-      Value<int> rowid,
-    });
+typedef $$WeightReminderRowsTableCreateCompanionBuilder = WeightReminderRowsCompanion Function({
+  required String id,
+  required String animalId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  required DateTime startDate,
+  Value<DateTime?> endDate,
+  required String recurrence,
+  required String timeZoneId,
+  Value<String> timesJson,
+  Value<String> weekdaysJson,
+  Value<bool> enabled,
+  Value<int> rowid,
+});
+typedef $$WeightReminderRowsTableUpdateCompanionBuilder = WeightReminderRowsCompanion Function({
+  Value<String> id,
+  Value<String> animalId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime> startDate,
+  Value<DateTime?> endDate,
+  Value<String> recurrence,
+  Value<String> timeZoneId,
+  Value<String> timesJson,
+  Value<String> weekdaysJson,
+  Value<bool> enabled,
+  Value<int> rowid,
+});
 
 final class $$WeightReminderRowsTableReferences
     extends BaseReferences<_$AppDatabase, $WeightReminderRowsTable, WeightReminderEntity> {
@@ -10211,18 +10197,12 @@ class $$WeightReminderRowsTableTableManager
                     >
                   >(state) {
                     if (animalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.animalId,
-                                referencedTable: $$WeightReminderRowsTableReferences._animalIdTable(
-                                  db,
-                                ),
-                                referencedColumn: $$WeightReminderRowsTableReferences
-                                    ._animalIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.animalId,
+                        referencedTable: $$WeightReminderRowsTableReferences._animalIdTable(db),
+                        referencedColumn: $$WeightReminderRowsTableReferences._animalIdTable(db).id,
+                      ) as T;
                     }
 
                     return state;
@@ -10250,52 +10230,50 @@ typedef $$WeightReminderRowsTableProcessedTableManager =
       WeightReminderEntity,
       PrefetchHooks Function({bool animalId})
     >;
-typedef $$MedicationRowsTableCreateCompanionBuilder =
-    MedicationRowsCompanion Function({
-      required String id,
-      required String animalId,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      required String name,
-      required String form,
-      required double doseAmount,
-      required String doseUnit,
-      required String instructions,
-      required DateTime startDate,
-      Value<DateTime?> endDate,
-      Value<String?> strength,
-      Value<String?> prescriber,
-      Value<String?> pharmacy,
-      Value<String?> prescriptionNumber,
-      Value<int?> refillsRemaining,
-      Value<DateTime?> nextRefillDate,
-      Value<String?> notes,
-      Value<bool> active,
-      Value<int> rowid,
-    });
-typedef $$MedicationRowsTableUpdateCompanionBuilder =
-    MedicationRowsCompanion Function({
-      Value<String> id,
-      Value<String> animalId,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<String> name,
-      Value<String> form,
-      Value<double> doseAmount,
-      Value<String> doseUnit,
-      Value<String> instructions,
-      Value<DateTime> startDate,
-      Value<DateTime?> endDate,
-      Value<String?> strength,
-      Value<String?> prescriber,
-      Value<String?> pharmacy,
-      Value<String?> prescriptionNumber,
-      Value<int?> refillsRemaining,
-      Value<DateTime?> nextRefillDate,
-      Value<String?> notes,
-      Value<bool> active,
-      Value<int> rowid,
-    });
+typedef $$MedicationRowsTableCreateCompanionBuilder = MedicationRowsCompanion Function({
+  required String id,
+  required String animalId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  required String name,
+  required String form,
+  required double doseAmount,
+  required String doseUnit,
+  required String instructions,
+  required DateTime startDate,
+  Value<DateTime?> endDate,
+  Value<String?> strength,
+  Value<String?> prescriber,
+  Value<String?> pharmacy,
+  Value<String?> prescriptionNumber,
+  Value<int?> refillsRemaining,
+  Value<DateTime?> nextRefillDate,
+  Value<String?> notes,
+  Value<bool> active,
+  Value<int> rowid,
+});
+typedef $$MedicationRowsTableUpdateCompanionBuilder = MedicationRowsCompanion Function({
+  Value<String> id,
+  Value<String> animalId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<String> name,
+  Value<String> form,
+  Value<double> doseAmount,
+  Value<String> doseUnit,
+  Value<String> instructions,
+  Value<DateTime> startDate,
+  Value<DateTime?> endDate,
+  Value<String?> strength,
+  Value<String?> prescriber,
+  Value<String?> pharmacy,
+  Value<String?> prescriptionNumber,
+  Value<int?> refillsRemaining,
+  Value<DateTime?> nextRefillDate,
+  Value<String?> notes,
+  Value<bool> active,
+  Value<int> rowid,
+});
 
 final class $$MedicationRowsTableReferences
     extends BaseReferences<_$AppDatabase, $MedicationRowsTable, MedicationEntity> {
@@ -10830,18 +10808,12 @@ class $$MedicationRowsTableTableManager
                         >
                       >(state) {
                         if (animalId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.animalId,
-                                    referencedTable: $$MedicationRowsTableReferences._animalIdTable(
-                                      db,
-                                    ),
-                                    referencedColumn: $$MedicationRowsTableReferences
-                                        ._animalIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.animalId,
+                            referencedTable: $$MedicationRowsTableReferences._animalIdTable(db),
+                            referencedColumn: $$MedicationRowsTableReferences._animalIdTable(db).id,
+                          ) as T;
                         }
 
                         return state;
@@ -11361,30 +11333,27 @@ class $$MedicationScheduleRowsTableTableManager
                         >
                       >(state) {
                         if (medicationId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.medicationId,
-                                    referencedTable: $$MedicationScheduleRowsTableReferences
-                                        ._medicationIdTable(db),
-                                    referencedColumn: $$MedicationScheduleRowsTableReferences
-                                        ._medicationIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.medicationId,
+                            referencedTable: $$MedicationScheduleRowsTableReferences
+                                ._medicationIdTable(db),
+                            referencedColumn: $$MedicationScheduleRowsTableReferences
+                                ._medicationIdTable(db)
+                                .id,
+                          ) as T;
                         }
                         if (animalId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.animalId,
-                                    referencedTable: $$MedicationScheduleRowsTableReferences
-                                        ._animalIdTable(db),
-                                    referencedColumn: $$MedicationScheduleRowsTableReferences
-                                        ._animalIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.animalId,
+                            referencedTable: $$MedicationScheduleRowsTableReferences._animalIdTable(
+                              db,
+                            ),
+                            referencedColumn: $$MedicationScheduleRowsTableReferences
+                                ._animalIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -11431,38 +11400,36 @@ typedef $$MedicationScheduleRowsTableProcessedTableManager =
       MedicationScheduleEntity,
       PrefetchHooks Function({bool medicationId, bool animalId, bool doseLedgerRowsRefs})
     >;
-typedef $$DoseLedgerRowsTableCreateCompanionBuilder =
-    DoseLedgerRowsCompanion Function({
-      required String id,
-      required String medicationId,
-      Value<String?> scheduleId,
-      required String animalId,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      required DateTime dueAt,
-      required String intendedLocalTime,
-      required String timeZoneId,
-      required String status,
-      Value<DateTime?> administeredAt,
-      Value<String?> note,
-      Value<int> rowid,
-    });
-typedef $$DoseLedgerRowsTableUpdateCompanionBuilder =
-    DoseLedgerRowsCompanion Function({
-      Value<String> id,
-      Value<String> medicationId,
-      Value<String?> scheduleId,
-      Value<String> animalId,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<DateTime> dueAt,
-      Value<String> intendedLocalTime,
-      Value<String> timeZoneId,
-      Value<String> status,
-      Value<DateTime?> administeredAt,
-      Value<String?> note,
-      Value<int> rowid,
-    });
+typedef $$DoseLedgerRowsTableCreateCompanionBuilder = DoseLedgerRowsCompanion Function({
+  required String id,
+  required String medicationId,
+  Value<String?> scheduleId,
+  required String animalId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  required DateTime dueAt,
+  required String intendedLocalTime,
+  required String timeZoneId,
+  required String status,
+  Value<DateTime?> administeredAt,
+  Value<String?> note,
+  Value<int> rowid,
+});
+typedef $$DoseLedgerRowsTableUpdateCompanionBuilder = DoseLedgerRowsCompanion Function({
+  Value<String> id,
+  Value<String> medicationId,
+  Value<String?> scheduleId,
+  Value<String> animalId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime> dueAt,
+  Value<String> intendedLocalTime,
+  Value<String> timeZoneId,
+  Value<String> status,
+  Value<DateTime?> administeredAt,
+  Value<String?> note,
+  Value<int> rowid,
+});
 
 final class $$DoseLedgerRowsTableReferences
     extends BaseReferences<_$AppDatabase, $DoseLedgerRowsTable, DoseLedgerEntity> {
@@ -11902,44 +11869,28 @@ class $$DoseLedgerRowsTableTableManager
                     >
                   >(state) {
                     if (medicationId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.medicationId,
-                                referencedTable: $$DoseLedgerRowsTableReferences._medicationIdTable(
-                                  db,
-                                ),
-                                referencedColumn: $$DoseLedgerRowsTableReferences
-                                    ._medicationIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.medicationId,
+                        referencedTable: $$DoseLedgerRowsTableReferences._medicationIdTable(db),
+                        referencedColumn: $$DoseLedgerRowsTableReferences._medicationIdTable(db).id,
+                      ) as T;
                     }
                     if (scheduleId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.scheduleId,
-                                referencedTable: $$DoseLedgerRowsTableReferences._scheduleIdTable(
-                                  db,
-                                ),
-                                referencedColumn: $$DoseLedgerRowsTableReferences
-                                    ._scheduleIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.scheduleId,
+                        referencedTable: $$DoseLedgerRowsTableReferences._scheduleIdTable(db),
+                        referencedColumn: $$DoseLedgerRowsTableReferences._scheduleIdTable(db).id,
+                      ) as T;
                     }
                     if (animalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.animalId,
-                                referencedTable: $$DoseLedgerRowsTableReferences._animalIdTable(db),
-                                referencedColumn: $$DoseLedgerRowsTableReferences
-                                    ._animalIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.animalId,
+                        referencedTable: $$DoseLedgerRowsTableReferences._animalIdTable(db),
+                        referencedColumn: $$DoseLedgerRowsTableReferences._animalIdTable(db).id,
+                      ) as T;
                     }
 
                     return state;
@@ -11967,38 +11918,36 @@ typedef $$DoseLedgerRowsTableProcessedTableManager =
       DoseLedgerEntity,
       PrefetchHooks Function({bool medicationId, bool scheduleId, bool animalId})
     >;
-typedef $$HealthRecordRowsTableCreateCompanionBuilder =
-    HealthRecordRowsCompanion Function({
-      required String id,
-      required String animalId,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      required DateTime occurredAt,
-      required String kind,
-      required String title,
-      Value<double?> canonicalValue,
-      Value<String?> canonicalUnit,
-      Value<String?> enteredUnit,
-      Value<String?> note,
-      Value<bool> archived,
-      Value<int> rowid,
-    });
-typedef $$HealthRecordRowsTableUpdateCompanionBuilder =
-    HealthRecordRowsCompanion Function({
-      Value<String> id,
-      Value<String> animalId,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<DateTime> occurredAt,
-      Value<String> kind,
-      Value<String> title,
-      Value<double?> canonicalValue,
-      Value<String?> canonicalUnit,
-      Value<String?> enteredUnit,
-      Value<String?> note,
-      Value<bool> archived,
-      Value<int> rowid,
-    });
+typedef $$HealthRecordRowsTableCreateCompanionBuilder = HealthRecordRowsCompanion Function({
+  required String id,
+  required String animalId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  required DateTime occurredAt,
+  required String kind,
+  required String title,
+  Value<double?> canonicalValue,
+  Value<String?> canonicalUnit,
+  Value<String?> enteredUnit,
+  Value<String?> note,
+  Value<bool> archived,
+  Value<int> rowid,
+});
+typedef $$HealthRecordRowsTableUpdateCompanionBuilder = HealthRecordRowsCompanion Function({
+  Value<String> id,
+  Value<String> animalId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime> occurredAt,
+  Value<String> kind,
+  Value<String> title,
+  Value<double?> canonicalValue,
+  Value<String?> canonicalUnit,
+  Value<String?> enteredUnit,
+  Value<String?> note,
+  Value<bool> archived,
+  Value<int> rowid,
+});
 
 final class $$HealthRecordRowsTableReferences
     extends BaseReferences<_$AppDatabase, $HealthRecordRowsTable, HealthRecordEntity> {
@@ -12317,18 +12266,12 @@ class $$HealthRecordRowsTableTableManager
                     >
                   >(state) {
                     if (animalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.animalId,
-                                referencedTable: $$HealthRecordRowsTableReferences._animalIdTable(
-                                  db,
-                                ),
-                                referencedColumn: $$HealthRecordRowsTableReferences
-                                    ._animalIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.animalId,
+                        referencedTable: $$HealthRecordRowsTableReferences._animalIdTable(db),
+                        referencedColumn: $$HealthRecordRowsTableReferences._animalIdTable(db).id,
+                      ) as T;
                     }
 
                     return state;
@@ -12356,44 +12299,42 @@ typedef $$HealthRecordRowsTableProcessedTableManager =
       HealthRecordEntity,
       PrefetchHooks Function({bool animalId})
     >;
-typedef $$CareDocumentRowsTableCreateCompanionBuilder =
-    CareDocumentRowsCompanion Function({
-      required String id,
-      required String animalId,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      required DateTime documentDate,
-      required String title,
-      required String category,
-      required String storedPath,
-      required String mediaType,
-      required String checksumSha256,
-      required int byteLength,
-      Value<String?> notes,
-      Value<DateTime?> expiryDate,
-      Value<DateTime?> reminderAt,
-      Value<bool> archived,
-      Value<int> rowid,
-    });
-typedef $$CareDocumentRowsTableUpdateCompanionBuilder =
-    CareDocumentRowsCompanion Function({
-      Value<String> id,
-      Value<String> animalId,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<DateTime> documentDate,
-      Value<String> title,
-      Value<String> category,
-      Value<String> storedPath,
-      Value<String> mediaType,
-      Value<String> checksumSha256,
-      Value<int> byteLength,
-      Value<String?> notes,
-      Value<DateTime?> expiryDate,
-      Value<DateTime?> reminderAt,
-      Value<bool> archived,
-      Value<int> rowid,
-    });
+typedef $$CareDocumentRowsTableCreateCompanionBuilder = CareDocumentRowsCompanion Function({
+  required String id,
+  required String animalId,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  required DateTime documentDate,
+  required String title,
+  required String category,
+  required String storedPath,
+  required String mediaType,
+  required String checksumSha256,
+  required int byteLength,
+  Value<String?> notes,
+  Value<DateTime?> expiryDate,
+  Value<DateTime?> reminderAt,
+  Value<bool> archived,
+  Value<int> rowid,
+});
+typedef $$CareDocumentRowsTableUpdateCompanionBuilder = CareDocumentRowsCompanion Function({
+  Value<String> id,
+  Value<String> animalId,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime> documentDate,
+  Value<String> title,
+  Value<String> category,
+  Value<String> storedPath,
+  Value<String> mediaType,
+  Value<String> checksumSha256,
+  Value<int> byteLength,
+  Value<String?> notes,
+  Value<DateTime?> expiryDate,
+  Value<DateTime?> reminderAt,
+  Value<bool> archived,
+  Value<int> rowid,
+});
 
 final class $$CareDocumentRowsTableReferences
     extends BaseReferences<_$AppDatabase, $CareDocumentRowsTable, CareDocumentEntity> {
@@ -12749,18 +12690,12 @@ class $$CareDocumentRowsTableTableManager
                     >
                   >(state) {
                     if (animalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.animalId,
-                                referencedTable: $$CareDocumentRowsTableReferences._animalIdTable(
-                                  db,
-                                ),
-                                referencedColumn: $$CareDocumentRowsTableReferences
-                                    ._animalIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.animalId,
+                        referencedTable: $$CareDocumentRowsTableReferences._animalIdTable(db),
+                        referencedColumn: $$CareDocumentRowsTableReferences._animalIdTable(db).id,
+                      ) as T;
                     }
 
                     return state;
@@ -12788,14 +12723,16 @@ typedef $$CareDocumentRowsTableProcessedTableManager =
       CareDocumentEntity,
       PrefetchHooks Function({bool animalId})
     >;
-typedef $$SettingRowsTableCreateCompanionBuilder =
-    SettingRowsCompanion Function({
-      required String key,
-      required String jsonValue,
-      Value<int> rowid,
-    });
-typedef $$SettingRowsTableUpdateCompanionBuilder =
-    SettingRowsCompanion Function({Value<String> key, Value<String> jsonValue, Value<int> rowid});
+typedef $$SettingRowsTableCreateCompanionBuilder = SettingRowsCompanion Function({
+  required String key,
+  required String jsonValue,
+  Value<int> rowid,
+});
+typedef $$SettingRowsTableUpdateCompanionBuilder = SettingRowsCompanion Function({
+  Value<String> key,
+  Value<String> jsonValue,
+  Value<int> rowid,
+});
 
 class $$SettingRowsTableFilterComposer extends Composer<_$AppDatabase, $SettingRowsTable> {
   $$SettingRowsTableFilterComposer({
@@ -12866,18 +12803,16 @@ class $$SettingRowsTableTableManager
           createOrderingComposer: () => $$SettingRowsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$SettingRowsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> key = const Value.absent(),
-                Value<String> jsonValue = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => SettingRowsCompanion(key: key, jsonValue: jsonValue, rowid: rowid),
-          createCompanionCallback:
-              ({
-                required String key,
-                required String jsonValue,
-                Value<int> rowid = const Value.absent(),
-              }) => SettingRowsCompanion.insert(key: key, jsonValue: jsonValue, rowid: rowid),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> jsonValue = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => SettingRowsCompanion(key: key, jsonValue: jsonValue, rowid: rowid),
+          createCompanionCallback: ({
+            required String key,
+            required String jsonValue,
+            Value<int> rowid = const Value.absent(),
+          }) => SettingRowsCompanion.insert(key: key, jsonValue: jsonValue, rowid: rowid),
           withReferenceMapper: (p0) =>
               p0.map((e) => (e.readTable(table), BaseReferences(db, table, e))).toList(),
           prefetchHooksCallback: null,

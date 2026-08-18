@@ -229,9 +229,9 @@ class MedicationDetailsScreen extends ConsumerWidget {
   static String _scheduleSummary(BuildContext context, MedicationSchedule schedule) {
     final times = schedule.times
         .map(
-          (time) => MaterialLocalizations.of(
-            context,
-          ).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
+          (time) =>
+              MaterialLocalizations.of(context)
+                  .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
         )
         .join(', ');
     return switch (schedule.kind) {
@@ -382,9 +382,8 @@ class _NextDoseCard extends StatelessWidget {
                     ),
                     Text(
                       DateFormat.jm().format(dose.dueAt.toLocal()),
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -472,9 +471,8 @@ class _DoseSummary extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text(
                               '${metric.count}',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w800),
                             ),
                             Text(metric.label, style: Theme.of(context).textTheme.bodySmall),
                           ],

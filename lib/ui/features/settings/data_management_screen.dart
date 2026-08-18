@@ -220,9 +220,8 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
             allowedExtensions: const <String>['creaturely'],
           );
       if (savedAt != null && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Creaturely backup saved.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Creaturely backup saved.')));
       }
     } on Object catch (error) {
       _showError('Backup could not be created', error);
@@ -271,9 +270,8 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
       await coordinator.restore(bytes);
       await ref.read(appControllerProvider.notifier).refresh(syncReminders: true);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Backup restored successfully.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Backup restored successfully.')));
       }
     } on Object catch (error) {
       _showError('Restore stopped safely', error);
@@ -346,9 +344,8 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
             allowedExtensions: <String>[choice.extension],
           );
       if (savedAt != null && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${choice.label} export saved.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('${choice.label} export saved.')));
       }
     } on Object catch (error) {
       _showError('${choice.label} export could not be saved', error);
@@ -469,9 +466,8 @@ class _ExportChooserSheetState extends State<_ExportChooserSheet> {
           const SizedBox(height: 4),
           Text(
             'Select one format, then save it to Files or share it with another app.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
           SegmentedButton<_ExportChoice>(

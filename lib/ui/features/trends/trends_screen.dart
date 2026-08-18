@@ -216,9 +216,8 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
               ? 'Sparse data: each saved measurement is shown; a line is not interpreted as a forecast.'
               : 'Descriptive view only: latest, average, and observed range. '
                     'No predictions or diagnosis.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -299,9 +298,8 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
         const SizedBox(height: 14),
         Text(
           'Counts reflect the dose statuses recorded in this date range.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     );
@@ -388,9 +386,8 @@ class _MedicationSummary extends StatelessWidget {
                                   children: [
                                     Text(
                                       '${metric.count}',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                                      style: Theme.of(context).textTheme.titleLarge
+                                          ?.copyWith(fontWeight: FontWeight.w800),
                                     ),
                                     Text(
                                       metric.label,
@@ -564,9 +561,8 @@ class _SummaryMetric extends StatelessWidget {
         Text(
           supporting,
           maxLines: 2,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     ),
@@ -825,9 +821,8 @@ class _MeasurementRow extends StatelessWidget {
       children: [
         Text(
           DateFormat.yMMMd().add_jm().format(at.toLocal()),
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 5),
         Text(
@@ -837,9 +832,8 @@ class _MeasurementRow extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           'Recorded as $recordedAs',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ],
     ),

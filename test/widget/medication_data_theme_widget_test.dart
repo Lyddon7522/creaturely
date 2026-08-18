@@ -361,7 +361,7 @@ class _CapturingDocumentSaver implements DocumentSaveService {
   List<String>? allowedExtensions;
 
   @override
-  Future<String?> save({
+  Future<Uri?> save({
     required String fileName,
     required String dialogTitle,
     required Uint8List bytes,
@@ -371,7 +371,7 @@ class _CapturingDocumentSaver implements DocumentSaveService {
     this.fileName = fileName;
     this.bytes = bytes;
     this.allowedExtensions = allowedExtensions;
-    return '/chosen/$fileName';
+    return Uri.file('/chosen/$fileName');
   }
 }
 

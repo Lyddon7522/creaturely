@@ -218,9 +218,8 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
                               child: Text(
                                 _dateOfBirth == null
                                     ? 'Not supplied'
-                                    : MaterialLocalizations.of(
-                                        context,
-                                      ).formatMediumDate(_dateOfBirth!),
+                                    : MaterialLocalizations.of(context)
+                                          .formatMediumDate(_dateOfBirth!),
                               ),
                             ),
                           ),

@@ -317,9 +317,8 @@ class RespiratoryThresholdFields extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           'All values use breaths/min. Leave any field blank if it is unknown.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
         LayoutBuilder(
