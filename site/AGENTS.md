@@ -2,7 +2,7 @@
 
 ## Scope and structure
 
-- This directory is a separate Astro 7 static site. Use Node.js 22.12 or newer and npm; keep
+- This directory is a separate Astro 7 static site. Use Node.js 22.19 or newer and npm; keep
   `package-lock.json` in sync with dependency changes.
 - The deployable output is plain static content in generated `dist/`. Do not turn the site into a
   Flutter web target or add a server runtime.
