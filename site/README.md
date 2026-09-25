@@ -6,7 +6,7 @@ Static Web Apps.
 
 ## Local development
 
-Use Node.js 22.12 or newer:
+Use Node.js 22.19 or newer:
 
 ```sh
 cd site
