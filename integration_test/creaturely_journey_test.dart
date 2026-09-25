@@ -80,17 +80,24 @@ void main() {
     );
     expect(animalStepScrollable, findsOneWidget);
     FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pump();
-    final scrollableState = tester.state<ScrollableState>(animalStepScrollable);
-    scrollableState.position.jumpTo(scrollableState.position.maxScrollExtent);
-    await WidgetHarness.pumpFrames(tester);
-    await tester.tap(find.byKey(const ValueKey('accept_disclaimer')));
+    await tester.pumpAndSettle();
+    final disclaimer = find.byKey(const ValueKey('accept_disclaimer'));
+    await tester.scrollUntilVisible(
+      disclaimer.hitTestable(),
+      180,
+      scrollable: animalStepScrollable,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(disclaimer.hitTestable());
     await tester.pump();
     expect(
       tester.widget<CheckboxListTile>(find.byKey(const ValueKey('accept_disclaimer'))).value,
       isTrue,
     );
-    await tester.tap(find.byKey(const ValueKey('finish_onboarding')));
+    final finishOnboarding = find.byKey(const ValueKey('finish_onboarding'));
+    await tester.ensureVisible(finishOnboarding);
+    await tester.pumpAndSettle();
+    await tester.tap(finishOnboarding.hitTestable());
     await WidgetHarness.pumpFrames(tester, count: 20);
 
     expect(find.text('Juniper'), findsWidgets);
