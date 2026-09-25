@@ -8503,7 +8503,12 @@ class $$AnimalRowsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$AnimalRowsTableReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$AnimalRowsTable, AnimalEntity>(table),
+                  $$AnimalRowsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback:
               ({
@@ -9010,7 +9015,12 @@ class $$IdentifierRowsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$IdentifierRowsTableReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$IdentifierRowsTable, IdentifierEntity>(table),
+                  $$IdentifierRowsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: ({animalId = false}) {
             return PrefetchHooks(
@@ -9423,7 +9433,10 @@ class $$RespiratorySessionRowsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) => (e.readTable(table), $$RespiratorySessionRowsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$RespiratorySessionRowsTable, RespiratorySessionEntity>(table),
+                  $$RespiratorySessionRowsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({animalId = false}) {
@@ -9807,7 +9820,10 @@ class $$RespiratoryReminderRowsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) => (e.readTable(table), $$RespiratoryReminderRowsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$RespiratoryReminderRowsTable, RespiratoryReminderEntity>(table),
+                  $$RespiratoryReminderRowsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback: ({animalId = false}) {
@@ -10174,7 +10190,12 @@ class $$WeightReminderRowsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$WeightReminderRowsTableReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$WeightReminderRowsTable, WeightReminderEntity>(table),
+                  $$WeightReminderRowsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: ({animalId = false}) {
             return PrefetchHooks(
@@ -10781,7 +10802,12 @@ class $$MedicationRowsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$MedicationRowsTableReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$MedicationRowsTable, MedicationEntity>(table),
+                  $$MedicationRowsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback:
               ({animalId = false, medicationScheduleRowsRefs = false, doseLedgerRowsRefs = false}) {
@@ -11308,7 +11334,10 @@ class $$MedicationScheduleRowsTableTableManager
               ),
           withReferenceMapper: (p0) => p0
               .map(
-                (e) => (e.readTable(table), $$MedicationScheduleRowsTableReferences(db, table, e)),
+                (e) => (
+                  e.readTable<$MedicationScheduleRowsTable, MedicationScheduleEntity>(table),
+                  $$MedicationScheduleRowsTableReferences(db, table, e),
+                ),
               )
               .toList(),
           prefetchHooksCallback:
@@ -11846,7 +11875,12 @@ class $$DoseLedgerRowsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$DoseLedgerRowsTableReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$DoseLedgerRowsTable, DoseLedgerEntity>(table),
+                  $$DoseLedgerRowsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: ({medicationId = false, scheduleId = false, animalId = false}) {
             return PrefetchHooks(
@@ -12243,7 +12277,12 @@ class $$HealthRecordRowsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$HealthRecordRowsTableReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$HealthRecordRowsTable, HealthRecordEntity>(table),
+                  $$HealthRecordRowsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: ({animalId = false}) {
             return PrefetchHooks(
@@ -12667,7 +12706,12 @@ class $$CareDocumentRowsTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$CareDocumentRowsTableReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable<$CareDocumentRowsTable, CareDocumentEntity>(table),
+                  $$CareDocumentRowsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
           prefetchHooksCallback: ({animalId = false}) {
             return PrefetchHooks(
@@ -12813,8 +12857,14 @@ class $$SettingRowsTableTableManager
             required String jsonValue,
             Value<int> rowid = const Value.absent(),
           }) => SettingRowsCompanion.insert(key: key, jsonValue: jsonValue, rowid: rowid),
-          withReferenceMapper: (p0) =>
-              p0.map((e) => (e.readTable(table), BaseReferences(db, table, e))).toList(),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SettingRowsTable, SettingEntity>(table),
+                  BaseReferences<_$AppDatabase, $SettingRowsTable, SettingEntity>(db, table, e),
+                ),
+              )
+              .toList(),
           prefetchHooksCallback: null,
         ),
       );
