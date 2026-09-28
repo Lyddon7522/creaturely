@@ -110,5 +110,5 @@ dependencies {
 
     // Google Identity Services is used only after the keeper explicitly opts in
     // to Android recovery snapshots in Drive's private appDataFolder.
-    implementation("com.google.android.gms:play-services-auth:21.6.0")
+    implementation("com.google.android.gms:play-services-auth:22.0.0")
 }
