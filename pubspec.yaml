@@ -31,7 +31,7 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.6
   pdf: ^3.13.0
-  printing: ^5.15.0
+  printing: ^5.15.1
   share_plus: ^13.3.0
   timezone: ^0.11.1
   url_launcher: ^6.3.2
