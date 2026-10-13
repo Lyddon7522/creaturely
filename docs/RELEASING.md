@@ -20,6 +20,32 @@ first store setup still requires legal agreements, app records, privacy
 disclosures, screenshots, tester configuration, and other owner decisions
 that do not belong in source control.
 
+## Audit remediation release checks
+
+Use the pinned Flutter 3.47.2 toolchain. Before release, run formatting,
+localization/Drift generation verification, analysis, all unit/widget tests,
+Android debug and iOS simulator builds, and `npm run verify` plus
+`npm audit --audit-level=high` in `site/`.
+
+A passing simulator build is not a notification, permission, or accessibility
+test. Complete the following with synthetic data on supported devices:
+
+- Run `flutter test integration_test/creaturely_journey_test.dart`.
+- Tap medication, breathing, and weight notifications with the app terminated;
+  verify each requested action occurs once after startup. Check denied
+  permissions, archived animals, foreground/resume behavior, and device-zone
+  changes.
+- Interrupt the Android image picker by recreating the activity/process and
+  confirm recovery, explicit attachment selection, and cancellation cleanup.
+- Exercise authenticated CloudKit and Google Drive recovery, including offline,
+  signed-out, quota, and permission failures.
+- Check VoiceOver/TalkBack, large text, dark theme, contrast, touch targets, and
+  reduced motion on physical devices.
+
+Keep the Android Kotlin compatibility setting while the installed
+`flutter_timezone` plugin requires it. Dependency upgrades and builds do not
+replace provider-console, signing, or store-delivery verification.
+
 ## One-time GitHub setup
 
 In the GitHub repository:
