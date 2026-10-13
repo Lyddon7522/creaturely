@@ -8,8 +8,8 @@ on:
       - "assets/brand/**"
       - "infra/site/**"
       - ".github/workflows/site.yml"
+  # Include stacked PRs whose base is another feature branch.
   pull_request:
-    branches: [main]
     types: [opened, synchronize, reopened, closed]
     paths:
       - "site/**"
@@ -118,6 +118,7 @@ jobs:
             exit 1
           fi
 
+          echo "::add-mask::$token"
           echo "AZURE_STATIC_WEB_APPS_API_TOKEN=$token" >> "$GITHUB_ENV"
 
       - name: Deploy prebuilt site to Azure Static Web Apps
@@ -174,6 +175,7 @@ jobs:
             exit 1
           fi
 
+          echo "::add-mask::$token"
           echo "AZURE_STATIC_WEB_APPS_API_TOKEN=$token" >> "$GITHUB_ENV"
 
       - name: Close preview
