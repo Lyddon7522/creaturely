@@ -23,8 +23,7 @@ class CareScheduleItem {
     required this.animalId,
     required this.dueAt,
     required this.kind,
-    required this.title,
-    required this.detail,
+    this.medication,
     required this.source,
     this.status,
   });
@@ -33,23 +32,22 @@ class CareScheduleItem {
   final String animalId;
   final DateTime dueAt;
   final CareScheduleItemKind kind;
-  final String title;
-  final String detail;
+  final Medication? medication;
   final Object source;
   final DoseStatus? status;
 }
 
 class CareScheduleBuilder {
-  const CareScheduleBuilder({
-    this.respiratoryReminderEngine = const RespiratoryReminderEngine(),
-    this.weightReminderEngine = const WeightReminderEngine(),
-  });
+  const CareScheduleBuilder({this.reminderEngine = const CalendarReminderEngine()});
 
-  final RespiratoryReminderEngine respiratoryReminderEngine;
-  final WeightReminderEngine weightReminderEngine;
+  final CalendarReminderEngine reminderEngine;
 
   List<CareScheduleItem> build({
-    required CreaturelySnapshot snapshot,
+    required Iterable<Animal> animals,
+    required Iterable<Medication> medications,
+    required Iterable<DoseLedgerEntry> doses,
+    required Iterable<RespiratoryReminder> respiratoryReminders,
+    required Iterable<WeightCheckReminder> weightReminders,
     required DateTime rangeStartUtc,
     required DateTime rangeEndUtc,
     String? animalId,
@@ -59,17 +57,17 @@ class CareScheduleBuilder {
     }
     bool includesAnimal(String value) => animalId == null || value == animalId;
     final activeAnimals = <String>{
-      for (final animal in snapshot.animals)
+      for (final animal in animals)
         if (!animal.archived) animal.id,
     };
-    final medications = <String, Medication>{
-      for (final medication in snapshot.medications)
+    final byMedication = <String, Medication>{
+      for (final medication in medications)
         if (medication.active) medication.id: medication,
     };
     final items = <CareScheduleItem>[];
 
-    for (final dose in snapshot.doseLedger) {
-      final medication = medications[dose.medicationId];
+    for (final dose in doses) {
+      final medication = byMedication[dose.medicationId];
       if (medication == null ||
           !activeAnimals.contains(dose.animalId) ||
           !includesAnimal(dose.animalId) ||
@@ -83,21 +81,20 @@ class CareScheduleBuilder {
           animalId: dose.animalId,
           dueAt: dose.dueAt,
           kind: CareScheduleItemKind.medication,
-          title: medication.name,
-          detail: '${medication.doseAmount} ${medication.doseUnit} • ${medication.instructions}',
+          medication: medication,
           source: dose,
           status: dose.status,
         ),
       );
     }
 
-    for (final reminder in snapshot.respiratoryReminders) {
+    for (final reminder in respiratoryReminders) {
       if (!activeAnimals.contains(reminder.animalId) ||
           !includesAnimal(reminder.animalId) ||
           !reminder.enabled) {
         continue;
       }
-      for (final occurrence in respiratoryReminderEngine.generate(
+      for (final occurrence in reminderEngine.generate(
         reminder: reminder,
         rangeStartUtc: rangeStartUtc,
         rangeEndUtc: rangeEndUtc,
@@ -108,23 +105,19 @@ class CareScheduleBuilder {
             animalId: reminder.animalId,
             dueAt: occurrence.dueAtUtc,
             kind: CareScheduleItemKind.respiratory,
-            title: reminder.context == RespiratoryContext.sleeping
-                ? 'Sleeping breathing check'
-                : 'Resting breathing check',
-            detail: 'Manual respiratory-rate reminder',
             source: RespiratoryReminderOccurrence(reminder: reminder, occurrence: occurrence),
           ),
         );
       }
     }
 
-    for (final reminder in snapshot.weightReminders) {
+    for (final reminder in weightReminders) {
       if (!activeAnimals.contains(reminder.animalId) ||
           !includesAnimal(reminder.animalId) ||
           !reminder.enabled) {
         continue;
       }
-      for (final occurrence in weightReminderEngine.generate(
+      for (final occurrence in reminderEngine.generate(
         reminder: reminder,
         rangeStartUtc: rangeStartUtc,
         rangeEndUtc: rangeEndUtc,
@@ -135,8 +128,6 @@ class CareScheduleBuilder {
             animalId: reminder.animalId,
             dueAt: occurrence.dueAtUtc,
             kind: CareScheduleItemKind.weight,
-            title: 'Weight check',
-            detail: 'Record a weigh-in',
             source: WeightReminderOccurrence(reminder: reminder, occurrence: occurrence),
           ),
         );

@@ -5,6 +5,7 @@ import 'database.dart';
 
 abstract interface class SnapshotStore {
   Future<CreaturelySnapshot> loadSnapshot();
+  Future<T> exclusive<T>(Future<T> Function() action);
   Future<void> replaceSnapshot(CreaturelySnapshot snapshot);
 }
 
@@ -14,10 +15,22 @@ class CreaturelyRepository implements SnapshotStore {
   final AppDatabase database;
 
   @override
+  Future<T> exclusive<T>(Future<T> Function() action) => database.transaction(action);
+
+  @override
   Future<CreaturelySnapshot> loadSnapshot() => database.snapshot();
 
   @override
   Future<void> replaceSnapshot(CreaturelySnapshot snapshot) => database.replaceWith(snapshot);
+
+  Future<Set<String>> attachmentReferences() => database.transaction(() async {
+    final animals = await database.select(database.animalRows).get();
+    final documents = await database.select(database.careDocumentRows).get();
+    return {
+      ...animals.map((animal) => animal.photoPath).whereType<String>(),
+      ...documents.map((document) => document.storedPath),
+    };
+  });
 
   Future<void> saveAnimal(Animal animal) => database.upsertAnimal(animal);
 
@@ -70,6 +83,35 @@ class CreaturelyRepository implements SnapshotStore {
     }
   });
 
+  /// Insert only absent occurrences. Recorded history and existing IDs survive
+  /// repeated maintenance, unchanged-zone resumes, and overlapping requests.
+  Future<void> ensureDoseHorizon(Iterable<DoseLedgerEntry> entries, DateTime now) =>
+      database.transaction(() async {
+        final generated = entries.toList();
+        if (generated.isEmpty) {
+          await database.markOverdue(now);
+          return;
+        }
+        final earliest = generated
+            .map((entry) => entry.dueAt)
+            .reduce((a, b) => a.isBefore(b) ? a : b);
+        final byMedication = <String, Set<DateTime>>{};
+        for (final id in generated.map((entry) => entry.medicationId).toSet()) {
+          final rows =
+              await (database.select(database.doseLedgerRows)..where(
+                    (row) => row.medicationId.equals(id) & row.dueAt.isBiggerOrEqualValue(earliest),
+                  ))
+                  .get();
+          byMedication[id] = rows.map((row) => row.dueAt.toUtc()).toSet();
+        }
+        for (final entry in generated) {
+          if (byMedication[entry.medicationId]!.add(entry.dueAt.toUtc())) {
+            await database.upsertDose(entry);
+          }
+        }
+        await database.markOverdue(now);
+      });
+
   Future<void> saveDose(DoseLedgerEntry dose) => database.upsertDose(dose);
 
   Future<void> saveHealthRecord(HealthRecord record) => database.transaction(() async {
@@ -94,8 +136,8 @@ class CreaturelyRepository implements SnapshotStore {
 
   Future<void> saveSettings(AppSettings settings) => database.saveSettings(settings);
 
-  Future<void> delete(String kind, String id) {
-    if (kind != 'health_records') {
+  Future<void> delete(RecordKind kind, String id) {
+    if (kind != RecordKind.healthRecord) {
       return database.deleteRecord(kind, id);
     }
     return database.transaction(() async {

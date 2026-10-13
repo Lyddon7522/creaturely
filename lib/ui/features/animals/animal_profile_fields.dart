@@ -1,100 +1,101 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/models.dart';
+import '../../../l10n/app_strings.dart';
 import '../../core/widgets.dart';
 
-const String customSpeciesOption = 'Other';
+final String customSpeciesOption = appStrings.other;
 
-const List<String> commonSpeciesOptions = <String>[
-  'Dog',
-  'Cat',
-  'Bird',
-  'Rabbit',
-  'Reptile',
-  'Horse',
-  'Fish',
+final List<String> commonSpeciesOptions = <String>[
+  appStrings.dog,
+  appStrings.cat,
+  appStrings.bird,
+  appStrings.rabbit,
+  appStrings.reptile,
+  appStrings.horse,
+  appStrings.fish,
   customSpeciesOption,
 ];
 
-const Map<String, List<String>> popularBreedSuggestions = <String, List<String>>{
-  'Dog': <String>[
-    'Mixed breed',
-    'Labrador Retriever',
-    'Golden Retriever',
-    'German Shepherd',
-    'French Bulldog',
-    'Poodle',
-    'Beagle',
-    'Dachshund',
-    'Australian Shepherd',
-    'Border Collie',
-    'Chihuahua',
-    'Shih Tzu',
-    'Yorkshire Terrier',
-    'Boxer',
-    'Siberian Husky',
+final Map<String, List<String>> popularBreedSuggestions = <String, List<String>>{
+  appStrings.dog: <String>[
+    appStrings.mixedBreed,
+    appStrings.labradorRetriever,
+    appStrings.goldenRetriever,
+    appStrings.germanShepherd,
+    appStrings.frenchBulldog,
+    appStrings.poodle,
+    appStrings.beagle,
+    appStrings.dachshund,
+    appStrings.australianShepherd,
+    appStrings.borderCollie,
+    appStrings.chihuahua,
+    appStrings.shihTzu,
+    appStrings.yorkshireTerrier,
+    appStrings.boxer,
+    appStrings.siberianHusky,
   ],
-  'Cat': <String>[
-    'Mixed breed',
-    'Domestic Shorthair',
-    'Domestic Longhair',
-    'Maine Coon',
-    'Siamese',
-    'Ragdoll',
-    'Bengal',
-    'British Shorthair',
-    'Persian',
-    'Sphynx',
-    'Russian Blue',
-    'Abyssinian',
+  appStrings.cat: <String>[
+    appStrings.mixedBreed,
+    appStrings.domesticShorthair,
+    appStrings.domesticLonghair,
+    appStrings.maineCoon,
+    appStrings.siamese,
+    appStrings.ragdoll,
+    appStrings.bengal,
+    appStrings.britishShorthair,
+    appStrings.persian,
+    appStrings.sphynx,
+    appStrings.russianBlue,
+    appStrings.abyssinian,
   ],
-  'Bird': <String>[
-    'Mixed or hybrid',
-    'Budgerigar',
-    'Cockatiel',
-    'African Grey',
-    'Canary',
-    'Lovebird',
-    'Conure',
-    'Finch',
-    'Macaw',
+  appStrings.bird: <String>[
+    appStrings.mixedOrHybrid,
+    appStrings.budgerigar,
+    appStrings.cockatiel,
+    appStrings.africanGrey,
+    appStrings.canary,
+    appStrings.lovebird,
+    appStrings.conure,
+    appStrings.finch,
+    appStrings.macaw,
   ],
-  'Rabbit': <String>[
-    'Mixed breed',
-    'Holland Lop',
-    'Mini Rex',
-    'Netherland Dwarf',
-    'Lionhead',
-    'Flemish Giant',
-    'English Lop',
+  appStrings.rabbit: <String>[
+    appStrings.mixedBreed,
+    appStrings.hollandLop,
+    appStrings.miniRex,
+    appStrings.netherlandDwarf,
+    appStrings.lionhead,
+    appStrings.flemishGiant,
+    appStrings.englishLop,
   ],
-  'Horse': <String>[
-    'Mixed breed',
-    'Quarter Horse',
-    'Thoroughbred',
-    'Arabian',
-    'Appaloosa',
-    'Paint Horse',
-    'Warmblood',
-    'Morgan',
+  appStrings.horse: <String>[
+    appStrings.mixedBreed,
+    appStrings.quarterHorse,
+    appStrings.thoroughbred,
+    appStrings.arabian,
+    appStrings.appaloosa,
+    appStrings.paintHorse,
+    appStrings.warmblood,
+    appStrings.morgan,
   ],
-  'Reptile': <String>[
-    'Mixed or hybrid',
-    'Bearded Dragon',
-    'Leopard Gecko',
-    'Ball Python',
-    'Corn Snake',
-    'Crested Gecko',
-    'Red-eared Slider',
+  appStrings.reptile: <String>[
+    appStrings.mixedOrHybrid,
+    appStrings.beardedDragon,
+    appStrings.leopardGecko,
+    appStrings.ballPython,
+    appStrings.cornSnake,
+    appStrings.crestedGecko,
+    appStrings.redEaredSlider,
   ],
-  'Fish': <String>[
-    'Mixed or hybrid',
-    'Betta',
-    'Goldfish',
-    'Guppy',
-    'Angelfish',
-    'Tetra',
-    'Cichlid',
+  appStrings.fish: <String>[
+    appStrings.mixedOrHybrid,
+    appStrings.betta,
+    appStrings.goldfish,
+    appStrings.guppy,
+    appStrings.angelfish,
+    appStrings.tetra,
+    appStrings.cichlid,
   ],
 };
 
@@ -123,7 +124,9 @@ String? optionalNonNegativeNumber(String? value) {
     return null;
   }
   final parsed = double.tryParse(value);
-  return parsed == null || !parsed.isFinite || parsed < 0 ? 'Use zero or a positive number.' : null;
+  return parsed == null || !parsed.isFinite || parsed < 0
+      ? appStrings.useZeroOrAPositiveNumber
+      : null;
 }
 
 class SpeciesSelector extends StatelessWidget {
@@ -146,9 +149,9 @@ class SpeciesSelector extends StatelessWidget {
       DropdownButtonFormField<String>(
         key: ValueKey<String>('${keyPrefix}_species'),
         initialValue: choice,
-        decoration: const InputDecoration(
-          labelText: 'Species *',
-          helperText: 'Choose a common species or enter your own',
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context).species,
+          helperText: AppLocalizations.of(context).chooseACommonSpeciesOrEnterYourOwn,
         ),
         items: commonSpeciesOptions
             .map((value) => DropdownMenuItem<String>(value: value, child: Text(value)))
@@ -165,8 +168,10 @@ class SpeciesSelector extends StatelessWidget {
           key: ValueKey<String>('${keyPrefix}_custom_species'),
           controller: customSpecies,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Species name *'),
-          validator: (value) => value == null || value.trim().isEmpty ? 'Enter the species.' : null,
+          decoration: InputDecoration(labelText: AppLocalizations.of(context).speciesName),
+          validator: (value) => value == null || value.trim().isEmpty
+              ? AppLocalizations.of(context).enterTheSpecies
+              : null,
         ),
       ],
     ],
@@ -194,9 +199,9 @@ class BreedAutocompleteField extends StatelessWidget {
         controller: controller,
         textCapitalization: TextCapitalization.words,
         textInputAction: TextInputAction.next,
-        decoration: const InputDecoration(
-          labelText: 'Breed or variety (optional)',
-          helperText: 'Free-form entry; multiple breeds are welcome',
+        decoration: InputDecoration(
+          labelText: AppLocalizations.of(context).breedOrVarietyOptional,
+          helperText: AppLocalizations.of(context).freeFormEntryMultipleBreedsAreWelcome,
         ),
       );
     }
@@ -212,8 +217,8 @@ class BreedAutocompleteField extends StatelessWidget {
         expandedInsets: EdgeInsets.zero,
         menuHeight: 260,
         textInputAction: TextInputAction.next,
-        label: const Text('Breed or variety (optional)'),
-        helperText: 'Choose a suggestion or type any breed or mix',
+        label: Text(AppLocalizations.of(context).breedOrVarietyOptional),
+        helperText: AppLocalizations.of(context).chooseASuggestionOrTypeAnyBreedOrMix,
         dropdownMenuEntries: suggestions
             .map((option) => DropdownMenuEntry<String>(value: option, label: option))
             .toList(growable: false),
@@ -250,7 +255,7 @@ class RespiratoryThresholdFields extends StatelessWidget {
       );
       return thresholds.isMinimumOrdered
           ? null
-          : "Minimum respiratory rate can't be higher than target or maximum.";
+          : AppLocalizations.of(context).minimumRespiratoryRateCanTBeHigherThanTarget;
     }
 
     String? validateTarget(String? value) {
@@ -265,7 +270,7 @@ class RespiratoryThresholdFields extends StatelessWidget {
       );
       return thresholds.isTargetOrdered
           ? null
-          : "Target respiratory rate can't be higher than maximum or lower than minimum.";
+          : AppLocalizations.of(context).targetRespiratoryRateCanTBeHigherThanMaximum;
     }
 
     String? validateMaximum(String? value) {
@@ -280,26 +285,26 @@ class RespiratoryThresholdFields extends StatelessWidget {
       );
       return thresholds.isMaximumOrdered
           ? null
-          : "Maximum respiratory rate can't be lower than target or minimum.";
+          : AppLocalizations.of(context).maximumRespiratoryRateCanTBeLowerThanTarget;
     }
 
     final fields = <Widget>[
       _ThresholdField(
         key: ValueKey<String>('${keyPrefix}_threshold_minimum'),
         controller: minimum,
-        label: 'Minimum',
+        label: AppLocalizations.of(context).minimum,
         validator: validateMinimum,
       ),
       _ThresholdField(
         key: ValueKey<String>('${keyPrefix}_threshold_target'),
         controller: target,
-        label: 'Target',
+        label: AppLocalizations.of(context).target,
         validator: validateTarget,
       ),
       _ThresholdField(
         key: ValueKey<String>('${keyPrefix}_threshold_maximum'),
         controller: maximum,
-        label: 'Maximum',
+        label: AppLocalizations.of(context).maximum,
         validator: validateMaximum,
       ),
     ];
@@ -307,16 +312,14 @@ class RespiratoryThresholdFields extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionHeading('Resting respiratory rate'),
-        const CalmNotice(
+        SectionHeading(AppLocalizations.of(context).restingRespiratoryRate),
+        CalmNotice(
           icon: Icons.info_outline_rounded,
-          text:
-              'Optional. Only enter values supplied by you or your veterinarian. '
-              'Creaturely does not provide species-wide clinical defaults.',
+          text: AppLocalizations.of(context).optionalOnlyEnterValuesSuppliedByYouOrYour,
         ),
         const SizedBox(height: 14),
         Text(
-          'All values use breaths/min. Leave any field blank if it is unknown.',
+          AppLocalizations.of(context).allValuesUseBreathsMinLeaveAnyFieldBlank,
           style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),

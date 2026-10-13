@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../domain/models.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/app_strings.dart';
 import '../../app_controller.dart';
+import '../../core/commands.dart';
 import '../../core/widgets.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -28,39 +28,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appControllerProvider).snapshot.settings;
-    final controller = ref.read(appControllerProvider.notifier);
+    final preferences = ref.watch(settingsProvider);
+    if (preferences.isLoading || preferences.hasError) {
+      return QueryPane(error: preferences.error, onRetry: () => ref.invalidate(settingsProvider));
+    }
+    final settings = preferences.requireValue;
+    final controller = ref.read(settingsControllerProvider.notifier);
     final compact = usesCompactVerticalLayout(context);
     return Scaffold(
-      appBar: AppBar(toolbarHeight: compact ? 48 : null, title: const Text('Settings')),
+      appBar: AppBar(
+        toolbarHeight: compact ? 48 : null,
+        title: Text(AppLocalizations.of(context).settings),
+      ),
       body: ConstrainedPage(
         child: ListView(
           controller: _scrollController,
           children: [
-            const PageHeading(
-              title: 'Creaturely, your way',
-              subtitle: 'Comfort, reminders, privacy, and your own copies.',
+            PageHeading(
+              title: AppLocalizations.of(context).creaturelyYourWay,
+              subtitle: AppLocalizations.of(context).comfortRemindersPrivacyAndYourOwnCopies,
             ),
             SizedBox(height: compact ? 8 : 20),
-            const SectionHeading('Appearance & units'),
+            SectionHeading(AppLocalizations.of(context).appearanceUnits),
             Card(
               child: Column(
                 children: [
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.contrast_rounded),
-                    title: const Text('Theme'),
+                    title: Text(AppLocalizations.of(context).theme),
                     trailing: DropdownButton<AppThemePreference>(
                       value: settings.theme,
                       underline: const SizedBox.shrink(),
-                      items: const [
-                        DropdownMenuItem(value: AppThemePreference.system, child: Text('System')),
-                        DropdownMenuItem(value: AppThemePreference.light, child: Text('Light')),
-                        DropdownMenuItem(value: AppThemePreference.dark, child: Text('Dark')),
+                      items: [
+                        DropdownMenuItem(
+                          value: AppThemePreference.system,
+                          child: Text(AppLocalizations.of(context).system),
+                        ),
+                        DropdownMenuItem(
+                          value: AppThemePreference.light,
+                          child: Text(AppLocalizations.of(context).light),
+                        ),
+                        DropdownMenuItem(
+                          value: AppThemePreference.dark,
+                          child: Text(AppLocalizations.of(context).dark),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value != null) {
-                          controller.saveSettings(settings.copyWith(theme: value));
+                          _updateSettings((current) => current.copyWith(theme: value));
                         }
                       },
                     ),
@@ -69,7 +85,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.straighten_rounded),
-                    title: const Text('Weight display'),
+                    title: Text(AppLocalizations.of(context).weightDisplay),
                     trailing: SegmentedButton<WeightUnit>(
                       segments: const [
                         ButtonSegment(value: WeightUnit.kilograms, label: Text('kg')),
@@ -78,47 +94,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       selected: {settings.weightUnit},
                       showSelectedIcon: false,
                       onSelectionChanged: (values) =>
-                          controller.saveSettings(settings.copyWith(weightUnit: values.first)),
+                          _updateSettings((current) => current.copyWith(weightUnit: values.first)),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            const SectionHeading('Recording feedback'),
+            SectionHeading(AppLocalizations.of(context).recordingFeedback),
             Card(
               child: Column(
                 children: [
                   SwitchListTile(
                     value: settings.hapticsEnabled,
                     onChanged: (value) =>
-                        controller.saveSettings(settings.copyWith(hapticsEnabled: value)),
+                        _updateSettings((current) => current.copyWith(hapticsEnabled: value)),
                     secondary: const Icon(Icons.vibration_rounded),
-                    title: const Text('Haptic tap'),
-                    subtitle: const Text('On by default for each recorded breath.'),
+                    title: Text(AppLocalizations.of(context).hapticTap),
+                    subtitle: Text(AppLocalizations.of(context).onByDefaultForEachRecordedBreath),
                   ),
                   const Divider(height: 1),
                   SwitchListTile(
                     value: settings.soundEnabled,
                     onChanged: (value) =>
-                        controller.saveSettings(settings.copyWith(soundEnabled: value)),
+                        _updateSettings((current) => current.copyWith(soundEnabled: value)),
                     secondary: const Icon(Icons.volume_up_outlined),
-                    title: const Text('Tap sound'),
-                    subtitle: const Text('Off by default.'),
+                    title: Text(AppLocalizations.of(context).tapSound),
+                    subtitle: Text(AppLocalizations.of(context).offByDefault),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.timer_outlined),
-                    title: const Text('Default breathing timer'),
+                    title: Text(AppLocalizations.of(context).defaultBreathingTimer),
                     trailing: DropdownButton<int>(
                       value: settings.defaultTimerSeconds,
                       underline: const SizedBox.shrink(),
                       items: const <int>[15, 20, 30, 60]
-                          .map((value) => DropdownMenuItem(value: value, child: Text('$value s')))
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(AppLocalizations.of(context).s(value)),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
                         if (value != null) {
-                          controller.saveSettings(settings.copyWith(defaultTimerSeconds: value));
+                          _updateSettings(
+                            (current) => current.copyWith(defaultTimerSeconds: value),
+                          );
                         }
                       },
                     ),
@@ -127,7 +150,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const SectionHeading('Reminders & recovery'),
+            SectionHeading(AppLocalizations.of(context).remindersRecovery),
             Card(
               child: Column(
                 children: [
@@ -135,30 +158,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     value: settings.notificationsAllowed,
                     onChanged: (value) async {
                       if (value) {
-                        await controller.requestNotifications();
+                        await runUiCommand(context, () async {
+                          await controller.requestNotifications();
+                        });
                       } else {
-                        await controller.saveSettings(
-                          settings.copyWith(notificationsAllowed: false),
+                        await _updateSettings(
+                          (current) => current.copyWith(notificationsAllowed: false),
                         );
                       }
                     },
                     secondary: const Icon(Icons.notifications_none_rounded),
-                    title: const Text('Notifications'),
+                    title: Text(AppLocalizations.of(context).notifications),
                     subtitle: Text(
                       settings.notificationsAllowed
-                          ? 'Medication, breathing, and weight reminders can be scheduled.'
-                          : 'Due care remains visible in the app.',
+                          ? AppLocalizations.of(context)
+                                .medicationBreathingAndWeightRemindersCanBeScheduled
+                          : AppLocalizations.of(context).dueCareRemainsVisibleInTheApp,
                     ),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.cloud_sync_outlined),
-                    title: const Text('Automatic recovery snapshots'),
+                    title: Text(AppLocalizations.of(context).automaticRecoverySnapshots),
                     subtitle: Text(
                       settings.automaticRecoveryEnabled
                           ? _providerName(settings.cloudProvider)
-                          : 'Off • local data remains the source of truth',
+                          : AppLocalizations.of(context).offLocalDataRemainsTheSourceOfTruth,
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/recovery'),
@@ -167,15 +193,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const SectionHeading('Your data'),
+            SectionHeading(AppLocalizations.of(context).yourData),
             Card(
               child: Column(
                 children: [
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.save_alt_rounded),
-                    title: const Text('Backup, restore & pet export'),
-                    subtitle: const Text('Save backups and save or share pet health summaries.'),
+                    title: Text(AppLocalizations.of(context).backupRestorePetExport),
+                    subtitle: Text(
+                      AppLocalizations.of(context).saveBackupsAndSaveOrSharePetHealthSummaries,
+                    ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/data'),
                   ),
@@ -183,8 +211,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.delete_outline_rounded),
-                    title: const Text('Delete local journal'),
-                    subtitle: const Text('Remove records and app-managed attachments.'),
+                    title: Text(AppLocalizations.of(context).deleteLocalJournal),
+                    subtitle: Text(
+                      AppLocalizations.of(context).removeRecordsAndAppManagedAttachments,
+                    ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => context.push('/data/delete'),
                   ),
@@ -192,15 +222,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const SectionHeading('Help & feedback'),
+            SectionHeading(AppLocalizations.of(context).helpFeedback),
             Card(
               child: Column(
                 children: [
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.bug_report_outlined),
-                    title: const Text('Report a bug'),
-                    subtitle: const Text('Open a private-data-safe GitHub issue form.'),
+                    title: Text(AppLocalizations.of(context).reportABug),
+                    subtitle: Text(
+                      AppLocalizations.of(context).openAPrivateDataSafeGitHubIssueForm,
+                    ),
                     trailing: const Icon(Icons.open_in_new_rounded),
                     onTap: () => _openExternal(
                       Uri.https('github.com', '/Lyddon7522/creaturely/issues/new', <String, String>{
@@ -212,7 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.code_rounded),
-                    title: const Text('View Creaturely source'),
+                    title: Text(AppLocalizations.of(context).viewCreaturelySource),
                     subtitle: const Text('github.com/Lyddon7522/creaturely'),
                     trailing: const Icon(Icons.open_in_new_rounded),
                     onTap: () => _openExternal(Uri.https('github.com', '/Lyddon7522/creaturely')),
@@ -221,8 +253,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ListTile(
                     minTileHeight: 66,
                     leading: const Icon(Icons.content_copy_rounded),
-                    title: const Text('Copy technical details'),
-                    subtitle: const Text('App, platform, and locale only—never journal data.'),
+                    title: Text(AppLocalizations.of(context).copyTechnicalDetails),
+                    subtitle: Text(
+                      AppLocalizations.of(context).appPlatformAndLocaleOnlyNeverJournalData,
+                    ),
                     trailing: const Icon(Icons.copy_rounded),
                     onTap: _copyTechnicalDetails,
                   ),
@@ -230,35 +264,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const SectionHeading('Trust & transparency'),
+            SectionHeading(AppLocalizations.of(context).trustTransparency),
             Card(
               child: Column(
                 children: [
                   _legalTile(
                     context,
                     icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy',
+                    title: AppLocalizations.of(context).privacy,
                     route: '/legal/privacy',
                   ),
                   const Divider(height: 1),
                   _legalTile(
                     context,
                     icon: Icons.gavel_outlined,
-                    title: 'Terms',
+                    title: AppLocalizations.of(context).terms,
                     route: '/legal/terms',
                   ),
                   const Divider(height: 1),
                   _legalTile(
                     context,
                     icon: Icons.medical_information_outlined,
-                    title: 'Medical disclaimer',
+                    title: AppLocalizations.of(context).medicalDisclaimer2,
                     route: '/legal/medical',
                   ),
                   const Divider(height: 1),
                   _legalTile(
                     context,
                     icon: Icons.code_rounded,
-                    title: 'About & open-source licenses',
+                    title: AppLocalizations.of(context).aboutOpenSourceLicenses,
                     route: '/legal/about',
                   ),
                 ],
@@ -290,31 +324,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     onTap: () => context.push(route),
   );
 
-  Future<void> _openExternal(Uri uri) async {
+  Future<void> _openExternal(Uri uri) => runUiCommand(context, () async {
     final opened = await ref.read(externalLinkServiceProvider).open(uri);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not open the link on this device.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).couldNotOpenTheLinkOnThisDevice)),
+      );
     }
-  }
+  });
 
-  Future<void> _copyTechnicalDetails() async {
+  Future<void> _copyTechnicalDetails() => runUiCommand(context, () async {
     final locale = Localizations.localeOf(context);
-    final details =
-        'Creaturely 1.0.0 (1)\n'
-        'Platform: ${Platform.operatingSystem}\n'
-        'OS version: ${Platform.operatingSystemVersion}\n'
-        'Locale: ${locale.toLanguageTag()}';
-    await Clipboard.setData(ClipboardData(text: details));
+    final details = AppLocalizations.of(context).creaturely1001PlatformOSVersionLocale(
+      Platform.operatingSystem,
+      Platform.operatingSystemVersion,
+      locale.toLanguageTag(),
+    );
+    await ref.read(mediaServiceProvider).copyText(details);
     if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Technical details copied.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).technicalDetailsCopied)));
     }
-  }
+  });
+
+  Future<void> _updateSettings(AppSettings Function(AppSettings) update) => runUiCommand(
+    context,
+    () => ref.read(settingsControllerProvider.notifier).updateSettings(update),
+  );
 
   static String _providerName(CloudProvider provider) => switch (provider) {
-    CloudProvider.cloudKit => 'Private CloudKit recovery',
-    CloudProvider.googleDriveAppData => 'Google Drive appData recovery',
-    CloudProvider.none => 'Provider not selected',
+    CloudProvider.cloudKit => appStrings.privateCloudKitRecovery,
+    CloudProvider.googleDriveAppData => appStrings.googleDriveAppDataRecovery,
+    CloudProvider.none => appStrings.providerNotSelected,
   };
 }

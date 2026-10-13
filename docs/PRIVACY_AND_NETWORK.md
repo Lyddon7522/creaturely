@@ -32,7 +32,12 @@ process or provider:
   Drive, Google Drive, Dropbox, Files, or another provider may process that
   choice under its own terms.
 - Camera/gallery import reads only media the keeper grants or selects and copies
-  it into app-managed storage.
+  it into app-managed storage. On Android, the documented lost-result recovery
+  call recovers only an interrupted image-picker request. The recovered image
+  stays on this device and is offered explicitly in photo/document forms; it is
+  not silently assigned to an animal or uploaded. Native lost-result data is
+  acknowledged only after every recovered image is durably retained; a failed
+  local write remains retryable.
 - The Settings links for source code and bug reports open a GitHub HTTPS URL in
   the keeper's chosen external browser. Creaturely sends no journal data in
   that URL; copied technical details contain only app version, platform, OS
@@ -44,7 +49,10 @@ process or provider:
 
 Recovery is backup/restore, not multi-device live sync. Local SQLite remains the
 source of truth during ordinary use. Provider signed-out, offline, quota,
-permission, and conflict errors do not block local journaling.
+permission, and conflict errors do not block local journaling. Automatic
+recovery failures are visible. Restoring a portable backup preserves this
+device's notification and cloud opt-in choices; permission state and automatic
+upload settings from another device are not applied.
 
 ## Platform network declarations
 
@@ -81,3 +89,33 @@ authentication. Device passcodes, OS app-data protection, full-disk encryption,
 and private provider encryption are the appropriate protection boundaries for
 v1. Do not describe a `.creaturely` file as encrypted unless its destination
 actually encrypts it.
+
+## Local file lifecycle
+
+Imports copy selected bytes into staging before hashing and publishing them.
+Pending imports have an in-memory lease until the form saves or closes. Queued
+saves acquire a separate lease before waiting, so closing a form cannot let
+cleanup delete an attachment referenced by an in-flight save. Files
+referenced by animal photos or documents, including archived records, are kept.
+Recovered images have a durable local index until the keeper uses them. Reference
+collection removes abandoned imports, deleted-record files, and unreachable
+restore generations without deleting shared files still in use. Backups and
+exports pin their source files while a worker reads them; temporary worker ZIPs
+are removed when the operation completes.
+
+Restores preserve a portable safety backup when the current journal is healthy.
+If existing attachments are missing or corrupt, a local `.recovery.zip` retains
+original metadata and available bytes for repair. This file has the same privacy
+sensitivity as the journal. The explicit delete-everything action removes these
+safety copies along with migration copies and app-managed attachments.
+
+The unused `printing` native plugin was removed along with the unused direct
+`collection` and `cupertino_icons` dependencies. PDF generation still uses the
+existing `pdf` package, bundled fonts, and local worker isolates. Compatible
+package updates introduce no new app permission, journal network path, or
+recovery provider.
+
+The compatible update adds two transitive packages: `objective_c` supplies the
+existing Apple path-provider integration, and `yaml_edit` is used by Drift
+development tooling. Both use BSD-style licenses. They introduce no new
+permission, recovery destination, or journal network operation.

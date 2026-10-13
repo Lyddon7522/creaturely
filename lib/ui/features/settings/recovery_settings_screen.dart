@@ -1,17 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import '../../../data/backup_service.dart';
 import '../../../domain/models.dart';
+import '../../../l10n/app_strings.dart';
 import '../../../platform/cloud_recovery_bridge.dart';
 import '../../app_controller.dart';
 import '../../core/widgets.dart';
+import 'data_management_screen.dart' show RestoreConfirmationDialog;
 
 class RecoverySettingsScreen extends ConsumerStatefulWidget {
   const RecoverySettingsScreen({super.key});
@@ -34,7 +32,11 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appControllerProvider).snapshot.settings;
+    final preferences = ref.watch(settingsProvider);
+    if (preferences.isLoading || preferences.hasError) {
+      return QueryPane(error: preferences.error, onRetry: () => ref.invalidate(settingsProvider));
+    }
+    final settings = preferences.requireValue;
     final platformProvider = Theme.of(context).platform == TargetPlatform.iOS
         ? CloudProvider.cloudKit
         : CloudProvider.googleDriveAppData;
@@ -42,16 +44,15 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
         ? platformProvider
         : settings.cloudProvider;
     return Scaffold(
-      appBar: AppBar(title: const Text('Recovery snapshots')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).recoverySnapshots)),
       body: ConstrainedPage(
         maxWidth: 760,
         child: ListView(
           children: [
-            const PageHeading(
-              title: 'Optional recovery, not sync',
-              subtitle:
-                  'Local data always wins during normal use. Private provider storage is used '
-                  'only after you opt in.',
+            PageHeading(
+              title: AppLocalizations.of(context).optionalRecoveryNotSync,
+              subtitle: AppLocalizations.of(context)
+                  .localDataAlwaysWinsDuringNormalUsePrivateProvider,
             ),
             const SizedBox(height: 18),
             CalmNotice(
@@ -73,17 +74,20 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
                 children: [
                   SwitchListTile(
                     value: settings.automaticRecoveryEnabled,
-                    onChanged: _working ? null : (value) => _toggle(value, provider, settings),
+                    onChanged: _working ? null : (value) => _toggle(value, provider),
                     secondary: const Icon(Icons.cloud_sync_outlined),
-                    title: const Text('Automatic recovery snapshots'),
-                    subtitle: Text('At most once a day • ${_providerName(provider)}'),
+                    title: Text(AppLocalizations.of(context).automaticRecoverySnapshots),
+                    subtitle: Text(
+                      AppLocalizations.of(context).atMostOnceADay(_providerName(provider)),
+                    ),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.security_outlined),
-                    title: const Text('Provider-managed encryption'),
-                    subtitle: const Text(
-                      'Creaturely does not invent an account or custom encryption scheme.',
+                    title: Text(AppLocalizations.of(context).providerManagedEncryption),
+                    subtitle: Text(
+                      AppLocalizations.of(context)
+                          .creaturelyDoesNotInventAnAccountOrCustomEncryption,
                     ),
                   ),
                 ],
@@ -99,27 +103,27 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
                       ? null
                       : _createSnapshot,
                   icon: const Icon(Icons.backup_outlined),
-                  label: const Text('Back up now'),
+                  label: Text(AppLocalizations.of(context).backUpNow),
                 ),
                 OutlinedButton.icon(
                   onPressed: _working ? null : _authorize,
                   icon: const Icon(Icons.login_rounded),
-                  label: const Text('Check account access'),
+                  label: Text(AppLocalizations.of(context).checkAccountAccess),
                 ),
                 IconButton(
-                  tooltip: 'Refresh recovery list',
+                  tooltip: AppLocalizations.of(context).refreshRecoveryList,
                   onPressed: _working ? null : _refresh,
                   icon: const Icon(Icons.refresh_rounded),
                 ),
               ],
             ),
             const SizedBox(height: 22),
-            const SectionHeading('Recovery points'),
+            SectionHeading(AppLocalizations.of(context).recoveryPoints),
             if (_snapshots.isEmpty)
-              const EmptyState(
+              EmptyState(
                 icon: Icons.cloud_queue_rounded,
-                title: 'No recovery snapshots',
-                body: 'Create one when the provider is available.',
+                title: AppLocalizations.of(context).noRecoverySnapshots,
+                body: AppLocalizations.of(context).createOneWhenTheProviderIsAvailable,
               )
             else
               Card(
@@ -131,10 +135,12 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
                         title: Text(
                           DateFormat.yMMMd().add_jm().format(_snapshots[index].createdAt.toLocal()),
                         ),
-                        subtitle: Text('${_snapshots[index].byteLength} bytes'),
+                        subtitle: Text(
+                          AppLocalizations.of(context).bytes(_snapshots[index].byteLength),
+                        ),
                         trailing: TextButton(
                           onPressed: _working ? null : () => _restore(_snapshots[index]),
-                          child: const Text('Restore'),
+                          child: Text(AppLocalizations.of(context).restore),
                         ),
                       ),
                       if (index < _snapshots.length - 1) const Divider(height: 1),
@@ -143,11 +149,9 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
                 ),
               ),
             const SizedBox(height: 18),
-            const CalmNotice(
+            CalmNotice(
               icon: Icons.auto_delete_outlined,
-              text:
-                  'Creaturely keeps the newest recovery point, plus up to 7 daily, 4 weekly, and '
-                  '6 monthly points. Older copies are removed automatically.',
+              text: AppLocalizations.of(context).creaturelyKeepsTheNewestRecoveryPointPlusUpTo,
             ),
             if (_working) ...[
               const SizedBox(height: 18),
@@ -159,208 +163,129 @@ class _RecoverySettingsScreenState extends ConsumerState<RecoverySettingsScreen>
     );
   }
 
-  Future<void> _refresh() async {
+  Future<void> _run(Future<void> Function() action) async {
+    if (_working) return;
     setState(() {
       _working = true;
       _message = null;
     });
     try {
-      final bridge = ref.read(cloudRecoveryBridgeProvider);
-      final status = await bridge.status();
-      final snapshots = List<CloudSnapshotInfo>.of(
-        status == CloudRecoveryState.available ? await bridge.list() : const <CloudSnapshotInfo>[],
-      );
-      snapshots.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      if (mounted) {
-        setState(() {
-          _status = status;
-          _snapshots = snapshots;
-        });
-      }
+      await action();
     } on MissingPluginException {
-      if (mounted) {
-        setState(() => _status = CloudRecoveryState.notConfigured);
-      }
+      if (mounted) setState(() => _status = CloudRecoveryState.notConfigured);
     } on CloudRecoveryException catch (error) {
       if (mounted) {
         setState(() {
           _status = error.state;
-          _message = error.message;
+          _message = _statusText(error.state, CloudProvider.none);
         });
       }
-    } on Object catch (error) {
-      if (mounted) {
-        setState(() {
-          _status = CloudRecoveryState.unknownError;
-          _message = error.toString();
-        });
-      }
+    } on Object {
+      if (mounted) setState(() => _message = AppLocalizations.of(context).operationFailed);
     } finally {
-      if (mounted) {
-        setState(() => _working = false);
-      }
+      if (mounted) setState(() => _working = false);
     }
   }
 
-  Future<void> _authorize() async {
-    setState(() => _working = true);
-    try {
-      final value = await ref.read(cloudRecoveryBridgeProvider).authorize();
-      if (mounted) {
-        setState(() => _status = value);
-      }
-      await _refresh();
-    } on CloudRecoveryException catch (error) {
-      if (mounted) {
-        setState(() {
-          _status = error.state;
-          _message = error.message;
-        });
-      }
-    } on Object catch (error) {
-      if (mounted) {
-        setState(() => _message = error.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _working = false);
-      }
+  Future<void> _loadSnapshots() async {
+    if (!mounted) return;
+    final bridge = ref.read(cloudRecoveryBridgeProvider);
+    final status = await bridge.status();
+    final snapshots = List<CloudSnapshotInfo>.of(
+      status == CloudRecoveryState.available ? await bridge.list() : const [],
+    )..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (mounted) {
+      setState(() {
+        _status = status;
+        _snapshots = snapshots;
+      });
     }
   }
 
-  Future<void> _toggle(bool enabled, CloudProvider provider, AppSettings settings) async {
+  Future<void> _refresh() => _run(_loadSnapshots);
+  Future<void> _authorize() => _run(() async {
+    final bridge = ref.read(cloudRecoveryBridgeProvider);
+    final status = await bridge.authorize();
+    if (!mounted) return;
+    setState(() => _status = status);
+    await _loadSnapshots();
+  });
+
+  Future<void> _toggle(bool enabled, CloudProvider provider) => _run(() async {
+    final settings = ref.read(settingsControllerProvider.notifier);
+    final bridge = ref.read(cloudRecoveryBridgeProvider);
     if (enabled && _status != CloudRecoveryState.available) {
-      await _authorize();
-      if (_status != CloudRecoveryState.available) {
-        return;
-      }
+      final status = await bridge.authorize();
+      if (!mounted) return;
+      setState(() => _status = status);
+      if (status != CloudRecoveryState.available) return;
     }
-    await ref
-        .read(appControllerProvider.notifier)
-        .saveSettings(
-          settings.copyWith(automaticRecoveryEnabled: enabled, cloudProvider: provider),
-        );
-    if (enabled) {
-      await _createSnapshot();
-    }
+    await settings.updateSettings(
+      (current) => current.copyWith(automaticRecoveryEnabled: enabled, cloudProvider: provider),
+    );
+    if (enabled && mounted) await _createAndReload();
+  });
+
+  Future<void> _createAndReload() async {
+    if (!mounted) return;
+    final manager = await ref.read(recoverySnapshotManagerProvider.future);
+    if (!mounted) return;
+    await manager.createAndPrune(force: true);
+    if (mounted) await _loadSnapshots();
   }
 
-  Future<void> _createSnapshot() async {
-    setState(() {
-      _working = true;
-      _message = null;
-    });
-    try {
-      final manager = await ref.read(recoverySnapshotManagerProvider.future);
-      await manager.createAndPrune(force: true);
-      await _refresh();
-    } on CloudRecoveryException catch (error) {
-      if (mounted) {
-        setState(() {
-          _status = error.state;
-          _message = error.message;
-        });
-      }
-    } on Object catch (error) {
-      if (mounted) {
-        setState(() => _message = error.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _working = false);
-      }
-    }
-  }
+  Future<void> _createSnapshot() => _run(_createAndReload);
 
-  Future<void> _restore(CloudSnapshotInfo snapshot) async {
-    setState(() => _working = true);
-    try {
-      final bytes = await ref.read(cloudRecoveryBridgeProvider).download(snapshot.id);
-      const backups = CreaturelyBackupService();
-      final validated = backups.validate(bytes);
-      if (!mounted) {
-        return;
-      }
-      final confirmed =
-          await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Restore this recovery point?'),
-              content: Text(
-                '${validated.snapshot.animals.length} animals and '
-                '${validated.snapshot.documents.length} documents were fully validated. '
-                'The current journal will be safety-backed up first.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Restore'),
-                ),
-              ],
-            ),
-          ) ??
-          false;
-      if (!confirmed) {
-        return;
-      }
-      final storage = await ref.read(documentStorageProvider.future);
-      final application = await getApplicationDocumentsDirectory();
-      await AtomicRestoreCoordinator(
-        backups: backups,
-        store: ref.read(repositoryProvider),
-        documents: storage,
-        safetyWriter: DirectorySafetySnapshotWriter(
-          Directory(path.join(application.path, 'recovery')),
-        ),
-      ).restore(bytes);
-      await ref.read(appControllerProvider.notifier).refresh(syncReminders: true);
-    } on CloudRecoveryException catch (error) {
-      if (mounted) {
-        setState(() {
-          _status = error.state;
-          _message = error.message;
-        });
-      }
-    } on Object catch (error) {
-      if (mounted) {
-        setState(() => _message = error.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _working = false);
-      }
-    }
-  }
+  Future<void> _restore(CloudSnapshotInfo snapshot) => _run(() async {
+    final bridge = ref.read(cloudRecoveryBridgeProvider);
+    final restore = ref.read(recoveryControllerProvider.notifier);
+    final bytes = await bridge.download(snapshot.id);
+    final validated = await const CreaturelyBackupService().validateAsync(bytes);
+    if (!mounted) return;
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => RestoreConfirmationDialog(validated: validated),
+        ) ??
+        false;
+    if (confirmed && mounted) await restore.restore(validated);
+  });
 
   String _statusText(CloudRecoveryState? state, CloudProvider provider) {
     if (state == null) {
-      return 'Checking ${_providerName(provider)}…';
+      return AppLocalizations.of(context).checking(_providerName(provider));
     }
     return switch (state) {
-      CloudRecoveryState.available => '${_providerName(provider)} is available.',
-      CloudRecoveryState.signedOut =>
-        'The platform cloud account is signed out. Local journaling remains available.',
-      CloudRecoveryState.offline =>
-        'The cloud provider is offline. Local journaling remains available.',
-      CloudRecoveryState.quotaExceeded => 'Cloud storage is full. Existing local data is safe.',
-      CloudRecoveryState.conflict =>
-        'The cloud provider reported a conflict. Existing local data was not changed.',
-      CloudRecoveryState.notConfigured =>
-        'This build is missing the platform recovery capability or release configuration.',
-      CloudRecoveryState.permissionDenied =>
-        'Cloud recovery access was declined. Local use is unaffected.',
-      CloudRecoveryState.unknownError =>
-        'The cloud provider returned an error. Local use is unaffected.',
+      CloudRecoveryState.available => AppLocalizations.of(
+        context,
+      ).isAvailable(_providerName(provider)),
+      CloudRecoveryState.signedOut => AppLocalizations.of(
+        context,
+      ).thePlatformCloudAccountIsSignedOutLocalJournaling,
+      CloudRecoveryState.offline => AppLocalizations.of(
+        context,
+      ).theCloudProviderIsOfflineLocalJournalingRemainsAvailable,
+      CloudRecoveryState.quotaExceeded => AppLocalizations.of(
+        context,
+      ).cloudStorageIsFullExistingLocalDataIsSafe,
+      CloudRecoveryState.conflict => AppLocalizations.of(
+        context,
+      ).theCloudProviderReportedAConflictExistingLocalData,
+      CloudRecoveryState.notConfigured => AppLocalizations.of(
+        context,
+      ).thisBuildIsMissingThePlatformRecoveryCapabilityOr,
+      CloudRecoveryState.permissionDenied => AppLocalizations.of(
+        context,
+      ).cloudRecoveryAccessWasDeclinedLocalUseIsUnaffected,
+      CloudRecoveryState.unknownError => AppLocalizations.of(
+        context,
+      ).theCloudProviderReturnedAnErrorLocalUseIs,
     };
   }
 
   String _providerName(CloudProvider provider) => switch (provider) {
-    CloudProvider.cloudKit => 'private CloudKit',
-    CloudProvider.googleDriveAppData => 'Google Drive appData',
-    CloudProvider.none => 'platform recovery',
+    CloudProvider.cloudKit => AppLocalizations.of(context).privateCloudKit,
+    CloudProvider.googleDriveAppData => AppLocalizations.of(context).googleDriveAppData,
+    CloudProvider.none => AppLocalizations.of(context).platformRecovery,
   };
 }

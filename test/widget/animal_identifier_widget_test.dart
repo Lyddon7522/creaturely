@@ -49,7 +49,7 @@ void main() {
     expect(identifier.phone, '+1 555 010 0099');
     expect(identifier.issuedOn, DateTime.utc(2025, 8, 1));
     expect(
-      harness.container.read(appControllerProvider).snapshot.identifiers.single.type,
+      (await harness.container.read(repositoryProvider).loadSnapshot()).identifiers.single.type,
       'Shell mark',
     );
   });

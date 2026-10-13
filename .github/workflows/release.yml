@@ -31,7 +31,7 @@ concurrency:
 env:
   FASTLANE_OPT_OUT_USAGE: "YES"
   FASTLANE_SKIP_UPDATE_CHECK: "YES"
-  FLUTTER_VERSION: 3.47.0
+  FLUTTER_VERSION: 3.47.2
 
 jobs:
   metadata:

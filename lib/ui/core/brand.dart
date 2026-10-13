@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_strings.dart';
+
 abstract final class CreaturelyBrandAssets {
   static const String horizontalPrimary =
       'assets/brand/exports/creaturely-logo-horizontal-primary@2x.png';
@@ -22,7 +24,7 @@ class CreaturelyLogo extends StatelessWidget {
     return Semantics(
       image: true,
       header: header,
-      label: 'Creaturely. Know their normal.',
+      label: AppLocalizations.of(context).creaturelyKnowTheirNormal,
       child: ExcludeSemantics(
         child: Image.asset(
           asset,

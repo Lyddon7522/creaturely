@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/models.dart';
-import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/app_strings.dart';
 import '../app_controller.dart';
 import '../core/brand.dart';
 import '../core/widgets.dart';
@@ -194,14 +194,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('Page unavailable')),
+      appBar: AppBar(title: Text(appStrings.pageUnavailable)),
       body: EmptyState(
         icon: Icons.explore_off_outlined,
-        title: 'This page could not be opened',
-        body: state.error?.toString() ?? 'Return to the Animals dashboard.',
+        title: appStrings.thisPageCouldNotBeOpened,
+        body: appStrings.returnToTheAnimalsDashboard,
         action: FilledButton(
           onPressed: () => context.go('/animals'),
-          child: const Text('Go to Animals'),
+          child: Text(appStrings.goToAnimals),
         ),
       ),
     ),
@@ -232,25 +232,7 @@ class _LaunchGateState extends ConsumerState<_LaunchGate> {
   @override
   void initState() {
     super.initState();
-    unawaited(_initialize());
-  }
-
-  Future<void> _initialize() async {
-    final controller = ref.read(appControllerProvider.notifier);
-    await controller.initialize();
-    if (!mounted) {
-      return;
-    }
-    final settings = ref.read(appControllerProvider).snapshot.settings;
-    if (settings.automaticRecoveryEnabled) {
-      try {
-        final managerFuture = ref.read(recoverySnapshotManagerProvider.future);
-        final manager = await managerFuture;
-        await manager.createAndPrune();
-      } on Object {
-        // Recovery failures are surfaced in Settings and never block local use.
-      }
-    }
+    unawaited(ref.read(appControllerProvider.notifier).initialize());
   }
 
   @override
@@ -263,22 +245,39 @@ class _LaunchGateState extends ConsumerState<_LaunchGate> {
       return Scaffold(
         body: EmptyState(
           icon: Icons.storage_outlined,
-          title: 'Creaturely could not open the local journal',
-          body: state.error.toString(),
+          title: AppLocalizations.of(context).creaturelyCouldNotOpenTheLocalJournal,
+          body: AppLocalizations.of(context).journalOpenFailedHelp,
           action: FilledButton.icon(
-            onPressed: () => ref.read(appControllerProvider.notifier).refresh(),
+            onPressed: () => ref.read(appControllerProvider.notifier).initialize(),
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Try again'),
+            label: Text(AppLocalizations.of(context).tryAgain),
           ),
         ),
       );
     }
-    if (!state.snapshot.settings.onboardingComplete || state.snapshot.animals.isEmpty) {
+    final preferences = ref.watch(settingsProvider);
+    final journalAnimals = ref.watch(animalsProvider(null));
+    final error = preferences.error ?? journalAnimals.error;
+    if (error != null) {
+      return QueryPane(
+        error: error,
+        onRetry: () {
+          if (preferences.hasError) ref.invalidate(settingsProvider);
+          if (journalAnimals.hasError) ref.invalidate(animalsProvider(null));
+        },
+      );
+    }
+    final settings = preferences.value;
+    final animals = journalAnimals.value;
+    if (settings == null || animals == null) return const LoadingPane();
+    if (!settings.onboardingComplete || animals.isEmpty) {
       return const OnboardingScreen();
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (context.mounted) {
+        final controller = ref.read(appControllerProvider.notifier);
         context.go('/animals');
+        WidgetsBinding.instance.addPostFrameCallback((_) => controller.navigationReady());
       }
     });
     return const LoadingPane();
@@ -315,7 +314,10 @@ class _NavigationShell extends ConsumerWidget {
                   onDestinationSelected: (index) => _goBranch(ref, index),
                   leading: Padding(
                     padding: const EdgeInsets.only(top: 12, bottom: 18),
-                    child: const CreaturelyMark(size: 44, semanticLabel: 'Creaturely navigation'),
+                    child: CreaturelyMark(
+                      size: 44,
+                      semanticLabel: AppLocalizations.of(context).creaturelyNavigation,
+                    ),
                   ),
                   destinations: [
                     for (final destination in destinations)

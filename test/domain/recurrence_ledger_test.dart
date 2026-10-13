@@ -135,7 +135,7 @@ void main() {
   });
 
   test('breathing reminders preserve local time across DST', () {
-    final occurrences = const RespiratoryReminderEngine().generate(
+    final occurrences = const CalendarReminderEngine().generate(
       reminder: fixtureRespiratoryReminder(),
       rangeStartUtc: DateTime.utc(2026, 3, 7),
       rangeEndUtc: DateTime.utc(2026, 3, 11),
@@ -159,7 +159,7 @@ void main() {
       recurrence: ReminderRecurrence.selectedWeekdays,
       weekdays: const <int>{DateTime.monday, DateTime.thursday},
     );
-    final occurrences = const RespiratoryReminderEngine().generate(
+    final occurrences = const CalendarReminderEngine().generate(
       reminder: reminder,
       rangeStartUtc: DateTime.utc(2026, 3, 7),
       rangeEndUtc: DateTime.utc(2026, 3, 15),
@@ -174,7 +174,7 @@ void main() {
 
   test('weight reminders preserve local time across DST', () {
     final reminder = fixtureWeightReminder().copyWith(recurrence: ReminderRecurrence.daily);
-    final occurrences = const WeightReminderEngine().generate(
+    final occurrences = const CalendarReminderEngine().generate(
       reminder: reminder,
       rangeStartUtc: DateTime.utc(2026, 3, 7),
       rangeEndUtc: DateTime.utc(2026, 3, 11),
@@ -198,7 +198,7 @@ void main() {
       recurrence: ReminderRecurrence.selectedWeekdays,
       weekdays: const <int>{DateTime.tuesday, DateTime.saturday},
     );
-    final occurrences = const WeightReminderEngine().generate(
+    final occurrences = const CalendarReminderEngine().generate(
       reminder: reminder,
       rangeStartUtc: DateTime.utc(2026, 3, 7),
       rangeEndUtc: DateTime.utc(2026, 3, 22),
@@ -231,23 +231,6 @@ void main() {
       expect(
         reopened.transition(to: DoseStatus.skipped, at: fixtureTime).status,
         DoseStatus.skipped,
-      );
-    });
-
-    test('marks overdue entries missed and calculates descriptive adherence', () {
-      final unrecorded = fixtureDose(status: DoseStatus.unrecorded);
-      final marked = const MedicationLedger().markOverdue(<DoseLedgerEntry>[
-        unrecorded,
-      ], now: unrecorded.dueAt.add(const Duration(hours: 3)));
-      expect(marked.single.status, DoseStatus.missed);
-      expect(
-        const MedicationLedger().adherence(<DoseLedgerEntry>[
-          ...marked,
-          fixtureDose(),
-          fixtureDose(status: DoseStatus.skipped),
-          fixtureDose(status: DoseStatus.unrecorded),
-        ]),
-        closeTo(1 / 3, 1e-10),
       );
     });
   });

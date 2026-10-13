@@ -1,6 +1,7 @@
 import 'package:timezone/timezone.dart' as tz;
 
 import 'models.dart';
+import 'time_zone.dart';
 
 class ScheduledOccurrence {
   const ScheduledOccurrence({
@@ -29,7 +30,7 @@ class RecurrenceEngine {
     if (!rangeStartUtc.isBefore(rangeEndUtc)) {
       return const <ScheduledOccurrence>[];
     }
-    final location = tz.getLocation(schedule.timeZoneId);
+    final location = timeZoneLocation(schedule.timeZoneId);
     final medicationStart = tz.TZDateTime(
       location,
       medication.startDate.year,
@@ -182,11 +183,11 @@ class RecurrenceEngine {
       due.isBefore(rangeEnd);
 }
 
-class RespiratoryReminderEngine {
-  const RespiratoryReminderEngine();
+class CalendarReminderEngine {
+  const CalendarReminderEngine();
 
   List<ScheduledOccurrence> generate({
-    required RespiratoryReminder reminder,
+    required CalendarReminder reminder,
     required DateTime rangeStartUtc,
     required DateTime rangeEndUtc,
   }) {
@@ -196,7 +197,7 @@ class RespiratoryReminderEngine {
     if (!rangeStartUtc.isBefore(rangeEndUtc) || !reminder.enabled) {
       return const <ScheduledOccurrence>[];
     }
-    final location = tz.getLocation(reminder.timeZoneId);
+    final location = timeZoneLocation(reminder.timeZoneId);
     final reminderStart = tz.TZDateTime(
       location,
       reminder.startDate.year,
@@ -257,111 +258,5 @@ class RespiratoryReminderEngine {
     }
     result.sort((a, b) => a.dueAtUtc.compareTo(b.dueAtUtc));
     return result;
-  }
-}
-
-class WeightReminderEngine {
-  const WeightReminderEngine();
-
-  List<ScheduledOccurrence> generate({
-    required WeightCheckReminder reminder,
-    required DateTime rangeStartUtc,
-    required DateTime rangeEndUtc,
-  }) {
-    if (!reminder.isValid) {
-      throw ArgumentError.value(reminder, 'reminder', 'Weight reminder is incomplete.');
-    }
-    if (!rangeStartUtc.isBefore(rangeEndUtc) || !reminder.enabled) {
-      return const <ScheduledOccurrence>[];
-    }
-    final location = tz.getLocation(reminder.timeZoneId);
-    final reminderStart = tz.TZDateTime(
-      location,
-      reminder.startDate.year,
-      reminder.startDate.month,
-      reminder.startDate.day,
-    );
-    final reminderEnd = reminder.endDate == null
-        ? null
-        : tz.TZDateTime(
-            location,
-            reminder.endDate!.year,
-            reminder.endDate!.month,
-            reminder.endDate!.day,
-            23,
-            59,
-            59,
-            999,
-          );
-    final rangeStart = tz.TZDateTime.from(rangeStartUtc, location);
-    final rangeEnd = tz.TZDateTime.from(rangeEndUtc, location);
-    final times = [...reminder.times]..sort();
-    final result = <ScheduledOccurrence>[];
-    var date = tz.TZDateTime(location, rangeStart.year, rangeStart.month, rangeStart.day, 12);
-    final lastDate = tz.TZDateTime(location, rangeEnd.year, rangeEnd.month, rangeEnd.day, 12);
-
-    while (!date.isAfter(lastDate)) {
-      final eligibleDay =
-          reminder.recurrence == ReminderRecurrence.daily ||
-          reminder.weekdays.contains(date.weekday);
-      if (eligibleDay) {
-        for (final time in times) {
-          final due = tz.TZDateTime(
-            location,
-            date.year,
-            date.month,
-            date.day,
-            time.hour,
-            time.minute,
-          );
-          if (!due.isBefore(reminderStart) &&
-              (reminderEnd == null || !due.isAfter(reminderEnd)) &&
-              !due.isBefore(rangeStart) &&
-              due.isBefore(rangeEnd)) {
-            result.add(
-              ScheduledOccurrence(
-                dueAtUtc: due.toUtc(),
-                intendedLocalTime:
-                    '${due.year.toString().padLeft(4, '0')}-'
-                    '${due.month.toString().padLeft(2, '0')}-'
-                    '${due.day.toString().padLeft(2, '0')}T${time.encoded}',
-                timeZoneId: reminder.timeZoneId,
-              ),
-            );
-          }
-        }
-      }
-      date = tz.TZDateTime(location, date.year, date.month, date.day + 1, 12);
-    }
-    result.sort((a, b) => a.dueAtUtc.compareTo(b.dueAtUtc));
-    return result;
-  }
-}
-
-class MedicationLedger {
-  const MedicationLedger();
-
-  List<DoseLedgerEntry> markOverdue(
-    Iterable<DoseLedgerEntry> entries, {
-    required DateTime now,
-    Duration gracePeriod = const Duration(hours: 2),
-  }) => entries
-      .map((entry) {
-        if (entry.status != DoseStatus.unrecorded || !entry.dueAt.add(gracePeriod).isBefore(now)) {
-          return entry;
-        }
-        return entry.copyWith(status: DoseStatus.missed, updatedAt: now);
-      })
-      .toList(growable: false);
-
-  double adherence(Iterable<DoseLedgerEntry> entries) {
-    final completed = entries
-        .where((entry) => entry.status != DoseStatus.unrecorded)
-        .toList(growable: false);
-    if (completed.isEmpty) {
-      return 0;
-    }
-    final given = completed.where((entry) => entry.status == DoseStatus.given).length;
-    return given / completed.length;
   }
 }

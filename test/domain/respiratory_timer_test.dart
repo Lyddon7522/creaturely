@@ -67,6 +67,8 @@ void main() {
       expect(session.durationMilliseconds, 30000);
       expect(session.breathCount, 2);
       expect(session.ratePerMinute, 4);
+      expect(timer.status, RespiratoryTimerStatus.completed);
+      timer.markSaved();
       expect(timer.status, RespiratoryTimerStatus.saved);
       expect(
         () => timer.buildSession(

@@ -98,7 +98,3025 @@
   "medicationRefillsValidation": "Use a whole number of zero or more.",
   "documents": "Documents",
   "healthRecords": "Health records",
-  "emptyTimeline": "Nothing recorded in this range yet.",
   "permissionDenied": "Notifications are off. Creaturely still works; reminders will remain visible in the app.",
-  "seekAdvice": "If you are concerned about your animal, contact a veterinarian. Creaturely does not diagnose conditions."
+  "seekAdvice": "If you are concerned about your animal, contact a veterinarian. Creaturely does not diagnose conditions.",
+  "selectedAnimalChangeAnimal": "Selected animal: {value1}. Change animal.",
+  "@selectedAnimalChangeAnimal": {
+    "description": "User-visible copy: Selected animal: {value1}. Change animal.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "loadingCreaturely": "Loading Creaturely",
+  "@loadingCreaturely": {
+    "description": "User-visible copy: Loading Creaturely"
+  },
+  "creaturelyKnowTheirNormal": "Creaturely. Know their normal.",
+  "@creaturelyKnowTheirNormal": {
+    "description": "User-visible copy: Creaturely. Know their normal."
+  },
+  "creaturelyYourWay": "Creaturely, your way",
+  "@creaturelyYourWay": {
+    "description": "User-visible copy: Creaturely, your way"
+  },
+  "comfortRemindersPrivacyAndYourOwnCopies": "Comfort, reminders, privacy, and your own copies.",
+  "@comfortRemindersPrivacyAndYourOwnCopies": {
+    "description": "User-visible copy: Comfort, reminders, privacy, and your own copies."
+  },
+  "appearanceUnits": "Appearance & units",
+  "@appearanceUnits": {
+    "description": "User-visible copy: Appearance & units"
+  },
+  "theme": "Theme",
+  "@theme": {
+    "description": "User-visible copy: Theme"
+  },
+  "system": "System",
+  "@system": {
+    "description": "User-visible copy: System"
+  },
+  "light": "Light",
+  "@light": {
+    "description": "User-visible copy: Light"
+  },
+  "dark": "Dark",
+  "@dark": {
+    "description": "User-visible copy: Dark"
+  },
+  "weightDisplay": "Weight display",
+  "@weightDisplay": {
+    "description": "User-visible copy: Weight display"
+  },
+  "recordingFeedback": "Recording feedback",
+  "@recordingFeedback": {
+    "description": "User-visible copy: Recording feedback"
+  },
+  "hapticTap": "Haptic tap",
+  "@hapticTap": {
+    "description": "User-visible copy: Haptic tap"
+  },
+  "onByDefaultForEachRecordedBreath": "On by default for each recorded breath.",
+  "@onByDefaultForEachRecordedBreath": {
+    "description": "User-visible copy: On by default for each recorded breath."
+  },
+  "tapSound": "Tap sound",
+  "@tapSound": {
+    "description": "User-visible copy: Tap sound"
+  },
+  "offByDefault": "Off by default.",
+  "@offByDefault": {
+    "description": "User-visible copy: Off by default."
+  },
+  "defaultBreathingTimer": "Default breathing timer",
+  "@defaultBreathingTimer": {
+    "description": "User-visible copy: Default breathing timer"
+  },
+  "s": "{value1} s",
+  "@s": {
+    "description": "User-visible copy: {value1} s",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "remindersRecovery": "Reminders & recovery",
+  "@remindersRecovery": {
+    "description": "User-visible copy: Reminders & recovery"
+  },
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "User-visible copy: Notifications"
+  },
+  "medicationBreathingAndWeightRemindersCanBeScheduled": "Medication, breathing, and weight reminders can be scheduled.",
+  "@medicationBreathingAndWeightRemindersCanBeScheduled": {
+    "description": "User-visible copy: Medication, breathing, and weight reminders can be scheduled."
+  },
+  "dueCareRemainsVisibleInTheApp": "Due care remains visible in the app.",
+  "@dueCareRemainsVisibleInTheApp": {
+    "description": "User-visible copy: Due care remains visible in the app."
+  },
+  "automaticRecoverySnapshots": "Automatic recovery snapshots",
+  "@automaticRecoverySnapshots": {
+    "description": "User-visible copy: Automatic recovery snapshots"
+  },
+  "offLocalDataRemainsTheSourceOfTruth": "Off • local data remains the source of truth",
+  "@offLocalDataRemainsTheSourceOfTruth": {
+    "description": "User-visible copy: Off • local data remains the source of truth"
+  },
+  "yourData": "Your data",
+  "@yourData": {
+    "description": "User-visible copy: Your data"
+  },
+  "backupRestorePetExport": "Backup, restore & pet export",
+  "@backupRestorePetExport": {
+    "description": "User-visible copy: Backup, restore & pet export"
+  },
+  "saveBackupsAndSaveOrSharePetHealthSummaries": "Save backups and save or share pet health summaries.",
+  "@saveBackupsAndSaveOrSharePetHealthSummaries": {
+    "description": "User-visible copy: Save backups and save or share pet health summaries."
+  },
+  "deleteLocalJournal": "Delete local journal",
+  "@deleteLocalJournal": {
+    "description": "User-visible copy: Delete local journal"
+  },
+  "removeRecordsAndAppManagedAttachments": "Remove records and app-managed attachments.",
+  "@removeRecordsAndAppManagedAttachments": {
+    "description": "User-visible copy: Remove records and app-managed attachments."
+  },
+  "helpFeedback": "Help & feedback",
+  "@helpFeedback": {
+    "description": "User-visible copy: Help & feedback"
+  },
+  "reportABug": "Report a bug",
+  "@reportABug": {
+    "description": "User-visible copy: Report a bug"
+  },
+  "openAPrivateDataSafeGitHubIssueForm": "Open a private-data-safe GitHub issue form.",
+  "@openAPrivateDataSafeGitHubIssueForm": {
+    "description": "User-visible copy: Open a private-data-safe GitHub issue form."
+  },
+  "viewCreaturelySource": "View Creaturely source",
+  "@viewCreaturelySource": {
+    "description": "User-visible copy: View Creaturely source"
+  },
+  "copyTechnicalDetails": "Copy technical details",
+  "@copyTechnicalDetails": {
+    "description": "User-visible copy: Copy technical details"
+  },
+  "appPlatformAndLocaleOnlyNeverJournalData": "App, platform, and locale only—never journal data.",
+  "@appPlatformAndLocaleOnlyNeverJournalData": {
+    "description": "User-visible copy: App, platform, and locale only—never journal data."
+  },
+  "trustTransparency": "Trust & transparency",
+  "@trustTransparency": {
+    "description": "User-visible copy: Trust & transparency"
+  },
+  "privacy": "Privacy",
+  "@privacy": {
+    "description": "User-visible copy: Privacy"
+  },
+  "terms": "Terms",
+  "@terms": {
+    "description": "User-visible copy: Terms"
+  },
+  "medicalDisclaimer2": "Medical disclaimer",
+  "@medicalDisclaimer2": {
+    "description": "User-visible copy: Medical disclaimer"
+  },
+  "aboutOpenSourceLicenses": "About & open-source licenses",
+  "@aboutOpenSourceLicenses": {
+    "description": "User-visible copy: About & open-source licenses"
+  },
+  "couldNotOpenTheLinkOnThisDevice": "Could not open the link on this device.",
+  "@couldNotOpenTheLinkOnThisDevice": {
+    "description": "User-visible copy: Could not open the link on this device."
+  },
+  "creaturely1001PlatformOSVersionLocale": "Creaturely 1.0.0 (1)\nPlatform: {value1}\nOS version: {value2}\nLocale: {value3}",
+  "@creaturely1001PlatformOSVersionLocale": {
+    "description": "User-visible copy: Creaturely 1.0.0 (1)\nPlatform: {value1}\nOS version: {value2}\nLocale: {value3}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      },
+      "value3": {
+        "type": "Object"
+      }
+    }
+  },
+  "technicalDetailsCopied": "Technical details copied.",
+  "@technicalDetailsCopied": {
+    "description": "User-visible copy: Technical details copied."
+  },
+  "privateCloudKitRecovery": "Private CloudKit recovery",
+  "@privateCloudKitRecovery": {
+    "description": "User-visible copy: Private CloudKit recovery"
+  },
+  "googleDriveAppDataRecovery": "Google Drive appData recovery",
+  "@googleDriveAppDataRecovery": {
+    "description": "User-visible copy: Google Drive appData recovery"
+  },
+  "providerNotSelected": "Provider not selected",
+  "@providerNotSelected": {
+    "description": "User-visible copy: Provider not selected"
+  },
+  "petExport": "Pet export",
+  "@petExport": {
+    "description": "User-visible copy: Pet export"
+  },
+  "exportSHealthHistory": "Export {value1}’s health history",
+  "@exportSHealthHistory": {
+    "description": "User-visible copy: Export {value1}’s health history",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "copiesYouControl": "Copies you control",
+  "@copiesYouControl": {
+    "description": "User-visible copy: Copies you control"
+  },
+  "chooseADateRangeAndCreateAVetFriendly": "Choose a date range and create a vet-friendly PDF, CSV, or document package.",
+  "@chooseADateRangeAndCreateAVetFriendly": {
+    "description": "User-visible copy: Choose a date range and create a vet-friendly PDF, CSV, or document package."
+  },
+  "createAnOpenBackupSafelyRestoreOneOrSave": "Create an open backup, safely restore one, or save and share a focused pet health summary.",
+  "@createAnOpenBackupSafelyRestoreOneOrSave": {
+    "description": "User-visible copy: Create an open backup, safely restore one, or save and share a focused pet health summary."
+  },
+  "saveFileAndShareActionsOpenOnlyWhenYou": "Save-file and share actions open only when you choose them. Creaturely performs no upload on its own during normal journaling.",
+  "@saveFileAndShareActionsOpenOnlyWhenYou": {
+    "description": "User-visible copy: Save-file and share actions open only when you choose them. Creaturely performs no upload on its own"
+  },
+  "wholeJournalBackup": "Whole-journal backup",
+  "@wholeJournalBackup": {
+    "description": "User-visible copy: Whole-journal backup"
+  },
+  "createCreaturelyBackup": "Create .creaturely backup",
+  "@createCreaturelyBackup": {
+    "description": "User-visible copy: Create .creaturely backup"
+  },
+  "animalsDocuments": "{value1} animals • {value2} documents",
+  "@animalsDocuments": {
+    "description": "User-visible copy: {value1} animals • {value2} documents",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      }
+    }
+  },
+  "restoreFromCreaturely": "Restore from .creaturely",
+  "@restoreFromCreaturely": {
+    "description": "User-visible copy: Restore from .creaturely"
+  },
+  "fullyValidatedBeforeAnAtomicReplacement": "Fully validated before an atomic replacement.",
+  "@fullyValidatedBeforeAnAtomicReplacement": {
+    "description": "User-visible copy: Fully validated before an atomic replacement."
+  },
+  "exportOptions": "Export options",
+  "@exportOptions": {
+    "description": "User-visible copy: Export options"
+  },
+  "animal": "Animal",
+  "@animal": {
+    "description": "User-visible copy: Animal"
+  },
+  "dateRange": "Date range",
+  "@dateRange": {
+    "description": "User-visible copy: Date range"
+  },
+  "originalDocumentsToInclude": "Original documents to include",
+  "@originalDocumentsToInclude": {
+    "description": "User-visible copy: Original documents to include"
+  },
+  "noDocumentsInThisRange": "No documents in this range.",
+  "@noDocumentsInThisRange": {
+    "description": "User-visible copy: No documents in this range."
+  },
+  "exportOrShare": "Export or share",
+  "@exportOrShare": {
+    "description": "User-visible copy: Export or share"
+  },
+  "saveCreaturelyBackup": "Save Creaturely backup",
+  "@saveCreaturelyBackup": {
+    "description": "User-visible copy: Save Creaturely backup"
+  },
+  "creaturelyBackupSaved": "Creaturely backup saved.",
+  "@creaturelyBackupSaved": {
+    "description": "User-visible copy: Creaturely backup saved."
+  },
+  "backupCouldNotBeCreated": "Backup could not be created",
+  "@backupCouldNotBeCreated": {
+    "description": "User-visible copy: Backup could not be created"
+  },
+  "backupRestoredSuccessfully": "Backup restored successfully.",
+  "@backupRestoredSuccessfully": {
+    "description": "User-visible copy: Backup restored successfully."
+  },
+  "restoreStoppedSafely": "Restore stopped safely",
+  "@restoreStoppedSafely": {
+    "description": "User-visible copy: Restore stopped safely"
+  },
+  "creaturelyPetHealthSummary": "Creaturely pet health summary",
+  "@creaturelyPetHealthSummary": {
+    "description": "User-visible copy: Creaturely pet health summary"
+  },
+  "creaturelyPetHealthExport": "Creaturely pet health export",
+  "@creaturelyPetHealthExport": {
+    "description": "User-visible copy: Creaturely pet health export"
+  },
+  "exportCouldNotBeShared": "Export could not be shared",
+  "@exportCouldNotBeShared": {
+    "description": "User-visible copy: Export could not be shared"
+  },
+  "savePetExport": "Save {value1} pet export",
+  "@savePetExport": {
+    "description": "User-visible copy: Save {value1} pet export",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "exportSaved": "{value1} export saved.",
+  "@exportSaved": {
+    "description": "User-visible copy: {value1} export saved.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "exportCouldNotBeSaved": "{value1} export could not be saved",
+  "@exportCouldNotBeSaved": {
+    "description": "User-visible copy: {value1} export could not be saved",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfSummary": "PDF summary",
+  "@pdfSummary": {
+    "description": "User-visible copy: PDF summary"
+  },
+  "aReadableOverviewOfTheSelectedDates": "A readable overview of the selected dates.",
+  "@aReadableOverviewOfTheSelectedDates": {
+    "description": "User-visible copy: A readable overview of the selected dates."
+  },
+  "csvData": "CSV data",
+  "@csvData": {
+    "description": "User-visible copy: CSV data"
+  },
+  "rawJournalDataForASpreadsheet": "Raw journal data for a spreadsheet.",
+  "@rawJournalDataForASpreadsheet": {
+    "description": "User-visible copy: Raw journal data for a spreadsheet."
+  },
+  "zipPackage": "ZIP package",
+  "@zipPackage": {
+    "description": "User-visible copy: ZIP package"
+  },
+  "pdfCSVAndAnySelectedOriginalDocuments": "PDF, CSV, and any selected original documents.",
+  "@pdfCSVAndAnySelectedOriginalDocuments": {
+    "description": "User-visible copy: PDF, CSV, and any selected original documents."
+  },
+  "chooseExportFormat": "Choose export format",
+  "@chooseExportFormat": {
+    "description": "User-visible copy: Choose export format"
+  },
+  "selectOneFormatThenSaveItToFilesOr": "Select one format, then save it to Files or share it with another app.",
+  "@selectOneFormatThenSaveItToFilesOr": {
+    "description": "User-visible copy: Select one format, then save it to Files or share it with another app."
+  },
+  "saveToFiles": "Save to Files",
+  "@saveToFiles": {
+    "description": "User-visible copy: Save to Files"
+  },
+  "share": "Share",
+  "@share": {
+    "description": "User-visible copy: Share"
+  },
+  "replaceThisLocalJournal": "Replace this local journal?",
+  "@replaceThisLocalJournal": {
+    "description": "User-visible copy: Replace this local journal?"
+  },
+  "validatedBackupFromAnimalsBreathingSessionsMedicationsAndDocuments": "Validated backup from {value1}.\n\n{value2} animals, {value3} breathing sessions, {value4} medications, and {value5} documents.\n\nCreaturely will create a safety snapshot first. Nothing is partially imported.",
+  "@validatedBackupFromAnimalsBreathingSessionsMedicationsAndDocuments": {
+    "description": "User-visible copy: Validated backup from {value1}.\n\n{value2} animals, {value3} breathing sessions, {value4} medications",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      },
+      "value3": {
+        "type": "Object"
+      },
+      "value4": {
+        "type": "Object"
+      },
+      "value5": {
+        "type": "Object"
+      }
+    }
+  },
+  "restore": "Restore",
+  "@restore": {
+    "description": "User-visible copy: Restore"
+  },
+  "thisRemovesTheJournalFromThisDevice": "This removes the journal from this device",
+  "@thisRemovesTheJournalFromThisDevice": {
+    "description": "User-visible copy: This removes the journal from this device"
+  },
+  "animalRecordsMeasurementsSchedulesDoseHistorySettingsAndApp": "Animal records, measurements, schedules, dose history, settings, and app-managed attachments will be deleted. Backups you already saved are not affected.",
+  "@animalRecordsMeasurementsSchedulesDoseHistorySettingsAndApp": {
+    "description": "User-visible copy: Animal records, measurements, schedules, dose history, settings, and app-managed attachments will be"
+  },
+  "createACreaturelyBackupFirstIfYouMightWant": "Create a .creaturely backup first if you might want this journal again.",
+  "@createACreaturelyBackupFirstIfYouMightWant": {
+    "description": "User-visible copy: Create a .creaturely backup first if you might want this journal again."
+  },
+  "typeDELETEToConfirm": "Type DELETE to confirm",
+  "@typeDELETEToConfirm": {
+    "description": "User-visible copy: Type DELETE to confirm"
+  },
+  "delete": "DELETE",
+  "@delete": {
+    "description": "User-visible copy: DELETE"
+  },
+  "deleteEverythingLocal": "Delete everything local",
+  "@deleteEverythingLocal": {
+    "description": "User-visible copy: Delete everything local"
+  },
+  "recoverySnapshots": "Recovery snapshots",
+  "@recoverySnapshots": {
+    "description": "User-visible copy: Recovery snapshots"
+  },
+  "optionalRecoveryNotSync": "Optional recovery, not sync",
+  "@optionalRecoveryNotSync": {
+    "description": "User-visible copy: Optional recovery, not sync"
+  },
+  "localDataAlwaysWinsDuringNormalUsePrivateProvider": "Local data always wins during normal use. Private provider storage is used only after you opt in.",
+  "@localDataAlwaysWinsDuringNormalUsePrivateProvider": {
+    "description": "User-visible copy: Local data always wins during normal use. Private provider storage is used only after you opt in."
+  },
+  "atMostOnceADay": "At most once a day • {value1}",
+  "@atMostOnceADay": {
+    "description": "User-visible copy: At most once a day • {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "providerManagedEncryption": "Provider-managed encryption",
+  "@providerManagedEncryption": {
+    "description": "User-visible copy: Provider-managed encryption"
+  },
+  "creaturelyDoesNotInventAnAccountOrCustomEncryption": "Creaturely does not invent an account or custom encryption scheme.",
+  "@creaturelyDoesNotInventAnAccountOrCustomEncryption": {
+    "description": "User-visible copy: Creaturely does not invent an account or custom encryption scheme."
+  },
+  "backUpNow": "Back up now",
+  "@backUpNow": {
+    "description": "User-visible copy: Back up now"
+  },
+  "checkAccountAccess": "Check account access",
+  "@checkAccountAccess": {
+    "description": "User-visible copy: Check account access"
+  },
+  "refreshRecoveryList": "Refresh recovery list",
+  "@refreshRecoveryList": {
+    "description": "User-visible copy: Refresh recovery list"
+  },
+  "recoveryPoints": "Recovery points",
+  "@recoveryPoints": {
+    "description": "User-visible copy: Recovery points"
+  },
+  "noRecoverySnapshots": "No recovery snapshots",
+  "@noRecoverySnapshots": {
+    "description": "User-visible copy: No recovery snapshots"
+  },
+  "createOneWhenTheProviderIsAvailable": "Create one when the provider is available.",
+  "@createOneWhenTheProviderIsAvailable": {
+    "description": "User-visible copy: Create one when the provider is available."
+  },
+  "bytes": "{value1} bytes",
+  "@bytes": {
+    "description": "User-visible copy: {value1} bytes",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "creaturelyKeepsTheNewestRecoveryPointPlusUpTo": "Creaturely keeps the newest recovery point, plus up to 7 daily, 4 weekly, and 6 monthly points. Older copies are removed automatically.",
+  "@creaturelyKeepsTheNewestRecoveryPointPlusUpTo": {
+    "description": "User-visible copy: Creaturely keeps the newest recovery point, plus up to 7 daily, 4 weekly, and 6 monthly points. Olde"
+  },
+  "checking": "Checking {value1}…",
+  "@checking": {
+    "description": "User-visible copy: Checking {value1}…",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "isAvailable": "{value1} is available.",
+  "@isAvailable": {
+    "description": "User-visible copy: {value1} is available.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "thePlatformCloudAccountIsSignedOutLocalJournaling": "The platform cloud account is signed out. Local journaling remains available.",
+  "@thePlatformCloudAccountIsSignedOutLocalJournaling": {
+    "description": "User-visible copy: The platform cloud account is signed out. Local journaling remains available."
+  },
+  "theCloudProviderIsOfflineLocalJournalingRemainsAvailable": "The cloud provider is offline. Local journaling remains available.",
+  "@theCloudProviderIsOfflineLocalJournalingRemainsAvailable": {
+    "description": "User-visible copy: The cloud provider is offline. Local journaling remains available."
+  },
+  "cloudStorageIsFullExistingLocalDataIsSafe": "Cloud storage is full. Existing local data is safe.",
+  "@cloudStorageIsFullExistingLocalDataIsSafe": {
+    "description": "User-visible copy: Cloud storage is full. Existing local data is safe."
+  },
+  "theCloudProviderReportedAConflictExistingLocalData": "The cloud provider reported a conflict. Existing local data was not changed.",
+  "@theCloudProviderReportedAConflictExistingLocalData": {
+    "description": "User-visible copy: The cloud provider reported a conflict. Existing local data was not changed."
+  },
+  "thisBuildIsMissingThePlatformRecoveryCapabilityOr": "This build is missing the platform recovery capability or release configuration.",
+  "@thisBuildIsMissingThePlatformRecoveryCapabilityOr": {
+    "description": "User-visible copy: This build is missing the platform recovery capability or release configuration."
+  },
+  "cloudRecoveryAccessWasDeclinedLocalUseIsUnaffected": "Cloud recovery access was declined. Local use is unaffected.",
+  "@cloudRecoveryAccessWasDeclinedLocalUseIsUnaffected": {
+    "description": "User-visible copy: Cloud recovery access was declined. Local use is unaffected."
+  },
+  "theCloudProviderReturnedAnErrorLocalUseIs": "The cloud provider returned an error. Local use is unaffected.",
+  "@theCloudProviderReturnedAnErrorLocalUseIs": {
+    "description": "User-visible copy: The cloud provider returned an error. Local use is unaffected."
+  },
+  "privateCloudKit": "private CloudKit",
+  "@privateCloudKit": {
+    "description": "User-visible copy: private CloudKit"
+  },
+  "googleDriveAppData": "Google Drive appData",
+  "@googleDriveAppData": {
+    "description": "User-visible copy: Google Drive appData"
+  },
+  "platformRecovery": "platform recovery",
+  "@platformRecovery": {
+    "description": "User-visible copy: platform recovery"
+  },
+  "aboutCreaturely": "About Creaturely",
+  "@aboutCreaturely": {
+    "description": "User-visible copy: About Creaturely"
+  },
+  "gnuGPLv3License": "GNU GPLv3 license",
+  "@gnuGPLv3License": {
+    "description": "User-visible copy: GNU GPLv3 license"
+  },
+  "license": "LICENSE",
+  "@license": {
+    "description": "User-visible copy: LICENSE"
+  },
+  "plainLanguagePromise": "Plain-language promise",
+  "@plainLanguagePromise": {
+    "description": "User-visible copy: Plain-language promise"
+  },
+  "vector42CollectsNoCreaturelyDataThereIsNoAccount": "Vector42 collects no Creaturely data. There is no account, analytics, advertising, crash-reporting SDK, backend, or proprietary health-data collection.",
+  "@vector42CollectsNoCreaturelyDataThereIsNoAccount": {
+    "description": "User-visible copy: Vector42 collects no Creaturely data. There is no account, analytics, advertising, crash-reporting S"
+  },
+  "onDeviceJournal": "On-device journal",
+  "@onDeviceJournal": {
+    "description": "User-visible copy: On-device journal"
+  },
+  "normalOperationUsesLocalSQLiteAndAppManagedFiles": "Normal operation uses local SQLite and app-managed files. Creaturely does not make network calls while you browse, record, chart, or edit care.",
+  "@normalOperationUsesLocalSQLiteAndAppManagedFiles": {
+    "description": "User-visible copy: Normal operation uses local SQLite and app-managed files. Creaturely does not make network calls whi"
+  },
+  "copiesYouChoose": "Copies you choose",
+  "@copiesYouChoose": {
+    "description": "User-visible copy: Copies you choose"
+  },
+  "whenYouExplicitlySaveABackupOrShareA": "When you explicitly save a backup or share a report, the selected file destination, app, or cloud provider processes that file under its own terms. Optional recovery snapshots use private CloudKit on iOS or Google Drive appData on Android only after opt-in.",
+  "@whenYouExplicitlySaveABackupOrShareA": {
+    "description": "User-visible copy: When you explicitly save a backup or share a report, the selected file destination, app, or cloud pr"
+  },
+  "localFileIntegrity": "Local file integrity",
+  "@localFileIntegrity": {
+    "description": "User-visible copy: Local file integrity"
+  },
+  "importedDocumentsStayInAppManagedStorageCreaturelyUses": "Imported documents stay in app-managed storage. Creaturely uses local checksums to show when a document is missing or has changed, and converts stored weight values only for your chosen display unit.",
+  "@importedDocumentsStayInAppManagedStorageCreaturelyUses": {
+    "description": "User-visible copy: Imported documents stay in app-managed storage. Creaturely uses local checksums to show when a docum"
+  },
+  "yourControls": "Your controls",
+  "@yourControls": {
+    "description": "User-visible copy: Your controls"
+  },
+  "youCanExportAnOpenBackupRestoreItArchive": "You can export an open backup, restore it, archive individual animals, delete records, or delete the entire local journal from Data management.",
+  "@youCanExportAnOpenBackupRestoreItArchive": {
+    "description": "User-visible copy: You can export an open backup, restore it, archive individual animals, delete records, or delete the"
+  },
+  "personalJournal": "Personal journal",
+  "@personalJournal": {
+    "description": "User-visible copy: Personal journal"
+  },
+  "creaturelyIsFreeSoftwareProvidedToHelpOneKeeper": "Creaturely is free software provided to help one keeper organize information for animals on one active device. You remain responsible for the accuracy of entries, backups, medication decisions, and veterinary care.",
+  "@creaturelyIsFreeSoftwareProvidedToHelpOneKeeper": {
+    "description": "User-visible copy: Creaturely is free software provided to help one keeper organize information for animals on one acti"
+  },
+  "noWarranty": "No warranty",
+  "@noWarranty": {
+    "description": "User-visible copy: No warranty"
+  },
+  "creaturelyIsProvidedWithoutWarrantyToTheExtentPermitted": "Creaturely is provided without warranty, to the extent permitted by law, under the GNU General Public License version 3.",
+  "@creaturelyIsProvidedWithoutWarrantyToTheExtentPermitted": {
+    "description": "User-visible copy: Creaturely is provided without warranty, to the extent permitted by law, under the GNU General Publi"
+  },
+  "operatingSystemsMayDelayOrSuppressRemindersAlwaysUse": "Operating systems may delay or suppress reminders. Always use the care plan supplied by your veterinarian and do not rely on Creaturely as the sole medication safeguard.",
+  "@operatingSystemsMayDelayOrSuppressRemindersAlwaysUse": {
+    "description": "User-visible copy: Operating systems may delay or suppress reminders. Always use the care plan supplied by your veterin"
+  },
+  "ownerSuppliedRanges": "Owner-supplied ranges",
+  "@ownerSuppliedRanges": {
+    "description": "User-visible copy: Owner-supplied ranges"
+  },
+  "creaturelyShipsNoSpeciesWideClinicalThresholdsAnyMinimum": "Creaturely ships no species-wide clinical thresholds. Any minimum, target, or maximum shown was entered by you and should come from a care plan you trust.",
+  "@creaturelyShipsNoSpeciesWideClinicalThresholdsAnyMinimum": {
+    "description": "User-visible copy: Creaturely ships no species-wide clinical thresholds. Any minimum, target, or maximum shown was ente"
+  },
+  "neutralDescriptions": "Neutral descriptions",
+  "@neutralDescriptions": {
+    "description": "User-visible copy: Neutral descriptions"
+  },
+  "aboveBelowAndInRangeLabelsCompareAMeasurement": "Above, below, and in-range labels compare a measurement only with your saved values. They are not diagnoses, risk scores, or predictions.",
+  "@aboveBelowAndInRangeLabelsCompareAMeasurement": {
+    "description": "User-visible copy: Above, below, and in-range labels compare a measurement only with your saved values. They are not di"
+  },
+  "manualBreathingObservations": "Manual breathing observations",
+  "@manualBreathingObservations": {
+    "description": "User-visible copy: Manual breathing observations"
+  },
+  "breathingEntriesComeFromKeeperTapsTheyAreNot": "Breathing entries come from keeper taps. They are not phone-sensor readings and do not measure heart rate.",
+  "@breathingEntriesComeFromKeeperTapsTheyAreNot": {
+    "description": "User-visible copy: Breathing entries come from keeper taps. They are not phone-sensor readings and do not measure heart"
+  },
+  "whenConcerned": "When concerned",
+  "@whenConcerned": {
+    "description": "User-visible copy: When concerned"
+  },
+  "contactAVeterinarianOrAppropriateEmergencyServiceWhenAn": "Contact a veterinarian or appropriate emergency service when an animal appears unwell or you are worried. Do not delay care to take or enter a measurement.",
+  "@contactAVeterinarianOrAppropriateEmergencyServiceWhenAn": {
+    "description": "User-visible copy: Contact a veterinarian or appropriate emergency service when an animal appears unwell or you are wor"
+  },
+  "calmCareMadeVisible": "Calm care, made visible.",
+  "@calmCareMadeVisible": {
+    "description": "User-visible copy: Calm care, made visible."
+  },
+  "creaturelyMakesEverydayPetObservationsEasierToUnderstandRemember": "Creaturely makes everyday pet observations easier to understand, remember, and share.",
+  "@creaturelyMakesEverydayPetObservationsEasierToUnderstandRemember": {
+    "description": "User-visible copy: Creaturely makes everyday pet observations easier to understand, remember, and share."
+  },
+  "creaturely10": "Creaturely 1.0",
+  "@creaturely10": {
+    "description": "User-visible copy: Creaturely 1.0"
+  },
+  "aLocalFirstPetHealthJournalPublishedByVector42": "A local-first pet-health journal published by Vector42 for Android and iOS. Application identifier: com.vector42.creaturely.",
+  "@aLocalFirstPetHealthJournalPublishedByVector42": {
+    "description": "User-visible copy: A local-first pet-health journal published by Vector42 for Android and iOS. Application identifier: "
+  },
+  "freeAndOpenSource": "Free and open source",
+  "@freeAndOpenSource": {
+    "description": "User-visible copy: Free and open source"
+  },
+  "readTheGNUGPLv3License": "Read the GNU GPLv3 license",
+  "@readTheGNUGPLv3License": {
+    "description": "User-visible copy: Read the GNU GPLv3 license"
+  },
+  "openSourcePackageLicenses": "Open-source package licenses",
+  "@openSourcePackageLicenses": {
+    "description": "User-visible copy: Open-source package licenses"
+  },
+  "vector42GNUGPLv3": "© Vector42 • GNU GPLv3",
+  "@vector42GNUGPLv3": {
+    "description": "User-visible copy: © Vector42 • GNU GPLv3"
+  },
+  "noAnimalSelected": "No animal selected",
+  "@noAnimalSelected": {
+    "description": "User-visible copy: No animal selected"
+  },
+  "addAnAnimalToCreateACareSchedule": "Add an animal to create a care schedule.",
+  "@addAnAnimalToCreateACareSchedule": {
+    "description": "User-visible copy: Add an animal to create a care schedule."
+  },
+  "addScheduledCare": "Add scheduled care",
+  "@addScheduledCare": {
+    "description": "User-visible copy: Add scheduled care"
+  },
+  "breathingReminder": "Breathing reminder",
+  "@breathingReminder": {
+    "description": "User-visible copy: Breathing reminder"
+  },
+  "weightCheckReminder": "Weight check reminder",
+  "@weightCheckReminder": {
+    "description": "User-visible copy: Weight check reminder"
+  },
+  "sSchedule": "{value1}’s schedule",
+  "@sSchedule": {
+    "description": "User-visible copy: {value1}’s schedule",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "medicationBreathingChecksAndWeightChecks": "Medication, breathing checks, and weight checks.",
+  "@medicationBreathingChecksAndWeightChecks": {
+    "description": "User-visible copy: Medication, breathing checks, and weight checks."
+  },
+  "today": "Today",
+  "@today": {
+    "description": "User-visible copy: Today"
+  },
+  "label7Days": "7 days",
+  "@label7Days": {
+    "description": "User-visible copy: 7 days"
+  },
+  "schedules": "Schedules",
+  "@schedules": {
+    "description": "User-visible copy: Schedules"
+  },
+  "notificationsAreOffYourCareScheduleStillWorksHere": "Notifications are off. Your care schedule still works here in Creaturely.",
+  "@notificationsAreOffYourCareScheduleStillWorksHere": {
+    "description": "User-visible copy: Notifications are off. Your care schedule still works here in Creaturely."
+  },
+  "nothingScheduledToday": "Nothing scheduled today",
+  "@nothingScheduledToday": {
+    "description": "User-visible copy: Nothing scheduled today"
+  },
+  "nothingScheduledInTheNext7Days": "Nothing scheduled in the next 7 days",
+  "@nothingScheduledInTheNext7Days": {
+    "description": "User-visible copy: Nothing scheduled in the next 7 days"
+  },
+  "useAddToCreateABreathingReminderMedicationOr": "Use Add to create a breathing reminder, medication, or weight check.",
+  "@useAddToCreateABreathingReminderMedicationOr": {
+    "description": "User-visible copy: Use Add to create a breathing reminder, medication, or weight check."
+  },
+  "noSavedSchedules": "No saved schedules",
+  "@noSavedSchedules": {
+    "description": "User-visible copy: No saved schedules"
+  },
+  "breathingReminders": "Breathing reminders",
+  "@breathingReminders": {
+    "description": "User-visible copy: Breathing reminders"
+  },
+  "medicationSchedules": "Medication schedules",
+  "@medicationSchedules": {
+    "description": "User-visible copy: Medication schedules"
+  },
+  "weightCheckReminders": "Weight check reminders",
+  "@weightCheckReminders": {
+    "description": "User-visible copy: Weight check reminders"
+  },
+  "deleteBreathingReminder": "Delete breathing reminder?",
+  "@deleteBreathingReminder": {
+    "description": "User-visible copy: Delete breathing reminder?"
+  },
+  "thisRemovesFuturePromptsSavedBreathingMeasurementsAreUnchanged": "This removes future prompts. Saved breathing measurements are unchanged.",
+  "@thisRemovesFuturePromptsSavedBreathingMeasurementsAreUnchanged": {
+    "description": "User-visible copy: This removes future prompts. Saved breathing measurements are unchanged."
+  },
+  "delete2": "Delete",
+  "@delete2": {
+    "description": "User-visible copy: Delete"
+  },
+  "deleteWeightCheckReminder": "Delete weight check reminder?",
+  "@deleteWeightCheckReminder": {
+    "description": "User-visible copy: Delete weight check reminder?"
+  },
+  "thisRemovesFuturePromptsSavedWeightMeasurementsAreUnchanged": "This removes future prompts. Saved weight measurements are unchanged.",
+  "@thisRemovesFuturePromptsSavedWeightMeasurementsAreUnchanged": {
+    "description": "User-visible copy: This removes future prompts. Saved weight measurements are unchanged."
+  },
+  "tomorrow": "Tomorrow",
+  "@tomorrow": {
+    "description": "User-visible copy: Tomorrow"
+  },
+  "given": "Given",
+  "@given": {
+    "description": "User-visible copy: Given"
+  },
+  "skip": "Skip",
+  "@skip": {
+    "description": "User-visible copy: Skip"
+  },
+  "startBreathingCheck": "Start breathing check",
+  "@startBreathingCheck": {
+    "description": "User-visible copy: Start breathing check"
+  },
+  "recordWeight": "Record weight",
+  "@recordWeight": {
+    "description": "User-visible copy: Record weight"
+  },
+  "skipped": "Skipped",
+  "@skipped": {
+    "description": "User-visible copy: Skipped"
+  },
+  "missed": "Missed",
+  "@missed": {
+    "description": "User-visible copy: Missed"
+  },
+  "everyDay": "Every day",
+  "@everyDay": {
+    "description": "User-visible copy: Every day"
+  },
+  "sleeping": "Sleeping",
+  "@sleeping": {
+    "description": "User-visible copy: Sleeping"
+  },
+  "resting": "Resting",
+  "@resting": {
+    "description": "User-visible copy: Resting"
+  },
+  "breathingCheck": "{value1} breathing check",
+  "@breathingCheck": {
+    "description": "User-visible copy: {value1} breathing check",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "breathingReminderOptions": "Breathing reminder options",
+  "@breathingReminderOptions": {
+    "description": "User-visible copy: Breathing reminder options"
+  },
+  "edit": "Edit",
+  "@edit": {
+    "description": "User-visible copy: Edit"
+  },
+  "active": "Active",
+  "@active": {
+    "description": "User-visible copy: Active"
+  },
+  "paused": "Paused",
+  "@paused": {
+    "description": "User-visible copy: Paused"
+  },
+  "mon": "Mon",
+  "@mon": {
+    "description": "User-visible copy: Mon"
+  },
+  "tue": "Tue",
+  "@tue": {
+    "description": "User-visible copy: Tue"
+  },
+  "wed": "Wed",
+  "@wed": {
+    "description": "User-visible copy: Wed"
+  },
+  "thu": "Thu",
+  "@thu": {
+    "description": "User-visible copy: Thu"
+  },
+  "fri": "Fri",
+  "@fri": {
+    "description": "User-visible copy: Fri"
+  },
+  "sat": "Sat",
+  "@sat": {
+    "description": "User-visible copy: Sat"
+  },
+  "sun": "Sun",
+  "@sun": {
+    "description": "User-visible copy: Sun"
+  },
+  "weightCheck": "Weight check",
+  "@weightCheck": {
+    "description": "User-visible copy: Weight check"
+  },
+  "weightReminderOptions": "Weight reminder options",
+  "@weightReminderOptions": {
+    "description": "User-visible copy: Weight reminder options"
+  },
+  "noActiveTimes": "No active times",
+  "@noActiveTimes": {
+    "description": "User-visible copy: No active times"
+  },
+  "daily": "Daily • {value1}",
+  "@daily": {
+    "description": "User-visible copy: Daily • {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "selectedDays": "Selected days • {value1}",
+  "@selectedDays": {
+    "description": "User-visible copy: Selected days • {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "everyHoursStarts": "Every {value1} hours • starts {value2}",
+  "@everyHoursStarts": {
+    "description": "User-visible copy: Every {value1} hours • starts {value2}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      }
+    }
+  },
+  "repeat": "Repeat",
+  "@repeat": {
+    "description": "User-visible copy: Repeat"
+  },
+  "selectedWeekdays": "Selected weekdays",
+  "@selectedWeekdays": {
+    "description": "User-visible copy: Selected weekdays"
+  },
+  "reminderTimes": "Reminder times",
+  "@reminderTimes": {
+    "description": "User-visible copy: Reminder times"
+  },
+  "addTime": "Add time",
+  "@addTime": {
+    "description": "User-visible copy: Add time"
+  },
+  "addAtLeastOneTime": "Add at least one time.",
+  "@addAtLeastOneTime": {
+    "description": "User-visible copy: Add at least one time."
+  },
+  "remove": "Remove {value1}",
+  "@remove": {
+    "description": "User-visible copy: Remove {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "animalNotFound": "Animal not found.",
+  "@animalNotFound": {
+    "description": "User-visible copy: Animal not found."
+  },
+  "addWeightReminder": "Add weight reminder",
+  "@addWeightReminder": {
+    "description": "User-visible copy: Add weight reminder"
+  },
+  "editWeightReminder": "Edit weight reminder",
+  "@editWeightReminder": {
+    "description": "User-visible copy: Edit weight reminder"
+  },
+  "weightCheckFor": "Weight check for {value1}",
+  "@weightCheckFor": {
+    "description": "User-visible copy: Weight check for {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "chooseWhenYouWantAGentlePromptToRecord": "Choose when you want a gentle prompt to record a weigh-in.",
+  "@chooseWhenYouWantAGentlePromptToRecord": {
+    "description": "User-visible copy: Choose when you want a gentle prompt to record a weigh-in."
+  },
+  "notificationsAreOffThisReminderWillStillAppearIn": "Notifications are off. This reminder will still appear in Schedule.",
+  "@notificationsAreOffThisReminderWillStillAppearIn": {
+    "description": "User-visible copy: Notifications are off. This reminder will still appear in Schedule."
+  },
+  "turnOnNotifications": "Turn on notifications",
+  "@turnOnNotifications": {
+    "description": "User-visible copy: Turn on notifications"
+  },
+  "startDate": "Start date",
+  "@startDate": {
+    "description": "User-visible copy: Start date"
+  },
+  "endDate": "End date",
+  "@endDate": {
+    "description": "User-visible copy: End date"
+  },
+  "noEndDate": "No end date",
+  "@noEndDate": {
+    "description": "User-visible copy: No end date"
+  },
+  "reminderActive": "Reminder active",
+  "@reminderActive": {
+    "description": "User-visible copy: Reminder active"
+  },
+  "turnThisOffWithoutDeletingTheSchedule": "Turn this off without deleting the schedule.",
+  "@turnThisOffWithoutDeletingTheSchedule": {
+    "description": "User-visible copy: Turn this off without deleting the schedule."
+  },
+  "saveReminder": "Save reminder",
+  "@saveReminder": {
+    "description": "User-visible copy: Save reminder"
+  },
+  "addAtLeastOneReminderTime": "Add at least one reminder time.",
+  "@addAtLeastOneReminderTime": {
+    "description": "User-visible copy: Add at least one reminder time."
+  },
+  "chooseAtLeastOneWeekday": "Choose at least one weekday.",
+  "@chooseAtLeastOneWeekday": {
+    "description": "User-visible copy: Choose at least one weekday."
+  },
+  "theEndDateMustBeOnOrAfterThe": "The end date must be on or after the start date.",
+  "@theEndDateMustBeOnOrAfterThe": {
+    "description": "User-visible copy: The end date must be on or after the start date."
+  },
+  "couldNotSaveYourChangesAreKeptHereTry": "Could not save. Your changes are kept here; try again.",
+  "@couldNotSaveYourChangesAreKeptHereTry": {
+    "description": "User-visible copy: Could not save. Your changes are kept here; try again."
+  },
+  "clearEndDate": "Clear end date",
+  "@clearEndDate": {
+    "description": "User-visible copy: Clear end date"
+  },
+  "addBreathingReminder": "Add breathing reminder",
+  "@addBreathingReminder": {
+    "description": "User-visible copy: Add breathing reminder"
+  },
+  "editBreathingReminder": "Edit breathing reminder",
+  "@editBreathingReminder": {
+    "description": "User-visible copy: Edit breathing reminder"
+  },
+  "breathingCheckFor": "Breathing check for {value1}",
+  "@breathingCheckFor": {
+    "description": "User-visible copy: Breathing check for {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "chooseWhenYouWantAGentlePromptToTake": "Choose when you want a gentle prompt to take a manual reading.",
+  "@chooseWhenYouWantAGentlePromptToTake": {
+    "description": "User-visible copy: Choose when you want a gentle prompt to take a manual reading."
+  },
+  "observationContext": "Observation context",
+  "@observationContext": {
+    "description": "User-visible copy: Observation context"
+  },
+  "weighIn": "Weigh-in",
+  "@weighIn": {
+    "description": "User-visible copy: Weigh-in"
+  },
+  "addHealthRecord": "Add health record",
+  "@addHealthRecord": {
+    "description": "User-visible copy: Add health record"
+  },
+  "editHealthRecord": "Edit health record",
+  "@editHealthRecord": {
+    "description": "User-visible copy: Edit health record"
+  },
+  "aNoteAbout": "A note about {value1}",
+  "@aNoteAbout": {
+    "description": "User-visible copy: A note about {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "recordWhatYouObservedWithoutTurningTheAnimalInto": "Record what you observed without turning the animal into a condition.",
+  "@recordWhatYouObservedWithoutTurningTheAnimalInto": {
+    "description": "User-visible copy: Record what you observed without turning the animal into a condition."
+  },
+  "recordType": "Record type",
+  "@recordType": {
+    "description": "User-visible copy: Record type"
+  },
+  "allergyOrSensitivity": "Allergy or sensitivity",
+  "@allergyOrSensitivity": {
+    "description": "User-visible copy: Allergy or sensitivity"
+  },
+  "conditionOrBodyIssue": "Condition or body issue",
+  "@conditionOrBodyIssue": {
+    "description": "User-visible copy: Condition or body issue"
+  },
+  "customObservation": "Custom observation",
+  "@customObservation": {
+    "description": "User-visible copy: Custom observation"
+  },
+  "label": "Label",
+  "@label": {
+    "description": "User-visible copy: Label"
+  },
+  "nameOrObservation": "Name or observation *",
+  "@nameOrObservation": {
+    "description": "User-visible copy: Name or observation *"
+  },
+  "enterAShortLabel": "Enter a short label.",
+  "@enterAShortLabel": {
+    "description": "User-visible copy: Enter a short label."
+  },
+  "weight2": "Weight *",
+  "@weight2": {
+    "description": "User-visible copy: Weight *"
+  },
+  "enterAPositiveWeight": "Enter a positive weight.",
+  "@enterAPositiveWeight": {
+    "description": "User-visible copy: Enter a positive weight."
+  },
+  "unit": "Unit",
+  "@unit": {
+    "description": "User-visible copy: Unit"
+  },
+  "date": "Date",
+  "@date": {
+    "description": "User-visible copy: Date"
+  },
+  "notes": "Notes",
+  "@notes": {
+    "description": "User-visible copy: Notes"
+  },
+  "saveRecord": "Save record",
+  "@saveRecord": {
+    "description": "User-visible copy: Save record"
+  },
+  "noTrendsYet": "No trends yet",
+  "@noTrendsYet": {
+    "description": "User-visible copy: No trends yet"
+  },
+  "addAnAnimalAndRecordMeasurementsToSeeDescriptive": "Add an animal and record measurements to see descriptive trends.",
+  "@addAnAnimalAndRecordMeasurementsToSeeDescriptive": {
+    "description": "User-visible copy: Add an animal and record measurements to see descriptive trends."
+  },
+  "showChart": "Show chart",
+  "@showChart": {
+    "description": "User-visible copy: Show chart"
+  },
+  "showMeasurementList": "Show measurement list",
+  "@showMeasurementList": {
+    "description": "User-visible copy: Show measurement list"
+  },
+  "chooseAnotherRangeOrRecordANewMeasurementFrom": "Choose another range or record a new measurement from the Animals dashboard.",
+  "@chooseAnotherRangeOrRecordANewMeasurementFrom": {
+    "description": "User-visible copy: Choose another range or record a new measurement from the Animals dashboard."
+  },
+  "sparseDataEachSavedMeasurementIsShownALine": "Sparse data: each saved measurement is shown; a line is not interpreted as a forecast.",
+  "@sparseDataEachSavedMeasurementIsShownALine": {
+    "description": "User-visible copy: Sparse data: each saved measurement is shown; a line is not interpreted as a forecast."
+  },
+  "descriptiveViewOnlyLatestAverageAndObservedRangeNo": "Descriptive view only: latest, average, and observed range. No predictions or diagnosis.",
+  "@descriptiveViewOnlyLatestAverageAndObservedRangeNo": {
+    "description": "User-visible copy: Descriptive view only: latest, average, and observed range. No predictions or diagnosis."
+  },
+  "noMedicationOutcomesInThisRange": "No medication outcomes in this range",
+  "@noMedicationOutcomesInThisRange": {
+    "description": "User-visible copy: No medication outcomes in this range"
+  },
+  "givenSkippedAndMissedDosesWillAppearHereAfter": "Given, skipped, and missed doses will appear here after they are recorded.",
+  "@givenSkippedAndMissedDosesWillAppearHereAfter": {
+    "description": "User-visible copy: Given, skipped, and missed doses will appear here after they are recorded."
+  },
+  "byMedication": "By medication",
+  "@byMedication": {
+    "description": "User-visible copy: By medication"
+  },
+  "countsReflectTheDoseStatusesRecordedInThisDate": "Counts reflect the dose statuses recorded in this date range.",
+  "@countsReflectTheDoseStatusesRecordedInThisDate": {
+    "description": "User-visible copy: Counts reflect the dose statuses recorded in this date range."
+  },
+  "givenSkippedMissed": "{value1} given • {value2} skipped • {value3} missed",
+  "@givenSkippedMissed": {
+    "description": "User-visible copy: {value1} given • {value2} skipped • {value3} missed",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      },
+      "value3": {
+        "type": "Object"
+      }
+    }
+  },
+  "custom": "Custom",
+  "@custom": {
+    "description": "User-visible copy: Custom"
+  },
+  "all": "All",
+  "@all": {
+    "description": "User-visible copy: All"
+  },
+  "latest": "Latest",
+  "@latest": {
+    "description": "User-visible copy: Latest"
+  },
+  "average": "Average",
+  "@average": {
+    "description": "User-visible copy: Average"
+  },
+  "observedRange": "Observed range",
+  "@observedRange": {
+    "description": "User-visible copy: Observed range"
+  },
+  "measurementsLatestObservedRangeTo": "{value1} measurements. Latest {value2} {value3}. Observed range {value4} to {value5} {value6}.",
+  "@measurementsLatestObservedRangeTo": {
+    "description": "User-visible copy: {value1} measurements. Latest {value2} {value3}. Observed range {value4} to {value5} {value6}.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      },
+      "value3": {
+        "type": "Object"
+      },
+      "value4": {
+        "type": "Object"
+      },
+      "value5": {
+        "type": "Object"
+      },
+      "value6": {
+        "type": "Object"
+      }
+    }
+  },
+  "accessibleMeasurementListWithRows": "Accessible measurement list with {value1} rows",
+  "@accessibleMeasurementListWithRows": {
+    "description": "User-visible copy: Accessible measurement list with {value1} rows",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "dateAndTime": "Date and time",
+  "@dateAndTime": {
+    "description": "User-visible copy: Date and time"
+  },
+  "measurement": "Measurement",
+  "@measurement": {
+    "description": "User-visible copy: Measurement"
+  },
+  "recordedAs": "Recorded as",
+  "@recordedAs": {
+    "description": "User-visible copy: Recorded as"
+  },
+  "recordedAs2": "Recorded as {value1}",
+  "@recordedAs2": {
+    "description": "User-visible copy: Recorded as {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "other": "Other",
+  "@other": {
+    "description": "User-visible copy: Other"
+  },
+  "dog": "Dog",
+  "@dog": {
+    "description": "User-visible copy: Dog"
+  },
+  "cat": "Cat",
+  "@cat": {
+    "description": "User-visible copy: Cat"
+  },
+  "bird": "Bird",
+  "@bird": {
+    "description": "User-visible copy: Bird"
+  },
+  "rabbit": "Rabbit",
+  "@rabbit": {
+    "description": "User-visible copy: Rabbit"
+  },
+  "reptile": "Reptile",
+  "@reptile": {
+    "description": "User-visible copy: Reptile"
+  },
+  "horse": "Horse",
+  "@horse": {
+    "description": "User-visible copy: Horse"
+  },
+  "fish": "Fish",
+  "@fish": {
+    "description": "User-visible copy: Fish"
+  },
+  "mixedBreed": "Mixed breed",
+  "@mixedBreed": {
+    "description": "User-visible copy: Mixed breed"
+  },
+  "labradorRetriever": "Labrador Retriever",
+  "@labradorRetriever": {
+    "description": "User-visible copy: Labrador Retriever"
+  },
+  "goldenRetriever": "Golden Retriever",
+  "@goldenRetriever": {
+    "description": "User-visible copy: Golden Retriever"
+  },
+  "germanShepherd": "German Shepherd",
+  "@germanShepherd": {
+    "description": "User-visible copy: German Shepherd"
+  },
+  "frenchBulldog": "French Bulldog",
+  "@frenchBulldog": {
+    "description": "User-visible copy: French Bulldog"
+  },
+  "poodle": "Poodle",
+  "@poodle": {
+    "description": "User-visible copy: Poodle"
+  },
+  "beagle": "Beagle",
+  "@beagle": {
+    "description": "User-visible copy: Beagle"
+  },
+  "dachshund": "Dachshund",
+  "@dachshund": {
+    "description": "User-visible copy: Dachshund"
+  },
+  "australianShepherd": "Australian Shepherd",
+  "@australianShepherd": {
+    "description": "User-visible copy: Australian Shepherd"
+  },
+  "borderCollie": "Border Collie",
+  "@borderCollie": {
+    "description": "User-visible copy: Border Collie"
+  },
+  "chihuahua": "Chihuahua",
+  "@chihuahua": {
+    "description": "User-visible copy: Chihuahua"
+  },
+  "shihTzu": "Shih Tzu",
+  "@shihTzu": {
+    "description": "User-visible copy: Shih Tzu"
+  },
+  "yorkshireTerrier": "Yorkshire Terrier",
+  "@yorkshireTerrier": {
+    "description": "User-visible copy: Yorkshire Terrier"
+  },
+  "boxer": "Boxer",
+  "@boxer": {
+    "description": "User-visible copy: Boxer"
+  },
+  "siberianHusky": "Siberian Husky",
+  "@siberianHusky": {
+    "description": "User-visible copy: Siberian Husky"
+  },
+  "domesticShorthair": "Domestic Shorthair",
+  "@domesticShorthair": {
+    "description": "User-visible copy: Domestic Shorthair"
+  },
+  "domesticLonghair": "Domestic Longhair",
+  "@domesticLonghair": {
+    "description": "User-visible copy: Domestic Longhair"
+  },
+  "maineCoon": "Maine Coon",
+  "@maineCoon": {
+    "description": "User-visible copy: Maine Coon"
+  },
+  "siamese": "Siamese",
+  "@siamese": {
+    "description": "User-visible copy: Siamese"
+  },
+  "ragdoll": "Ragdoll",
+  "@ragdoll": {
+    "description": "User-visible copy: Ragdoll"
+  },
+  "bengal": "Bengal",
+  "@bengal": {
+    "description": "User-visible copy: Bengal"
+  },
+  "britishShorthair": "British Shorthair",
+  "@britishShorthair": {
+    "description": "User-visible copy: British Shorthair"
+  },
+  "persian": "Persian",
+  "@persian": {
+    "description": "User-visible copy: Persian"
+  },
+  "sphynx": "Sphynx",
+  "@sphynx": {
+    "description": "User-visible copy: Sphynx"
+  },
+  "russianBlue": "Russian Blue",
+  "@russianBlue": {
+    "description": "User-visible copy: Russian Blue"
+  },
+  "abyssinian": "Abyssinian",
+  "@abyssinian": {
+    "description": "User-visible copy: Abyssinian"
+  },
+  "mixedOrHybrid": "Mixed or hybrid",
+  "@mixedOrHybrid": {
+    "description": "User-visible copy: Mixed or hybrid"
+  },
+  "budgerigar": "Budgerigar",
+  "@budgerigar": {
+    "description": "User-visible copy: Budgerigar"
+  },
+  "cockatiel": "Cockatiel",
+  "@cockatiel": {
+    "description": "User-visible copy: Cockatiel"
+  },
+  "africanGrey": "African Grey",
+  "@africanGrey": {
+    "description": "User-visible copy: African Grey"
+  },
+  "canary": "Canary",
+  "@canary": {
+    "description": "User-visible copy: Canary"
+  },
+  "lovebird": "Lovebird",
+  "@lovebird": {
+    "description": "User-visible copy: Lovebird"
+  },
+  "conure": "Conure",
+  "@conure": {
+    "description": "User-visible copy: Conure"
+  },
+  "finch": "Finch",
+  "@finch": {
+    "description": "User-visible copy: Finch"
+  },
+  "macaw": "Macaw",
+  "@macaw": {
+    "description": "User-visible copy: Macaw"
+  },
+  "hollandLop": "Holland Lop",
+  "@hollandLop": {
+    "description": "User-visible copy: Holland Lop"
+  },
+  "miniRex": "Mini Rex",
+  "@miniRex": {
+    "description": "User-visible copy: Mini Rex"
+  },
+  "netherlandDwarf": "Netherland Dwarf",
+  "@netherlandDwarf": {
+    "description": "User-visible copy: Netherland Dwarf"
+  },
+  "lionhead": "Lionhead",
+  "@lionhead": {
+    "description": "User-visible copy: Lionhead"
+  },
+  "flemishGiant": "Flemish Giant",
+  "@flemishGiant": {
+    "description": "User-visible copy: Flemish Giant"
+  },
+  "englishLop": "English Lop",
+  "@englishLop": {
+    "description": "User-visible copy: English Lop"
+  },
+  "quarterHorse": "Quarter Horse",
+  "@quarterHorse": {
+    "description": "User-visible copy: Quarter Horse"
+  },
+  "thoroughbred": "Thoroughbred",
+  "@thoroughbred": {
+    "description": "User-visible copy: Thoroughbred"
+  },
+  "arabian": "Arabian",
+  "@arabian": {
+    "description": "User-visible copy: Arabian"
+  },
+  "appaloosa": "Appaloosa",
+  "@appaloosa": {
+    "description": "User-visible copy: Appaloosa"
+  },
+  "paintHorse": "Paint Horse",
+  "@paintHorse": {
+    "description": "User-visible copy: Paint Horse"
+  },
+  "warmblood": "Warmblood",
+  "@warmblood": {
+    "description": "User-visible copy: Warmblood"
+  },
+  "morgan": "Morgan",
+  "@morgan": {
+    "description": "User-visible copy: Morgan"
+  },
+  "beardedDragon": "Bearded Dragon",
+  "@beardedDragon": {
+    "description": "User-visible copy: Bearded Dragon"
+  },
+  "leopardGecko": "Leopard Gecko",
+  "@leopardGecko": {
+    "description": "User-visible copy: Leopard Gecko"
+  },
+  "ballPython": "Ball Python",
+  "@ballPython": {
+    "description": "User-visible copy: Ball Python"
+  },
+  "cornSnake": "Corn Snake",
+  "@cornSnake": {
+    "description": "User-visible copy: Corn Snake"
+  },
+  "crestedGecko": "Crested Gecko",
+  "@crestedGecko": {
+    "description": "User-visible copy: Crested Gecko"
+  },
+  "redEaredSlider": "Red-eared Slider",
+  "@redEaredSlider": {
+    "description": "User-visible copy: Red-eared Slider"
+  },
+  "betta": "Betta",
+  "@betta": {
+    "description": "User-visible copy: Betta"
+  },
+  "goldfish": "Goldfish",
+  "@goldfish": {
+    "description": "User-visible copy: Goldfish"
+  },
+  "guppy": "Guppy",
+  "@guppy": {
+    "description": "User-visible copy: Guppy"
+  },
+  "angelfish": "Angelfish",
+  "@angelfish": {
+    "description": "User-visible copy: Angelfish"
+  },
+  "tetra": "Tetra",
+  "@tetra": {
+    "description": "User-visible copy: Tetra"
+  },
+  "cichlid": "Cichlid",
+  "@cichlid": {
+    "description": "User-visible copy: Cichlid"
+  },
+  "useZeroOrAPositiveNumber": "Use zero or a positive number.",
+  "@useZeroOrAPositiveNumber": {
+    "description": "User-visible copy: Use zero or a positive number."
+  },
+  "species": "Species *",
+  "@species": {
+    "description": "User-visible copy: Species *"
+  },
+  "chooseACommonSpeciesOrEnterYourOwn": "Choose a common species or enter your own",
+  "@chooseACommonSpeciesOrEnterYourOwn": {
+    "description": "User-visible copy: Choose a common species or enter your own"
+  },
+  "speciesName": "Species name *",
+  "@speciesName": {
+    "description": "User-visible copy: Species name *"
+  },
+  "enterTheSpecies": "Enter the species.",
+  "@enterTheSpecies": {
+    "description": "User-visible copy: Enter the species."
+  },
+  "breedOrVarietyOptional": "Breed or variety (optional)",
+  "@breedOrVarietyOptional": {
+    "description": "User-visible copy: Breed or variety (optional)"
+  },
+  "freeFormEntryMultipleBreedsAreWelcome": "Free-form entry; multiple breeds are welcome",
+  "@freeFormEntryMultipleBreedsAreWelcome": {
+    "description": "User-visible copy: Free-form entry; multiple breeds are welcome"
+  },
+  "chooseASuggestionOrTypeAnyBreedOrMix": "Choose a suggestion or type any breed or mix",
+  "@chooseASuggestionOrTypeAnyBreedOrMix": {
+    "description": "User-visible copy: Choose a suggestion or type any breed or mix"
+  },
+  "minimumRespiratoryRateCanTBeHigherThanTarget": "Minimum respiratory rate can''t be higher than target or maximum.",
+  "@minimumRespiratoryRateCanTBeHigherThanTarget": {
+    "description": "User-visible copy: Minimum respiratory rate can't be higher than target or maximum."
+  },
+  "targetRespiratoryRateCanTBeHigherThanMaximum": "Target respiratory rate can''t be higher than maximum or lower than minimum.",
+  "@targetRespiratoryRateCanTBeHigherThanMaximum": {
+    "description": "User-visible copy: Target respiratory rate can't be higher than maximum or lower than minimum."
+  },
+  "maximumRespiratoryRateCanTBeLowerThanTarget": "Maximum respiratory rate can''t be lower than target or minimum.",
+  "@maximumRespiratoryRateCanTBeLowerThanTarget": {
+    "description": "User-visible copy: Maximum respiratory rate can't be lower than target or minimum."
+  },
+  "minimum": "Minimum",
+  "@minimum": {
+    "description": "User-visible copy: Minimum"
+  },
+  "target": "Target",
+  "@target": {
+    "description": "User-visible copy: Target"
+  },
+  "maximum": "Maximum",
+  "@maximum": {
+    "description": "User-visible copy: Maximum"
+  },
+  "restingRespiratoryRate": "Resting respiratory rate",
+  "@restingRespiratoryRate": {
+    "description": "User-visible copy: Resting respiratory rate"
+  },
+  "optionalOnlyEnterValuesSuppliedByYouOrYour": "Optional. Only enter values supplied by you or your veterinarian. Creaturely does not provide species-wide clinical defaults.",
+  "@optionalOnlyEnterValuesSuppliedByYouOrYour": {
+    "description": "User-visible copy: Optional. Only enter values supplied by you or your veterinarian. Creaturely does not provide specie"
+  },
+  "allValuesUseBreathsMinLeaveAnyFieldBlank": "All values use breaths/min. Leave any field blank if it is unknown.",
+  "@allValuesUseBreathsMinLeaveAnyFieldBlank": {
+    "description": "User-visible copy: All values use breaths/min. Leave any field blank if it is unknown."
+  },
+  "edit2": "Edit {value1}",
+  "@edit2": {
+    "description": "User-visible copy: Edit {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "chooseAnimalPhoto": "Choose animal photo",
+  "@chooseAnimalPhoto": {
+    "description": "User-visible copy: Choose animal photo"
+  },
+  "name": "Name *",
+  "@name": {
+    "description": "User-visible copy: Name *"
+  },
+  "sexOptional": "Sex (optional)",
+  "@sexOptional": {
+    "description": "User-visible copy: Sex (optional)"
+  },
+  "male": "Male",
+  "@male": {
+    "description": "User-visible copy: Male"
+  },
+  "female": "Female",
+  "@female": {
+    "description": "User-visible copy: Female"
+  },
+  "notSpecified": "Not specified",
+  "@notSpecified": {
+    "description": "User-visible copy: Not specified"
+  },
+  "dateOfBirth": "Date of birth",
+  "@dateOfBirth": {
+    "description": "User-visible copy: Date of birth"
+  },
+  "clearDateOfBirth": "Clear date of birth",
+  "@clearDateOfBirth": {
+    "description": "User-visible copy: Clear date of birth"
+  },
+  "notSupplied": "Not supplied",
+  "@notSupplied": {
+    "description": "User-visible copy: Not supplied"
+  },
+  "ageMonths": "Age (months)",
+  "@ageMonths": {
+    "description": "User-visible copy: Age (months)"
+  },
+  "optionalEstimate": "Optional estimate",
+  "@optionalEstimate": {
+    "description": "User-visible copy: Optional estimate"
+  },
+  "calculatedFromBirthDate": "Calculated from birth date",
+  "@calculatedFromBirthDate": {
+    "description": "User-visible copy: Calculated from birth date"
+  },
+  "colorAndMarkings": "Color and markings",
+  "@colorAndMarkings": {
+    "description": "User-visible copy: Color and markings"
+  },
+  "currentWeight2": "Current weight ({value1})",
+  "@currentWeight2": {
+    "description": "User-visible copy: Current weight ({value1})",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "identifiers": "Identifiers",
+  "@identifiers": {
+    "description": "User-visible copy: Identifiers"
+  },
+  "add": "Add",
+  "@add": {
+    "description": "User-visible copy: Add"
+  },
+  "noIdentifiersSaved": "No identifiers saved.",
+  "@noIdentifiersSaved": {
+    "description": "User-visible copy: No identifiers saved."
+  },
+  "identifierActions": "Identifier actions",
+  "@identifierActions": {
+    "description": "User-visible copy: Identifier actions"
+  },
+  "archiveAnimal": "Archive animal",
+  "@archiveAnimal": {
+    "description": "User-visible copy: Archive animal"
+  },
+  "hideFromActiveCareWithoutDeletingTheJournal": "Hide from active care without deleting the journal.",
+  "@hideFromActiveCareWithoutDeletingTheJournal": {
+    "description": "User-visible copy: Hide from active care without deleting the journal."
+  },
+  "saveAnimal": "Save animal",
+  "@saveAnimal": {
+    "description": "User-visible copy: Save animal"
+  },
+  "chooseFromGallery": "Choose from gallery",
+  "@chooseFromGallery": {
+    "description": "User-visible copy: Choose from gallery"
+  },
+  "takeAPhoto": "Take a photo",
+  "@takeAPhoto": {
+    "description": "User-visible copy: Take a photo"
+  },
+  "deleteIdentifier": "Delete {value1} identifier?",
+  "@deleteIdentifier": {
+    "description": "User-visible copy: Delete {value1} identifier?",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "willBeRemovedFromThisLocalJournal": "{value1} will be removed from this local journal.",
+  "@willBeRemovedFromThisLocalJournal": {
+    "description": "User-visible copy: {value1} will be removed from this local journal.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "reviewTheRespiratoryRateValuesAndTryAgain": "Review the respiratory-rate values and try again.",
+  "@reviewTheRespiratoryRateValuesAndTryAgain": {
+    "description": "User-visible copy: Review the respiratory-rate values and try again."
+  },
+  "thisFieldIsRequired": "This field is required.",
+  "@thisFieldIsRequired": {
+    "description": "User-visible copy: This field is required."
+  },
+  "useAWholeNumber": "Use a whole number.",
+  "@useAWholeNumber": {
+    "description": "User-visible copy: Use a whole number."
+  },
+  "useAPositiveNumber": "Use a positive number.",
+  "@useAPositiveNumber": {
+    "description": "User-visible copy: Use a positive number."
+  },
+  "microchip": "Microchip",
+  "@microchip": {
+    "description": "User-visible copy: Microchip"
+  },
+  "tag": "Tag",
+  "@tag": {
+    "description": "User-visible copy: Tag"
+  },
+  "band": "Band",
+  "@band": {
+    "description": "User-visible copy: Band"
+  },
+  "tattoo": "Tattoo",
+  "@tattoo": {
+    "description": "User-visible copy: Tattoo"
+  },
+  "registry": "Registry",
+  "@registry": {
+    "description": "User-visible copy: Registry"
+  },
+  "addIdentifier": "Add identifier",
+  "@addIdentifier": {
+    "description": "User-visible copy: Add identifier"
+  },
+  "editIdentifier": "Edit identifier",
+  "@editIdentifier": {
+    "description": "User-visible copy: Edit identifier"
+  },
+  "type": "Type",
+  "@type": {
+    "description": "User-visible copy: Type"
+  },
+  "customType": "Custom type *",
+  "@customType": {
+    "description": "User-visible copy: Custom type *"
+  },
+  "enterAnIdentifierType": "Enter an identifier type.",
+  "@enterAnIdentifierType": {
+    "description": "User-visible copy: Enter an identifier type."
+  },
+  "identifier": "Identifier *",
+  "@identifier": {
+    "description": "User-visible copy: Identifier *"
+  },
+  "enterTheIdentifier": "Enter the identifier.",
+  "@enterTheIdentifier": {
+    "description": "User-visible copy: Enter the identifier."
+  },
+  "issuerOrService": "Issuer or service",
+  "@issuerOrService": {
+    "description": "User-visible copy: Issuer or service"
+  },
+  "serviceURL": "Service URL",
+  "@serviceURL": {
+    "description": "User-visible copy: Service URL"
+  },
+  "servicePhone": "Service phone",
+  "@servicePhone": {
+    "description": "User-visible copy: Service phone"
+  },
+  "implantedOrIssuedDate": "Implanted or issued date",
+  "@implantedOrIssuedDate": {
+    "description": "User-visible copy: Implanted or issued date"
+  },
+  "clearDate": "Clear date",
+  "@clearDate": {
+    "description": "User-visible copy: Clear date"
+  },
+  "noActiveAnimals": "No active animals",
+  "@noActiveAnimals": {
+    "description": "User-visible copy: No active animals"
+  },
+  "archivedJournalsRemainSafeBelowAddAnAnimalOr": "Archived journals remain safe below. Add an animal or reopen an archived profile.",
+  "@archivedJournalsRemainSafeBelowAddAnAnimalOr": {
+    "description": "User-visible copy: Archived journals remain safe below. Add an animal or reopen an archived profile."
+  },
+  "archivedJournals": "Archived journals",
+  "@archivedJournals": {
+    "description": "User-visible copy: Archived journals"
+  },
+  "hiddenFromActiveCare": "{value1} • Hidden from active care",
+  "@hiddenFromActiveCare": {
+    "description": "User-visible copy: {value1} • Hidden from active care",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "approximate": " (approximate)",
+  "@approximate": {
+    "description": "User-visible copy:  (approximate)"
+  },
+  "breathingRangeSuppliedByYouOrYourVeterinarianBreaths": "Breathing range supplied by you or your veterinarian: {value1} / {value2} / {value3} breaths/min (min / target / max).",
+  "@breathingRangeSuppliedByYouOrYourVeterinarianBreaths": {
+    "description": "User-visible copy: Breathing range supplied by you or your veterinarian: {value1} / {value2} / {value3} breaths/min (mi",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      },
+      "value3": {
+        "type": "Object"
+      }
+    }
+  },
+  "otherAnimals": "Other animals",
+  "@otherAnimals": {
+    "description": "User-visible copy: Other animals"
+  },
+  "switchTo": "Switch to {value1}, {value2}",
+  "@switchTo": {
+    "description": "User-visible copy: Switch to {value1}, {value2}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      }
+    }
+  },
+  "addPet": "Add pet",
+  "@addPet": {
+    "description": "User-visible copy: Add pet"
+  },
+  "addDocument": "Add document",
+  "@addDocument": {
+    "description": "User-visible copy: Add document"
+  },
+  "editDocument": "Edit document",
+  "@editDocument": {
+    "description": "User-visible copy: Edit document"
+  },
+  "documentFor": "Document for {value1}",
+  "@documentFor": {
+    "description": "User-visible copy: Document for {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "imagesAndPDFsAreCopiedIntoCreaturelyManagedStorage": "Images and PDFs are copied into Creaturely-managed storage.",
+  "@imagesAndPDFsAreCopiedIntoCreaturelyManagedStorage": {
+    "description": "User-visible copy: Images and PDFs are copied into Creaturely-managed storage."
+  },
+  "useRecoveredImage": "Use recovered image",
+  "@useRecoveredImage": {
+    "description": "User-visible copy: Use recovered image"
+  },
+  "theOriginalStoredFileIsMissingSelectAReplacement": "The original stored file is missing. Select a replacement before saving, or keep the visible record in the timeline.",
+  "@theOriginalStoredFileIsMissingSelectAReplacement": {
+    "description": "User-visible copy: The original stored file is missing. Select a replacement before saving, or keep the visible record "
+  },
+  "thisStoredFileNoLongerMatchesItsChecksumSelect": "This stored file no longer matches its checksum. Select a clean replacement before sharing or backing it up.",
+  "@thisStoredFileNoLongerMatchesItsChecksumSelect": {
+    "description": "User-visible copy: This stored file no longer matches its checksum. Select a clean replacement before sharing or backin"
+  },
+  "bytes2": "{value1} • {value2} bytes",
+  "@bytes2": {
+    "description": "User-visible copy: {value1} • {value2} bytes",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      }
+    }
+  },
+  "chooseAnImageOrPDF": "Choose an image or PDF",
+  "@chooseAnImageOrPDF": {
+    "description": "User-visible copy: Choose an image or PDF"
+  },
+  "browseFiles": "Browse Files",
+  "@browseFiles": {
+    "description": "User-visible copy: Browse Files"
+  },
+  "photoLibrary": "Photo library",
+  "@photoLibrary": {
+    "description": "User-visible copy: Photo library"
+  },
+  "takePhoto": "Take photo",
+  "@takePhoto": {
+    "description": "User-visible copy: Take photo"
+  },
+  "title": "Title *",
+  "@title": {
+    "description": "User-visible copy: Title *"
+  },
+  "enterATitle": "Enter a title.",
+  "@enterATitle": {
+    "description": "User-visible copy: Enter a title."
+  },
+  "category": "Category",
+  "@category": {
+    "description": "User-visible copy: Category"
+  },
+  "documentDate": "Document date",
+  "@documentDate": {
+    "description": "User-visible copy: Document date"
+  },
+  "expiryDateOptional": "Expiry date (optional)",
+  "@expiryDateOptional": {
+    "description": "User-visible copy: Expiry date (optional)"
+  },
+  "noExpiryDate": "No expiry date",
+  "@noExpiryDate": {
+    "description": "User-visible copy: No expiry date"
+  },
+  "saveDocument": "Save document",
+  "@saveDocument": {
+    "description": "User-visible copy: Save document"
+  },
+  "addMedication": "Add medication",
+  "@addMedication": {
+    "description": "User-visible copy: Add medication"
+  },
+  "editMedication": "Edit medication",
+  "@editMedication": {
+    "description": "User-visible copy: Edit medication"
+  },
+  "medicationFor": "Medication for {value1}",
+  "@medicationFor": {
+    "description": "User-visible copy: Medication for {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "addDirectionsAndDoseTimesFor": "Add directions and dose times for {value1}.",
+  "@addDirectionsAndDoseTimesFor": {
+    "description": "User-visible copy: Add directions and dose times for {value1}.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "notificationsAreOffDueDosesRemainVisibleInCreaturely": "Notifications are off. Due doses remain visible in Creaturely, and the schedule can still be saved.",
+  "@notificationsAreOffDueDosesRemainVisibleInCreaturely": {
+    "description": "User-visible copy: Notifications are off. Due doses remain visible in Creaturely, and the schedule can still be saved."
+  },
+  "medicationName": "Medication name *",
+  "@medicationName": {
+    "description": "User-visible copy: Medication name *"
+  },
+  "form": "Form *",
+  "@form": {
+    "description": "User-visible copy: Form *"
+  },
+  "tabletLiquidDropsInjection": "Tablet, liquid, drops, injection…",
+  "@tabletLiquidDropsInjection": {
+    "description": "User-visible copy: Tablet, liquid, drops, injection…"
+  },
+  "doseAmount": "Dose amount *",
+  "@doseAmount": {
+    "description": "User-visible copy: Dose amount *"
+  },
+  "doseUnit": "Dose unit *",
+  "@doseUnit": {
+    "description": "User-visible copy: Dose unit *"
+  },
+  "mgMLTablet": "mg, mL, tablet",
+  "@mgMLTablet": {
+    "description": "User-visible copy: mg, mL, tablet"
+  },
+  "instructions": "Instructions *",
+  "@instructions": {
+    "description": "User-visible copy: Instructions *"
+  },
+  "activeMedication": "Active medication",
+  "@activeMedication": {
+    "description": "User-visible copy: Active medication"
+  },
+  "inactiveRecordsRemainInTheTimeline": "Inactive records remain in the timeline.",
+  "@inactiveRecordsRemainInTheTimeline": {
+    "description": "User-visible copy: Inactive records remain in the timeline."
+  },
+  "saveMedication": "Save medication",
+  "@saveMedication": {
+    "description": "User-visible copy: Save medication"
+  },
+  "completeEveryScheduleBeforeSaving": "Complete every schedule before saving.",
+  "@completeEveryScheduleBeforeSaving": {
+    "description": "User-visible copy: Complete every schedule before saving."
+  },
+  "scheduleType": "Schedule type",
+  "@scheduleType": {
+    "description": "User-visible copy: Schedule type"
+  },
+  "repeatingInterval": "Repeating interval",
+  "@repeatingInterval": {
+    "description": "User-visible copy: Repeating interval"
+  },
+  "removeSchedule": "Remove schedule",
+  "@removeSchedule": {
+    "description": "User-visible copy: Remove schedule"
+  },
+  "every": "Every",
+  "@every": {
+    "description": "User-visible copy: Every"
+  },
+  "hours": "{value1} hours",
+  "@hours": {
+    "description": "User-visible copy: {value1} hours",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "setStartTime": "Set start time",
+  "@setStartTime": {
+    "description": "User-visible copy: Set start time"
+  },
+  "changeStartTime": "Change start time",
+  "@changeStartTime": {
+    "description": "User-visible copy: Change start time"
+  },
+  "medicationNotFound": "Medication not found",
+  "@medicationNotFound": {
+    "description": "User-visible copy: Medication not found"
+  },
+  "thisMedicationMayHaveBeenRemovedFromTheJournal": "This medication may have been removed from the journal.",
+  "@thisMedicationMayHaveBeenRemovedFromTheJournal": {
+    "description": "User-visible copy: This medication may have been removed from the journal."
+  },
+  "directions": "Directions",
+  "@directions": {
+    "description": "User-visible copy: Directions"
+  },
+  "nextDose": "Next dose",
+  "@nextDose": {
+    "description": "User-visible copy: Next dose"
+  },
+  "thisMedicationIsInactiveItsPastDoseHistoryRemains": "This medication is inactive. Its past dose history remains available.",
+  "@thisMedicationIsInactiveItsPastDoseHistoryRemains": {
+    "description": "User-visible copy: This medication is inactive. Its past dose history remains available."
+  },
+  "noUpcomingDose": "No upcoming dose",
+  "@noUpcomingDose": {
+    "description": "User-visible copy: No upcoming dose"
+  },
+  "reviewTheSavedScheduleOrAddADoseTime": "Review the saved schedule or add a dose time.",
+  "@reviewTheSavedScheduleOrAddADoseTime": {
+    "description": "User-visible copy: Review the saved schedule or add a dose time."
+  },
+  "noSavedDoseTimes": "No saved dose times",
+  "@noSavedDoseTimes": {
+    "description": "User-visible copy: No saved dose times"
+  },
+  "remindersActive": "Reminders active",
+  "@remindersActive": {
+    "description": "User-visible copy: Reminders active"
+  },
+  "remindersPaused": "Reminders paused",
+  "@remindersPaused": {
+    "description": "User-visible copy: Reminders paused"
+  },
+  "last30Days": "Last 30 days",
+  "@last30Days": {
+    "description": "User-visible copy: Last 30 days"
+  },
+  "doseHistory": "Dose history",
+  "@doseHistory": {
+    "description": "User-visible copy: Dose history"
+  },
+  "noCompletedDosesYet": "No completed doses yet",
+  "@noCompletedDosesYet": {
+    "description": "User-visible copy: No completed doses yet"
+  },
+  "givenSkippedAndMissedDosesWillAppearHere": "Given, skipped, and missed doses will appear here.",
+  "@givenSkippedAndMissedDosesWillAppearHere": {
+    "description": "User-visible copy: Given, skipped, and missed doses will appear here."
+  },
+  "inactive": "Inactive",
+  "@inactive": {
+    "description": "User-visible copy: Inactive"
+  },
+  "markGiven": "Mark given",
+  "@markGiven": {
+    "description": "User-visible copy: Mark given"
+  },
+  "skipDose": "Skip dose",
+  "@skipDose": {
+    "description": "User-visible copy: Skip dose"
+  },
+  "pending": "Pending",
+  "@pending": {
+    "description": "User-visible copy: Pending"
+  },
+  "restingBreathingRecorderFor": "Resting breathing recorder for {value1}",
+  "@restingBreathingRecorderFor": {
+    "description": "User-visible copy: Resting breathing recorder for {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "cancelRecording": "Cancel recording",
+  "@cancelRecording": {
+    "description": "User-visible copy: Cancel recording"
+  },
+  "breathsSecondsElapsedSecondsRemaining": "{value1} breaths. {value2} seconds elapsed. {value3} seconds remaining.",
+  "@breathsSecondsElapsedSecondsRemaining": {
+    "description": "User-visible copy: {value1} breaths. {value2} seconds elapsed. {value3} seconds remaining.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      },
+      "value3": {
+        "type": "Object"
+      }
+    }
+  },
+  "sElapsed": "{value1} s elapsed",
+  "@sElapsed": {
+    "description": "User-visible copy: {value1} s elapsed",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "sLeft": "{value1} s left",
+  "@sLeft": {
+    "description": "User-visible copy: {value1} s left",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "recordOneBreath": "Record one breath",
+  "@recordOneBreath": {
+    "description": "User-visible copy: Record one breath"
+  },
+  "recordBreath": "Record breath",
+  "@recordBreath": {
+    "description": "User-visible copy: Record breath"
+  },
+  "tapFOREACHBREATH": "TAP FOR EACH\nBREATH",
+  "@tapFOREACHBREATH": {
+    "description": "User-visible copy: TAP FOR EACH\nBREATH"
+  },
+  "undoLast": "Undo last",
+  "@undoLast": {
+    "description": "User-visible copy: Undo last"
+  },
+  "couldNotSaveTheRecordingYourBreathsAreKept": "Could not save the recording. Your breaths are kept here; try again.",
+  "@couldNotSaveTheRecordingYourBreathsAreKept": {
+    "description": "User-visible copy: Could not save the recording. Your breaths are kept here; try again."
+  },
+  "discardThisRecording": "Discard this recording?",
+  "@discardThisRecording": {
+    "description": "User-visible copy: Discard this recording?"
+  },
+  "theBreathsCountedInThisSessionWillNotBe": "The breaths counted in this session will not be saved.",
+  "@theBreathsCountedInThisSessionWillNotBe": {
+    "description": "User-visible copy: The breaths counted in this session will not be saved."
+  },
+  "keepRecording": "Keep recording",
+  "@keepRecording": {
+    "description": "User-visible copy: Keep recording"
+  },
+  "discard": "Discard",
+  "@discard": {
+    "description": "User-visible copy: Discard"
+  },
+  "countSBreaths": "Count {value1}’s breaths",
+  "@countSBreaths": {
+    "description": "User-visible copy: Count {value1}’s breaths",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "waitUntilIsQuietlyRestingOrSleepingTapOnce": "Wait until {value1} is quietly resting or sleeping. Tap once for each rise of the chest. Creaturely uses the actual elapsed time.",
+  "@waitUntilIsQuietlyRestingOrSleepingTapOnce": {
+    "description": "User-visible copy: Wait until {value1} is quietly resting or sleeping. Tap once for each rise of the chest. Creaturely ",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "context": "Context",
+  "@context": {
+    "description": "User-visible copy: Context"
+  },
+  "timer": "Timer",
+  "@timer": {
+    "description": "User-visible copy: Timer"
+  },
+  "label15S": "15 s",
+  "@label15S": {
+    "description": "User-visible copy: 15 s"
+  },
+  "label20S": "20 s",
+  "@label20S": {
+    "description": "User-visible copy: 20 s"
+  },
+  "label30S": "30 s",
+  "@label30S": {
+    "description": "User-visible copy: 30 s"
+  },
+  "label60S": "60 s",
+  "@label60S": {
+    "description": "User-visible copy: 60 s"
+  },
+  "startCounting": "Start counting",
+  "@startCounting": {
+    "description": "User-visible copy: Start counting"
+  },
+  "pausedAfterInterruption": "Paused after interruption",
+  "@pausedAfterInterruption": {
+    "description": "User-visible copy: Paused after interruption"
+  },
+  "checkThatTheAnimalIsStillSettledThenContinue": "Check that the animal is still settled, then continue.",
+  "@checkThatTheAnimalIsStillSettledThenContinue": {
+    "description": "User-visible copy: Check that the animal is still settled, then continue."
+  },
+  "resume": "Resume",
+  "@resume": {
+    "description": "User-visible copy: Resume"
+  },
+  "noBreathsCounted": "No breaths counted",
+  "@noBreathsCounted": {
+    "description": "User-visible copy: No breaths counted"
+  },
+  "breathsMin": "{value1} breaths/min",
+  "@breathsMin": {
+    "description": "User-visible copy: {value1} breaths/min",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "optionalNote": "Optional note",
+  "@optionalNote": {
+    "description": "User-visible copy: Optional note"
+  },
+  "tryAgain": "Try again",
+  "@tryAgain": {
+    "description": "User-visible copy: Try again"
+  },
+  "saveSession": "Save session",
+  "@saveSession": {
+    "description": "User-visible copy: Save session"
+  },
+  "belowYourMinimumOfBreathsMin": "Below your minimum of {value1} breaths/min",
+  "@belowYourMinimumOfBreathsMin": {
+    "description": "User-visible copy: Below your minimum of {value1} breaths/min",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "aboveYourMaximumOfBreathsMin": "Above your maximum of {value1} breaths/min",
+  "@aboveYourMaximumOfBreathsMin": {
+    "description": "User-visible copy: Above your maximum of {value1} breaths/min",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "withinYourSavedRangeOfBreathsMin": "Within your saved range of {value1}–{value2} breaths/min",
+  "@withinYourSavedRangeOfBreathsMin": {
+    "description": "User-visible copy: Within your saved range of {value1}–{value2} breaths/min",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      }
+    }
+  },
+  "atOrAboveYourSavedMinimumOfBreathsMin": "At or above your saved minimum of {value1} breaths/min",
+  "@atOrAboveYourSavedMinimumOfBreathsMin": {
+    "description": "User-visible copy: At or above your saved minimum of {value1} breaths/min",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "atOrBelowYourSavedMaximumOfBreathsMin": "At or below your saved maximum of {value1} breaths/min",
+  "@atOrBelowYourSavedMaximumOfBreathsMin": {
+    "description": "User-visible copy: At or below your saved maximum of {value1} breaths/min",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "savedTargetBreathsMin": "Saved target: {value1} breaths/min",
+  "@savedTargetBreathsMin": {
+    "description": "User-visible copy: Saved target: {value1} breaths/min",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "noPersonalRangeConfigured": "No personal range configured",
+  "@noPersonalRangeConfigured": {
+    "description": "User-visible copy: No personal range configured"
+  },
+  "addAnAnimalToBeginATimeline": "Add an animal to begin a timeline.",
+  "@addAnAnimalToBeginATimeline": {
+    "description": "User-visible copy: Add an animal to begin a timeline."
+  },
+  "sTimeline": "{value1}’s timeline",
+  "@sTimeline": {
+    "description": "User-visible copy: {value1}’s timeline",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "everyCareMomentNewestFirst": "Every care moment, newest first.",
+  "@everyCareMomentNewestFirst": {
+    "description": "User-visible copy: Every care moment, newest first."
+  },
+  "health": "Health",
+  "@health": {
+    "description": "User-visible copy: Health"
+  },
+  "chooseDateRange": "Choose date range",
+  "@chooseDateRange": {
+    "description": "User-visible copy: Choose date range"
+  },
+  "clearDateRange": "Clear date range",
+  "@clearDateRange": {
+    "description": "User-visible copy: Clear date range"
+  },
+  "nothingRecordedHereYet": "Nothing recorded here yet",
+  "@nothingRecordedHereYet": {
+    "description": "User-visible copy: Nothing recorded here yet"
+  },
+  "useAQuickActionFromSDashboardToAdd": "Use a quick action from {value1}’s dashboard to add the first entry.",
+  "@useAQuickActionFromSDashboardToAdd": {
+    "description": "User-visible copy: Use a quick action from {value1}’s dashboard to add the first entry.",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "tryClearingAFilterOrChoosingAWiderDate": "Try clearing a filter or choosing a wider date range.",
+  "@tryClearingAFilterOrChoosingAWiderDate": {
+    "description": "User-visible copy: Try clearing a filter or choosing a wider date range."
+  },
+  "editBreathingNote": "Edit breathing note",
+  "@editBreathingNote": {
+    "description": "User-visible copy: Edit breathing note"
+  },
+  "note": "Note",
+  "@note": {
+    "description": "User-visible copy: Note"
+  },
+  "delete3": "Delete {value1}?",
+  "@delete3": {
+    "description": "User-visible copy: Delete {value1}?",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "thisAlsoRemovesFutureRemindersPastExportedCopiesAre": "This also removes future reminders. Past exported copies are unchanged.",
+  "@thisAlsoRemovesFutureRemindersPastExportedCopiesAre": {
+    "description": "User-visible copy: This also removes future reminders. Past exported copies are unchanged."
+  },
+  "thisRecordWillBeRemovedFromTheLocalJournal": "This record will be removed from the local journal.",
+  "@thisRecordWillBeRemovedFromTheLocalJournal": {
+    "description": "User-visible copy: This record will be removed from the local journal."
+  },
+  "breathingSession": "Breathing session",
+  "@breathingSession": {
+    "description": "User-visible copy: Breathing session"
+  },
+  "recorded": "Recorded",
+  "@recorded": {
+    "description": "User-visible copy: Recorded"
+  },
+  "counted": "Counted",
+  "@counted": {
+    "description": "User-visible copy: Counted"
+  },
+  "breathsInSeconds": "{value1} breaths in {value2} seconds",
+  "@breathsInSeconds": {
+    "description": "User-visible copy: {value1} breaths in {value2} seconds",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      }
+    }
+  },
+  "savedRange": "Saved range",
+  "@savedRange": {
+    "description": "User-visible copy: Saved range"
+  },
+  "min": "min {value1}",
+  "@min": {
+    "description": "User-visible copy: min {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "target2": "target {value1}",
+  "@target2": {
+    "description": "User-visible copy: target {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "max": "max {value1}",
+  "@max": {
+    "description": "User-visible copy: max {value1}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "noNoteAdded": "No note added.",
+  "@noNoteAdded": {
+    "description": "User-visible copy: No note added."
+  },
+  "editNote": "Edit note",
+  "@editNote": {
+    "description": "User-visible copy: Edit note"
+  },
+  "updateDose": "Update dose",
+  "@updateDose": {
+    "description": "User-visible copy: Update dose"
+  },
+  "status": "Status",
+  "@status": {
+    "description": "User-visible copy: Status"
+  },
+  "notRecordedYet": "Not recorded yet",
+  "@notRecordedYet": {
+    "description": "User-visible copy: Not recorded yet"
+  },
+  "actuallyAdministered": "Actually administered",
+  "@actuallyAdministered": {
+    "description": "User-visible copy: Actually administered"
+  },
+  "doseNoteOptional": "Dose note (optional)",
+  "@doseNoteOptional": {
+    "description": "User-visible copy: Dose note (optional)"
+  },
+  "storedFileMissing": "Stored file missing",
+  "@storedFileMissing": {
+    "description": "User-visible copy: Stored file missing"
+  },
+  "storedFileChangedOrCorrupt": "Stored file changed or corrupt",
+  "@storedFileChangedOrCorrupt": {
+    "description": "User-visible copy: Stored file changed or corrupt"
+  },
+  "entryActions": "Entry actions",
+  "@entryActions": {
+    "description": "User-visible copy: Entry actions"
+  },
+  "editDose": "Edit dose",
+  "@editDose": {
+    "description": "User-visible copy: Edit dose"
+  },
+  "of4": "{value1} of 4",
+  "@of4": {
+    "description": "User-visible copy: {value1} of 4",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      }
+    }
+  },
+  "back": "Back",
+  "@back": {
+    "description": "User-visible copy: Back"
+  },
+  "createJournal": "Create journal",
+  "@createJournal": {
+    "description": "User-visible copy: Create journal"
+  },
+  "pleaseAcknowledgeTheMedicalDisclaimer": "Please acknowledge the medical disclaimer.",
+  "@pleaseAcknowledgeTheMedicalDisclaimer": {
+    "description": "User-visible copy: Please acknowledge the medical disclaimer."
+  },
+  "welcome": "Welcome",
+  "@welcome": {
+    "description": "User-visible copy: Welcome"
+  },
+  "knowTheirNormal": "Know their normal.",
+  "@knowTheirNormal": {
+    "description": "User-visible copy: Know their normal."
+  },
+  "trackEverydaySignsSpotChangesAndKeepAClearer": "Track everyday signs, spot changes, and keep a clearer health history for every animal in your life.",
+  "@trackEverydaySignsSpotChangesAndKeepAClearer": {
+    "description": "User-visible copy: Track everyday signs, spot changes, and keep a clearer health history for every animal in your life."
+  },
+  "noAccountAdsAnalyticsOrBackgroundHealthDataCollection": "No account, ads, analytics, or background health-data collection.",
+  "@noAccountAdsAnalyticsOrBackgroundHealthDataCollection": {
+    "description": "User-visible copy: No account, ads, analytics, or background health-data collection."
+  },
+  "localFirst": "Local first",
+  "@localFirst": {
+    "description": "User-visible copy: Local first"
+  },
+  "youDecideWhereCopiesGo": "You decide where copies go.",
+  "@youDecideWhereCopiesGo": {
+    "description": "User-visible copy: You decide where copies go."
+  },
+  "yourDeviceIsTheSourceOfTruthYouCan": "Your device is the source of truth. You can create an open .creaturely backup to Files, iCloud Drive, Google Drive, Dropbox, or another provider you choose.",
+  "@yourDeviceIsTheSourceOfTruthYouCan": {
+    "description": "User-visible copy: Your device is the source of truth. You can create an open .creaturely backup to Files, iCloud Drive"
+  },
+  "cloudAccessIsOptionalDecliningItNeverLimitsThe": "Cloud access is optional. Declining it never limits the journal.",
+  "@cloudAccessIsOptionalDecliningItNeverLimitsThe": {
+    "description": "User-visible copy: Cloud access is optional. Declining it never limits the journal."
+  },
+  "optionalRecoverySnapshotsAreBackupAndRestoreNotLive": "Optional recovery snapshots are backup and restore—not live multi-device sync.",
+  "@optionalRecoverySnapshotsAreBackupAndRestoreNotLive": {
+    "description": "User-visible copy: Optional recovery snapshots are backup and restore—not live multi-device sync."
+  },
+  "reminders": "Reminders",
+  "@reminders": {
+    "description": "User-visible copy: Reminders"
+  },
+  "helpfulNeverRequired": "Helpful, never required.",
+  "@helpfulNeverRequired": {
+    "description": "User-visible copy: Helpful, never required."
+  },
+  "creaturelyCanScheduleMedicationBreathingAndWeightRemindersOn": "Creaturely can schedule medication, breathing, and weight reminders on this device. You can say no now and change this later.",
+  "@creaturelyCanScheduleMedicationBreathingAndWeightRemindersOn": {
+    "description": "User-visible copy: Creaturely can schedule medication, breathing, and weight reminders on this device. You can say no n"
+  },
+  "notificationsAreOffMedicationSchedulesAndDueDosesWill": "Notifications are off. Medication schedules and due doses will still appear inside Creaturely.",
+  "@notificationsAreOffMedicationSchedulesAndDueDosesWill": {
+    "description": "User-visible copy: Notifications are off. Medication schedules and due doses will still appear inside Creaturely."
+  },
+  "notificationsAreReadyIndividualSchedulesRemainUnderYourControl": "Notifications are ready. Individual schedules remain under your control.",
+  "@notificationsAreReadyIndividualSchedulesRemainUnderYourControl": {
+    "description": "User-visible copy: Notifications are ready. Individual schedules remain under your control."
+  },
+  "allowReminders": "Allow reminders",
+  "@allowReminders": {
+    "description": "User-visible copy: Allow reminders"
+  },
+  "firstAnimal": "First animal",
+  "@firstAnimal": {
+    "description": "User-visible copy: First animal"
+  },
+  "whoAreYouCaringFor": "Who are you caring for?",
+  "@whoAreYouCaringFor": {
+    "description": "User-visible copy: Who are you caring for?"
+  },
+  "onlyANameAndSpeciesAreNeededAddOr": "Only a name and species are needed. Add or change anything else later.",
+  "@onlyANameAndSpeciesAreNeededAddOr": {
+    "description": "User-visible copy: Only a name and species are needed. Add or change anything else later."
+  },
+  "enterAName": "Enter a name.",
+  "@enterAName": {
+    "description": "User-visible copy: Enter a name."
+  },
+  "approximateAgeInMonthsOptional": "Approximate age in months (optional)",
+  "@approximateAgeInMonthsOptional": {
+    "description": "User-visible copy: Approximate age in months (optional)"
+  },
+  "enterAWholeNumberOfMonths": "Enter a whole number of months.",
+  "@enterAWholeNumberOfMonths": {
+    "description": "User-visible copy: Enter a whole number of months."
+  },
+  "iUnderstandThisIsAJournalNotVeterinaryCare": "I understand this is a journal, not veterinary care.",
+  "@iUnderstandThisIsAJournalNotVeterinaryCare": {
+    "description": "User-visible copy: I understand this is a journal, not veterinary care."
+  },
+  "pageUnavailable": "Page unavailable",
+  "@pageUnavailable": {
+    "description": "User-visible copy: Page unavailable"
+  },
+  "thisPageCouldNotBeOpened": "This page could not be opened",
+  "@thisPageCouldNotBeOpened": {
+    "description": "User-visible copy: This page could not be opened"
+  },
+  "returnToTheAnimalsDashboard": "Return to the Animals dashboard.",
+  "@returnToTheAnimalsDashboard": {
+    "description": "User-visible copy: Return to the Animals dashboard."
+  },
+  "goToAnimals": "Go to Animals",
+  "@goToAnimals": {
+    "description": "User-visible copy: Go to Animals"
+  },
+  "creaturelyCouldNotOpenTheLocalJournal": "Creaturely could not open the local journal",
+  "@creaturelyCouldNotOpenTheLocalJournal": {
+    "description": "User-visible copy: Creaturely could not open the local journal"
+  },
+  "creaturelyNavigation": "Creaturely navigation",
+  "@creaturelyNavigation": {
+    "description": "User-visible copy: Creaturely navigation"
+  },
+  "reminderIsIncomplete": "Reminder is incomplete.",
+  "@reminderIsIncomplete": {
+    "description": "User-visible copy: Reminder is incomplete."
+  },
+  "weightReminderIsIncomplete": "Weight reminder is incomplete.",
+  "@weightReminderIsIncomplete": {
+    "description": "User-visible copy: Weight reminder is incomplete."
+  },
+  "remindersCouldNotBeUpdatedYourJournalIsSaved": "Reminders could not be updated. Your journal is saved.",
+  "@remindersCouldNotBeUpdatedYourJournalIsSaved": {
+    "description": "User-visible copy: Reminders could not be updated. Your journal is saved."
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "User-visible copy: Retry"
+  },
+  "medicationReminders": "Medication reminders",
+  "@medicationReminders": {
+    "description": "User-visible copy: Medication reminders"
+  },
+  "remindersTheKeeperHasConfiguredForMedicationCare": "Reminders the keeper has configured for medication care.",
+  "@remindersTheKeeperHasConfiguredForMedicationCare": {
+    "description": "User-visible copy: Reminders the keeper has configured for medication care."
+  },
+  "remindersTheKeeperHasConfiguredForManualBreathingChecks": "Reminders the keeper has configured for manual breathing checks.",
+  "@remindersTheKeeperHasConfiguredForManualBreathingChecks": {
+    "description": "User-visible copy: Reminders the keeper has configured for manual breathing checks."
+  },
+  "recordAWeighInWhenItWorksForYou": "Record a weigh-in when it works for you.",
+  "@recordAWeighInWhenItWorksForYou": {
+    "description": "User-visible copy: Record a weigh-in when it works for you."
+  },
+  "remindersTheKeeperHasConfiguredForRecordingWeightChecks": "Reminders the keeper has configured for recording weight checks.",
+  "@remindersTheKeeperHasConfiguredForRecordingWeightChecks": {
+    "description": "User-visible copy: Reminders the keeper has configured for recording weight checks."
+  },
+  "medicationForAnimal": "{value1} for {value2}",
+  "@medicationForAnimal": {
+    "description": "User-visible copy: {value1} for {value2}",
+    "placeholders": {
+      "value1": {
+        "type": "Object"
+      },
+      "value2": {
+        "type": "Object"
+      }
+    }
+  },
+  "recoveredImageNotice": "An image selection was recovered. You can use it in an animal profile or document.",
+  "attachmentCleanupFailed": "Unused files could not be removed. Your journal is saved.",
+  "fileOperationFailed": "The file could not be opened. Try choosing it again.",
+  "timerStatusLabel": "{status, select, ready{Ready} running{Running} paused{Paused} completed{Completed} cancelled{Cancelled} saved{Saved} other{Unknown}}",
+  "@timerStatusLabel": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "respiratoryContextLabel": "{value, select, sleeping{Sleeping} resting{Resting} other{Unknown}}",
+  "@respiratoryContextLabel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "operationFailed": "Could not complete this action. Please try again.",
+  "medicationDose": "Medication dose",
+  "sleepingBreathingCheck": "Sleeping breathing check",
+  "restingBreathingCheck": "Resting breathing check",
+  "manualRespiratoryRateReminder": "Manual respiratory-rate reminder",
+  "recordAWeighIn": "Record a weigh-in",
+  "categoryVaccination": "Vaccination",
+  "categoryLaboratory": "Laboratory",
+  "categoryImaging": "Imaging",
+  "categoryPrescription": "Prescription",
+  "categoryInsurance": "Insurance",
+  "categoryIdentification": "Identification",
+  "healthAllergy": "Allergy",
+  "healthCondition": "Condition",
+  "pdfSubject": "User-created animal health journal summary",
+  "pdfKeywords": "Creaturely, animal health journal, diagnostic disclaimer, veterinary advice",
+  "careSummary": "Care summary",
+  "noBreathingSessionsInRange": "No resting breathing sessions in this range.",
+  "breaths": "Breaths",
+  "elapsed": "Elapsed",
+  "rate": "Rate",
+  "includedDocuments": "Included documents",
+  "pdfDisclaimer": "Creaturely is a personal journal, not a diagnostic tool. This summary is user-entered information and does not replace veterinary advice.",
+  "chooseDate": "Choose date",
+  "countSleepingBreaths": "Count breaths when your animal is calm and sleeping.",
+  "countRestingBreaths": "Count breaths when your animal is calm and resting.",
+  "pdfTitle": "Creaturely health summary - {name}",
+  "@pdfTitle": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfPage": "Creaturely - Page {page} of {pages}",
+  "@pdfPage": {
+    "placeholders": {
+      "page": {
+        "type": "Object"
+      },
+      "pages": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfRange": "Journal range: {start} to {end}",
+  "@pdfRange": {
+    "placeholders": {
+      "start": {
+        "type": "Object"
+      },
+      "end": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfBreathingSummary": "{count} breathing sessions; latest {latest}, range {minimum} to {maximum} breaths/minute.",
+  "@pdfBreathingSummary": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      },
+      "latest": {
+        "type": "Object"
+      },
+      "minimum": {
+        "type": "Object"
+      },
+      "maximum": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfActiveMedications": "{count} active medications.",
+  "@pdfActiveMedications": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfGivenDoses": "{given} of {recorded} recorded doses marked given.",
+  "@pdfGivenDoses": {
+    "placeholders": {
+      "given": {
+        "type": "Object"
+      },
+      "recorded": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfHealthCount": "{count} physical-health records.",
+  "@pdfHealthCount": {
+    "placeholders": {
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfSeconds": "{seconds} s",
+  "@pdfSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfRate": "{rate}/min",
+  "@pdfRate": {
+    "placeholders": {
+      "rate": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfFrom": "From {date}",
+  "@pdfFrom": {
+    "placeholders": {
+      "date": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfThrough": "through {date}",
+  "@pdfThrough": {
+    "placeholders": {
+      "date": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfStrength": "Strength: {value}",
+  "@pdfStrength": {
+    "placeholders": {
+      "value": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfPrescriber": "Prescriber: {value}",
+  "@pdfPrescriber": {
+    "placeholders": {
+      "value": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfPharmacy": "Pharmacy: {value}",
+  "@pdfPharmacy": {
+    "placeholders": {
+      "value": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfPrescription": "Prescription: {value}",
+  "@pdfPrescription": {
+    "placeholders": {
+      "value": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfRefills": "Refills remaining: {value}",
+  "@pdfRefills": {
+    "placeholders": {
+      "value": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfNextRefill": "Next refill: {date}",
+  "@pdfNextRefill": {
+    "placeholders": {
+      "date": {
+        "type": "Object"
+      }
+    }
+  },
+  "pdfNotes": "Notes: {value}",
+  "@pdfNotes": {
+    "placeholders": {
+      "value": {
+        "type": "Object"
+      }
+    }
+  },
+  "timelineBreathingDetail": "{rate} breaths/min • {context}",
+  "@timelineBreathingDetail": {
+    "placeholders": {
+      "rate": {
+        "type": "Object"
+      },
+      "context": {
+        "type": "Object"
+      }
+    }
+  },
+  "journalOpenFailedHelp": "Try again or reopen Creaturely. Your journal has not been reset.",
+  "backupCorruptHelp": "The file is damaged or incomplete. Choose another backup.",
+  "backupUnsupportedHelp": "This backup version is not supported by this version of Creaturely.",
+  "fileUnavailableHelp": "A required file is unavailable or could not be read. Check the selected file and available storage.",
+  "journalDataUnavailable": "Unable to load journal data",
+  "journalDataUnavailableHelp": "Try again. Your changes on this screen are kept.",
+  "automaticRecoveryFailed": "Automatic backup failed. Your local journal is available.",
+  "temporaryExportCleanupFailed": "The temporary export file could not be removed.",
+  "countedBreathNoun": "{count, plural, one {breath} other {breaths}}",
+  "@countedBreathNoun": {
+    "description": "Noun displayed under the counted breaths.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "entryCount": "{count, plural, one {1 entry} other {{count} entries}}",
+  "@entryCount": {
+    "description": "Number of records in a trend summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ageMonthsOld": "{months, plural, one {1 month} other {{months} months}} old{qualifier}",
+  "@ageMonthsOld": {
+    "description": "Animal age in completed months.",
+    "placeholders": {
+      "months": {
+        "type": "int"
+      },
+      "qualifier": {
+        "type": "String"
+      }
+    }
+  },
+  "ageYearsOld": "{years, plural, one {1 year} other {{years} years}}{months, plural, =0 {} one {, 1 month} other {, {months} months}} old{qualifier}",
+  "@ageYearsOld": {
+    "description": "Animal age in completed years and remaining months.",
+    "placeholders": {
+      "years": {
+        "type": "int"
+      },
+      "months": {
+        "type": "int"
+      },
+      "qualifier": {
+        "type": "String"
+      }
+    }
+  },
+  "respiratoryRateUnit": "breaths/min",
+  "@respiratoryRateUnit": {
+    "description": "Unit label for respiratory rates."
+  },
+  "noBreathingDataInRange": "No breathing data in this range",
+  "@noBreathingDataInRange": {
+    "description": "Empty breathing trend title."
+  },
+  "noWeightDataInRange": "No weight data in this range",
+  "@noWeightDataInRange": {
+    "description": "Empty weight trend title."
+  },
+  "enterCompleteServiceUrl": "Enter a complete URL, including https://.",
+  "@enterCompleteServiceUrl": {
+    "description": "Validation help for an identifier service website."
+  },
+  "feedbackUnavailable": "Tap feedback is unavailable. Your breaths are still being counted.",
+  "@feedbackUnavailable": {
+    "description": "Native feedback failure during a breathing session."
+  },
+  "notificationActionFailed": "Could not complete the reminder action. Try again.",
+  "@notificationActionFailed": {
+    "description": "A notification action could not be saved. Retry applies the retained action."
+  }
 }

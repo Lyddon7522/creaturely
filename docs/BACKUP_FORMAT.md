@@ -133,11 +133,46 @@ following:
    reference matching parent records.
 6. Verify every inventory blob exists, has the declared byte length and SHA-256,
    and is referenced consistently by documents.
-7. Stage every attachment in temporary app-managed storage.
-8. Create a recoverable `.creaturely` safety snapshot of the current journal.
-9. Replace the database as one transaction and commit the staged file swap.
-10. If either side fails, restore the previous database and file set. Never
-    leave a partially imported journal.
+7. Preserve the current journal in a safety snapshot. When current attachments
+   are healthy, write a portable `.creaturely` archive. When any are missing or
+   corrupt, preserve the original canonical metadata and every available file
+   in a `.recovery.zip` repair bundle instead. A damaged current journal must
+   not prevent restoration of a valid backup.
+8. Write and flush every validated blob into a new, isolated attachment
+   generation under `attachments/generation-*/`. Its paths are already final;
+   a `.complete` marker records that publication finished.
+9. Replace all database rows and their remapped generation paths in one SQLite
+   transaction, after publication. The previous generation remains available.
+10. If interrupted before the transaction commits, SQLite retains the previous
+    rows and their readable paths. After commit, every new path already exists.
+    Never delete a published generation when the commit outcome is uncertain.
+    Later reference-based collection removes only files absent from the current
+    database and from pending import/recovery ownership.
+
+The current snapshot and replacement run under the same database transaction.
+Restore, attachment import, export, backup, and file collection share an ordered
+file lock; lock acquisition is always files before database. Routine backup and
+export release their read transaction before compression, while pinning source
+files until the worker finishes. Validation runs in a worker and its immutable
+result owns its attachment bytes and is reused after confirmation; the archive
+is not validated twice. Mutating a caller-owned archive buffer cannot mutate
+the validated result.
+
+Restore imports journal preferences while preserving the current device's
+notification permission state and optional cloud recovery choices. A backup
+from another device cannot grant permissions or enable automatic uploads here.
+
+A damaged-journal repair bundle is intentionally not a portable `.creaturely`
+backup. It contains `original-data.json`, the original bytes of available files
+under `available/`, and `recovery-files.json`, which maps original paths to
+entries or `null` for missing files. Corrupt bytes remain available for manual
+repair. The bundle is stored alongside pre-restore recovery snapshots and is
+removed by the app's explicit delete-everything action.
+
+Required collections are enforced at the schema version that introduced them:
+`respiratoryReminders` from schema 3 and `weightReminders` from schema 4. Missing
+current-schema collections are corruption, not an empty journal. All recurrence
+zones must resolve against the bundled IANA database (including the UTC alias).
 
 Validation failure must be visible to the keeper and must leave the current
 journal untouched.

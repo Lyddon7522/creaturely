@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'domain/models.dart';
-import 'l10n/generated/app_localizations.dart';
+import 'l10n/app_strings.dart';
 import 'ui/app_controller.dart';
 import 'ui/core/theme.dart';
 import 'ui/navigation/app_router.dart';
@@ -18,6 +18,8 @@ class CreaturelyApp extends ConsumerStatefulWidget {
 }
 
 class _CreaturelyAppState extends ConsumerState<CreaturelyApp> with WidgetsBindingObserver {
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
+
   @override
   void initState() {
     super.initState();
@@ -39,7 +41,9 @@ class _CreaturelyAppState extends ConsumerState<CreaturelyApp> with WidgetsBindi
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appControllerProvider).snapshot.settings;
+    final theme = ref.watch(
+      settingsProvider.select((value) => value.value?.theme ?? AppThemePreference.system),
+    );
     ref.listen<String?>(appControllerProvider.select((state) => state.pendingRoute), (
       previous,
       next,
@@ -55,13 +59,90 @@ class _CreaturelyAppState extends ConsumerState<CreaturelyApp> with WidgetsBindi
         ref.read(appControllerProvider.notifier).consumePendingRoute();
       });
     });
-    final themeMode = switch (settings.theme) {
+    ref.listen(reminderSyncProvider, (previous, next) {
+      if (next.hasError && !identical(previous?.error, next.error)) {
+        _messenger.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(appStrings.remindersCouldNotBeUpdatedYourJournalIsSaved),
+            action: SnackBarAction(
+              label: appStrings.retry,
+              onPressed: () => ref.read(appControllerProvider.notifier).retryReminders(),
+            ),
+          ),
+        );
+      }
+    });
+    ref.listen(appControllerProvider.select((status) => status.recoveryError), (previous, next) {
+      if (next != null && !identical(previous, next)) {
+        _messenger.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(appStrings.automaticRecoveryFailed),
+            action: SnackBarAction(
+              label: appStrings.settings,
+              onPressed: () => ref.read(routerProvider).push('/recovery'),
+            ),
+          ),
+        );
+      }
+    });
+    ref.listen(appControllerProvider.select((status) => status.notificationActionError), (
+      previous,
+      next,
+    ) {
+      if (next != null && !identical(previous, next)) {
+        _messenger.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(appStrings.notificationActionFailed),
+            action: SnackBarAction(
+              label: appStrings.retry,
+              onPressed: () => ref.read(appControllerProvider.notifier).retryNotificationAction(),
+            ),
+          ),
+        );
+      }
+    });
+    ref.listen(recoveredMediaProvider, (previous, next) {
+      if (next.hasError && !identical(previous?.error, next.error)) {
+        _messenger.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(appStrings.fileOperationFailed),
+            action: SnackBarAction(
+              label: appStrings.retry,
+              onPressed: () => ref.invalidate(recoveredMediaProvider),
+            ),
+          ),
+        );
+      }
+      if (next.hasValue) {
+        ref.read(attachmentCleanupProvider.notifier).collect();
+        if (next.value!.isNotEmpty && previous?.value == null) {
+          _messenger.currentState?.showSnackBar(
+            SnackBar(content: Text(appStrings.recoveredImageNotice)),
+          );
+        }
+      }
+    });
+    ref.listen(attachmentCleanupProvider, (previous, next) {
+      if (next.hasError && !identical(previous?.error, next.error)) {
+        _messenger.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(appStrings.attachmentCleanupFailed),
+            action: SnackBarAction(
+              label: appStrings.retry,
+              onPressed: () => ref.read(attachmentCleanupProvider.notifier).collect(),
+            ),
+          ),
+        );
+      }
+    });
+    final themeMode = switch (theme) {
       AppThemePreference.system => ThemeMode.system,
       AppThemePreference.light => ThemeMode.light,
       AppThemePreference.dark => ThemeMode.dark,
     };
     return MaterialApp.router(
-      title: 'Creaturely',
+      scaffoldMessengerKey: _messenger,
+      title: appStrings.appName,
       debugShowCheckedModeBanner: false,
       restorationScopeId: 'creaturely',
       theme: CreaturelyTheme.light,

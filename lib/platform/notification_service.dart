@@ -5,12 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../domain/care_data.dart';
 import '../domain/models.dart';
 import '../domain/recurrence.dart';
+import '../l10n/app_strings.dart';
 
 enum NotificationPermissionState { unknown, allowed, denied }
 
-enum NotificationActionKind { doseStatus, openRespiratory, openWeight }
+enum NotificationActionKind { doseStatus, openDose, openRespiratory, openWeight }
 
 class NotificationAction {
   const NotificationAction._({
@@ -23,6 +25,9 @@ class NotificationAction {
 
   factory NotificationAction.dose(String id, DoseStatus status) =>
       NotificationAction._(kind: NotificationActionKind.doseStatus, id: id, status: status);
+
+  factory NotificationAction.openDose(String id) =>
+      NotificationAction._(kind: NotificationActionKind.openDose, id: id);
 
   factory NotificationAction.openRespiratory({
     required String reminderId,
@@ -52,31 +57,34 @@ class NotificationAction {
 abstract interface class ReminderService {
   Future<void> initialize(void Function(NotificationAction action) onAction);
   Future<NotificationPermissionState> requestPermission();
-  Future<void> sync(CreaturelySnapshot snapshot, DateTime now);
+  Future<void> sync(CareData care, DateTime now);
   Future<void> clear();
 }
 
 class LocalReminderService implements ReminderService {
   LocalReminderService({
     FlutterLocalNotificationsPlugin? plugin,
-    RespiratoryReminderEngine respiratory = const RespiratoryReminderEngine(),
-    WeightReminderEngine weight = const WeightReminderEngine(),
+    CalendarReminderEngine reminders = const CalendarReminderEngine(),
   }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
-       _respiratory = respiratory,
-       _weight = weight;
+       _reminders = reminders;
 
   static const String _doseCategory = 'creaturely-dose-v1';
   static const String _givenAction = 'given';
   static const String _skipAction = 'skip';
 
   final FlutterLocalNotificationsPlugin _plugin;
-  final RespiratoryReminderEngine _respiratory;
-  final WeightReminderEngine _weight;
+  final CalendarReminderEngine _reminders;
   void Function(NotificationAction action)? _onAction;
+  Future<void> _tail = Future.value();
+  bool _launchConsumed = false;
+  bool _ready = false;
+  bool _disposed = false;
 
   @override
   Future<void> initialize(void Function(NotificationAction action) onAction) async {
+    if (_disposed) throw StateError('Notification service is disposed.');
     _onAction = onAction;
+    if (_ready) return;
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     final darwin = DarwinInitializationSettings(
       requestAlertPermission: false,
@@ -88,12 +96,12 @@ class LocalReminderService implements ReminderService {
           actions: <DarwinNotificationAction>[
             DarwinNotificationAction.plain(
               _givenAction,
-              'Given',
+              appStrings.given,
               options: <DarwinNotificationActionOption>{DarwinNotificationActionOption.foreground},
             ),
             DarwinNotificationAction.plain(
               _skipAction,
-              'Skip',
+              appStrings.skip,
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
                 DarwinNotificationActionOption.destructive,
@@ -103,10 +111,18 @@ class LocalReminderService implements ReminderService {
         ),
       ],
     );
-    await _plugin.initialize(
+    final initialized = await _plugin.initialize(
       settings: InitializationSettings(android: android, iOS: darwin),
       onDidReceiveNotificationResponse: _handleResponse,
     );
+    if (initialized == false) throw StateError('Notifications could not be initialized.');
+    if (!_launchConsumed) {
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      _launchConsumed = true;
+      final response = launch?.notificationResponse;
+      if (launch?.didNotificationLaunchApp == true && response != null) _handleResponse(response);
+    }
+    _ready = true;
   }
 
   @override
@@ -129,14 +145,21 @@ class LocalReminderService implements ReminderService {
   }
 
   @override
-  Future<void> sync(CreaturelySnapshot snapshot, DateTime now) async {
-    await _plugin.cancelAllPendingNotifications();
+  Future<void> sync(CareData care, DateTime now) => _serialize(() => _sync(care, now));
+
+  Future<void> _sync(CareData care, DateTime now) async {
+    if (!_ready) throw StateError('Notifications have not been initialized.');
+    final activeAnimals = care.animals
+        .where((animal) => !animal.archived)
+        .map((animal) => animal.id)
+        .toSet();
     final medications = <String, Medication>{
-      for (final medication in snapshot.medications) medication.id: medication,
+      for (final medication in care.medications) medication.id: medication,
     };
     final plans = <_NotificationPlan>[];
-    for (final dose in snapshot.doseLedger.where(
+    for (final dose in care.doseLedger.where(
       (dose) =>
+          activeAnimals.contains(dose.animalId) &&
           dose.status == DoseStatus.unrecorded &&
           dose.dueAt.isAfter(now) &&
           medications[dose.medicationId]?.active == true,
@@ -146,67 +169,70 @@ class LocalReminderService implements ReminderService {
         _NotificationPlan(
           key: 'dose:${dose.id}',
           dueAt: dose.dueAt,
-          title: '${medication.name} for ${_animalName(snapshot, dose.animalId)}',
+          title: appStrings.medicationForAnimal(medication.name, _animalName(care, dose.animalId)),
           body: '${medication.doseAmount} ${medication.doseUnit} • ${medication.instructions}',
           payload: jsonEncode(<String, Object?>{'kind': 'dose', 'id': dose.id}),
-          details: const NotificationDetails(
+          details: NotificationDetails(
             android: AndroidNotificationDetails(
               'creaturely_medication',
-              'Medication reminders',
-              channelDescription: 'Reminders the keeper has configured for medication care.',
+              appStrings.medicationReminders,
+              channelDescription: appStrings.remindersTheKeeperHasConfiguredForMedicationCare,
               importance: Importance.high,
               priority: Priority.high,
               actions: <AndroidNotificationAction>[
-                AndroidNotificationAction(_givenAction, 'Given', showsUserInterface: true),
-                AndroidNotificationAction(_skipAction, 'Skip', showsUserInterface: true),
+                AndroidNotificationAction(_givenAction, appStrings.given, showsUserInterface: true),
+                AndroidNotificationAction(_skipAction, appStrings.skip, showsUserInterface: true),
               ],
             ),
-            iOS: DarwinNotificationDetails(categoryIdentifier: _doseCategory),
+            iOS: const DarwinNotificationDetails(categoryIdentifier: _doseCategory),
           ),
         ),
       );
     }
 
     final reminderWindowEnd = now.add(const Duration(days: 90));
-    for (final reminder in snapshot.respiratoryReminders.where((value) => value.enabled)) {
-      for (final occurrence in _respiratory.generate(
+    for (final reminder in care.respiratoryReminders.where(
+      (value) => value.enabled && activeAnimals.contains(value.animalId),
+    )) {
+      for (final occurrence in _reminders.generate(
         reminder: reminder,
         rangeStartUtc: now,
         rangeEndUtc: reminderWindowEnd,
       )) {
-        final contextLabel = reminder.context == RespiratoryContext.sleeping
-            ? 'sleeping'
-            : 'resting';
         plans.add(
           _NotificationPlan(
             key: 'respiratory:${reminder.id}:${occurrence.intendedLocalTime}',
             dueAt: occurrence.dueAtUtc,
-            title: 'Breathing check for ${_animalName(snapshot, reminder.animalId)}',
-            body: 'Count $contextLabel breaths when your animal is calm.',
+            title: appStrings.breathingCheckFor(_animalName(care, reminder.animalId)),
+            body: reminder.context == RespiratoryContext.sleeping
+                ? appStrings.countSleepingBreaths
+                : appStrings.countRestingBreaths,
             payload: jsonEncode(<String, Object?>{
               'kind': 'respiratory',
               'id': reminder.id,
               'animalId': reminder.animalId,
               'context': reminder.context.name,
             }),
-            details: const NotificationDetails(
+            details: NotificationDetails(
               android: AndroidNotificationDetails(
                 'creaturely_breathing',
-                'Breathing reminders',
+                appStrings.breathingReminders,
                 channelDescription:
-                    'Reminders the keeper has configured for manual breathing checks.',
+                    appStrings.remindersTheKeeperHasConfiguredForManualBreathingChecks,
                 importance: Importance.high,
                 priority: Priority.high,
               ),
-              iOS: DarwinNotificationDetails(),
+              iOS: const DarwinNotificationDetails(),
             ),
           ),
         );
       }
     }
 
-    for (final reminder in snapshot.weightReminders.where((value) => value.enabled)) {
-      for (final occurrence in _weight.generate(
+    for (final reminder in care.weightReminders.where(
+      (value) => value.enabled && activeAnimals.contains(value.animalId),
+    )) {
+      for (final occurrence in _reminders.generate(
         reminder: reminder,
         rangeStartUtc: now,
         rangeEndUtc: reminderWindowEnd,
@@ -215,23 +241,23 @@ class LocalReminderService implements ReminderService {
           _NotificationPlan(
             key: 'weight:${reminder.id}:${occurrence.intendedLocalTime}',
             dueAt: occurrence.dueAtUtc,
-            title: 'Weight check for ${_animalName(snapshot, reminder.animalId)}',
-            body: 'Record a weigh-in when it works for you.',
+            title: appStrings.weightCheckFor(_animalName(care, reminder.animalId)),
+            body: appStrings.recordAWeighInWhenItWorksForYou,
             payload: jsonEncode(<String, Object?>{
               'kind': 'weight',
               'id': reminder.id,
               'animalId': reminder.animalId,
             }),
-            details: const NotificationDetails(
+            details: NotificationDetails(
               android: AndroidNotificationDetails(
                 'creaturely_weight',
-                'Weight check reminders',
+                appStrings.weightCheckReminders,
                 channelDescription:
-                    'Reminders the keeper has configured for recording weight checks.',
+                    appStrings.remindersTheKeeperHasConfiguredForRecordingWeightChecks,
                 importance: Importance.high,
                 priority: Priority.high,
               ),
-              iOS: DarwinNotificationDetails(),
+              iOS: const DarwinNotificationDetails(),
             ),
           ),
         );
@@ -246,7 +272,14 @@ class LocalReminderService implements ReminderService {
     // window leaves room for operating-system bookkeeping and is refreshed
     // after launches and schedule edits.
     final limit = defaultTargetPlatform == TargetPlatform.iOS ? 60 : 500;
-    for (final plan in plans.take(limit)) {
+    final desired = plans.take(limit).toList();
+    final ids = desired.map((plan) => stableNotificationId(plan.key)).toSet();
+    // Remove only obsolete reminders. A failed replacement keeps the other
+    // valid pending notifications instead of erasing the whole schedule.
+    for (final pending in await _plugin.pendingNotificationRequests()) {
+      if (!ids.contains(pending.id)) await _plugin.cancel(id: pending.id);
+    }
+    for (final plan in desired) {
       await _plugin.zonedSchedule(
         id: stableNotificationId(plan.key),
         scheduledDate: tz.TZDateTime.from(plan.dueAt, tz.local),
@@ -262,28 +295,57 @@ class LocalReminderService implements ReminderService {
   }
 
   @override
-  Future<void> clear() => _plugin.cancelAllPendingNotifications();
+  Future<void> clear() => _serialize(_plugin.cancelAllPendingNotifications);
+
+  Future<void> _serialize(Future<void> Function() action) {
+    final work = _tail.then((_) {
+      if (_disposed) throw StateError('Notification service is disposed.');
+      return action();
+    });
+    _tail = work.catchError((Object _) {});
+    return work;
+  }
+
+  void dispose() {
+    _disposed = true;
+    _onAction = null;
+  }
 
   void _handleResponse(NotificationResponse response) {
     final payload = response.payload;
     if (payload == null) {
       return;
     }
-    final decoded = jsonDecode(payload);
-    if (decoded is! Map<String, Object?>) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(payload);
+    } on FormatException {
       return;
     }
-    if (decoded['kind'] == 'dose' &&
-        (response.actionId == _givenAction || response.actionId == _skipAction)) {
-      _onAction?.call(
-        NotificationAction.dose(
-          decoded['id'] as String,
-          response.actionId == _givenAction ? DoseStatus.given : DoseStatus.skipped,
-        ),
-      );
+    if (decoded is! Map<String, Object?> ||
+        decoded['id'] is! String ||
+        (decoded['id'] as String).isEmpty) {
       return;
     }
+    if (decoded['kind'] == 'dose') {
+      final id = decoded['id'] as String;
+      if (response.actionId == _givenAction || response.actionId == _skipAction) {
+        _onAction?.call(
+          NotificationAction.dose(
+            id,
+            response.actionId == _givenAction ? DoseStatus.given : DoseStatus.skipped,
+          ),
+        );
+      } else if (response.notificationResponseType ==
+          NotificationResponseType.selectedNotification) {
+        _onAction?.call(NotificationAction.openDose(id));
+      }
+      return;
+    }
+    if (decoded['animalId'] is! String || (decoded['animalId'] as String).isEmpty) return;
     if (decoded['kind'] == 'respiratory') {
+      final contextName = decoded['context'];
+      if (!RespiratoryContext.values.any((value) => value.name == contextName)) return;
       _onAction?.call(
         NotificationAction.openRespiratory(
           reminderId: decoded['id'] as String,
@@ -303,8 +365,8 @@ class LocalReminderService implements ReminderService {
     }
   }
 
-  String _animalName(CreaturelySnapshot snapshot, String animalId) =>
-      snapshot.animals.firstWhere((animal) => animal.id == animalId).name;
+  String _animalName(CareData care, String animalId) =>
+      care.animals.firstWhere((animal) => animal.id == animalId).name;
 
   @visibleForTesting
   static int stableNotificationId(String value) {
@@ -344,7 +406,7 @@ class NoopReminderService implements ReminderService {
   Future<NotificationPermissionState> requestPermission() async => permission;
 
   @override
-  Future<void> sync(CreaturelySnapshot snapshot, DateTime now) async {}
+  Future<void> sync(CareData care, DateTime now) async {}
 
   @override
   Future<void> clear() async {}

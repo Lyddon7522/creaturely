@@ -69,7 +69,7 @@ void main() {
     await WidgetHarness.pumpFrames(tester, count: 24);
 
     expect(
-      harness.container.read(appControllerProvider).snapshot.respiratoryReminders,
+      (await harness.container.read(repositoryProvider).loadSnapshot()).respiratoryReminders,
       hasLength(2),
     );
 
@@ -99,7 +99,10 @@ void main() {
     await tester.tap(saveWeightReminder);
     await WidgetHarness.pumpFrames(tester, count: 24);
 
-    expect(harness.container.read(appControllerProvider).snapshot.weightReminders, hasLength(2));
+    expect(
+      (await harness.container.read(repositoryProvider).loadSnapshot()).weightReminders,
+      hasLength(2),
+    );
   });
 
   testWidgets('Settings opens GitHub bug reports without including journal data', (tester) async {

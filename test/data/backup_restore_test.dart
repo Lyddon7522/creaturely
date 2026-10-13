@@ -33,6 +33,21 @@ void main() {
     expect(validated.attachments[fixtureChecksum], fixtureAttachment);
   });
 
+  test('validated attachment bytes do not alias a caller-owned uncompressed archive', () {
+    final archive = ZipDecoder().decodeBytes(
+      backups.create(
+        snapshot: fixtureSnapshot(),
+        attachments: {fixtureChecksum: fixtureAttachment},
+      ),
+    );
+    final attachment = archive.files.singleWhere((file) => file.name.startsWith('attachments/'));
+    attachment.compression = CompressionType.none;
+    final bytes = ZipEncoder().encodeBytes(archive);
+    final validated = backups.validate(bytes);
+    bytes.fillRange(0, bytes.length, 0);
+    expect(validated.attachments[fixtureChecksum], fixtureAttachment);
+  });
+
   test('profile photos round-trip as validated content-addressed attachment blobs', () {
     final source = fixtureSnapshot();
     const originalPhotoPath = '/managed/moss-profile.jpg';
@@ -337,17 +352,16 @@ void main() {
 
     await expectLater(coordinator.restore(bytes), throwsStateError);
     expect(store.current.animals.single.name, 'Moss');
-    expect(store.replacements.map((value) => value.animals.single.name), <String>[
-      'Restored Moss',
-      'Moss',
-    ]);
+    expect(store.replacements, isEmpty);
     expect(swap.rollbackCalled, isTrue);
-    expect(swap.finalizeCalled, isFalse);
     expect(safety.bytes, isNotEmpty);
   });
 }
 
 class _MemoryStore implements SnapshotStore {
+  @override
+  Future<T> exclusive<T>(Future<T> Function() action) => action();
+
   _MemoryStore(this.current);
 
   CreaturelySnapshot current;
@@ -364,37 +378,25 @@ class _MemoryStore implements SnapshotStore {
 }
 
 class _FakeRestoreDocuments implements RestoreDocumentStore {
+  @override
+  Future<T> exclusiveFiles<T>(Future<T> Function() action) => action();
   _FakeRestoreDocuments(this.swap);
 
-  final AttachmentSwap swap;
+  final AttachmentGeneration swap;
 
   @override
-  Future<Map<String, Uint8List>> readAttachments(Iterable<CareDocument> documents) async =>
-      <String, Uint8List>{fixtureChecksum: fixtureAttachment};
-
-  @override
-  Future<Map<String, Uint8List>> readAnimalPhotos(Iterable<Animal> animals) async =>
-      const <String, Uint8List>{};
-
-  @override
-  Future<AttachmentSwap> stageRestore(Map<String, Uint8List> attachments) async => swap;
+  Future<AttachmentGeneration> stageRestore(Map<String, Uint8List> attachments) async => swap;
 }
 
-class _FailingSwap implements AttachmentSwap {
+class _FailingSwap implements AttachmentGeneration {
   _FailingSwap(this.finalPaths);
 
   @override
   final Map<String, String> finalPaths;
   bool rollbackCalled = false;
-  bool finalizeCalled = false;
 
   @override
   Future<void> commit() async => throw StateError('Simulated atomic file-swap failure.');
-
-  @override
-  Future<void> finalize() async {
-    finalizeCalled = true;
-  }
 
   @override
   Future<void> rollback() async {
@@ -406,7 +408,7 @@ class _MemorySafetyWriter implements SafetySnapshotWriter {
   Uint8List bytes = Uint8List(0);
 
   @override
-  Future<File> write(Uint8List bytes) async {
+  Future<File> write(Uint8List bytes, {bool incomplete = false}) async {
     this.bytes = bytes;
     return File('/unused/pre-restore.creaturely');
   }

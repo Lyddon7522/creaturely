@@ -5,14 +5,15 @@ import 'document_storage.dart';
 import 'repository.dart';
 
 class RecoverySnapshotManager {
-  const RecoverySnapshotManager({
+  RecoverySnapshotManager({
     required this.store,
     required this.documents,
     required this.backups,
     required this.cloud,
     this.retention = const SnapshotRetention(),
     this.automaticInterval = const Duration(days: 1),
-  });
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now;
 
   final SnapshotStore store;
   final DocumentStorage documents;
@@ -20,13 +21,21 @@ class RecoverySnapshotManager {
   final CloudRecoveryBridge cloud;
   final SnapshotRetention retention;
   final Duration automaticInterval;
+  final DateTime Function() _clock;
+  Future<void> _tail = Future.value();
 
-  Future<CloudSnapshotInfo> createAndPrune({bool force = false}) async {
+  Future<CloudSnapshotInfo> createAndPrune({bool force = false}) {
+    final work = _tail.then((_) => _createAndPrune(force: force));
+    _tail = work.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return work;
+  }
+
+  Future<CloudSnapshotInfo> _createAndPrune({required bool force}) async {
     final status = await cloud.status();
     if (status != CloudRecoveryState.available) {
-      throw CloudRecoveryException(status, _message(status));
+      throw CloudRecoveryException(status, 'Cloud recovery is unavailable (${status.name}).');
     }
-    final now = DateTime.now().toUtc();
+    final now = _clock().toUtc();
     final existing = List<CloudSnapshotInfo>.of(await cloud.list());
     existing.sort((left, right) => right.createdAt.compareTo(left.createdAt));
     if (!force && existing.isNotEmpty) {
@@ -35,13 +44,8 @@ class RecoverySnapshotManager {
         return existing.first;
       }
     }
-    final snapshot = await store.loadSnapshot();
-    final attachments = await documents.readAttachments(snapshot.documents);
-    final animalPhotos = await documents.readAnimalPhotos(snapshot.animals);
-    final bytes = backups.create(
-      snapshot: snapshot,
-      attachments: attachments,
-      animalPhotos: animalPhotos,
+    final bytes = await documents.exclusiveFiles(
+      () async => backups.createFromFiles(snapshot: await store.loadSnapshot()),
     );
     final id = 'snapshot-${now.toIso8601String()}';
     await cloud.upload(id, bytes, now);
@@ -56,16 +60,4 @@ class RecoverySnapshotManager {
     }
     return CloudSnapshotInfo(id: id, createdAt: now, byteLength: bytes.length);
   }
-
-  String _message(CloudRecoveryState state) => switch (state) {
-    CloudRecoveryState.signedOut => 'Sign in to the platform cloud account to use recovery.',
-    CloudRecoveryState.offline => 'Recovery is offline. Local journaling is unaffected.',
-    CloudRecoveryState.quotaExceeded => 'The cloud provider reports that storage is full.',
-    CloudRecoveryState.conflict =>
-      'The cloud provider reported a conflicting recovery snapshot. Local data was not changed.',
-    CloudRecoveryState.notConfigured => 'Recovery capability is not configured in this build.',
-    CloudRecoveryState.permissionDenied => 'Cloud recovery permission was declined.',
-    CloudRecoveryState.unknownError => 'The cloud provider returned an unknown error.',
-    CloudRecoveryState.available => 'Recovery is available.',
-  };
 }

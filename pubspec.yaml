@@ -8,13 +8,10 @@ environment:
 
 dependencies:
   archive: ^4.3.0
-  collection: ^1.19.1
   crypto: ^3.0.7
-  cupertino_icons: ^1.0.9
   drift: ^2.35.0
   drift_flutter: ^0.3.1
-  # 12.x removes explicit KGP application and supports win32 6.x, which is
-  # also required by the current share_plus release.
+  # Supports built-in Kotlin and win32 6.x, matching the share integration.
   file_picker: ^13.1.0
   fl_chart: ^1.2.0
   flutter:
@@ -31,7 +28,6 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.6
   pdf: ^3.13.0
-  printing: ^5.15.1
   share_plus: ^13.3.0
   timezone: ^0.11.1
   url_launcher: ^6.3.2

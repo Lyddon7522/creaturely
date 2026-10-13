@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../domain/models.dart';
+import '../../l10n/app_strings.dart';
 import '../app_controller.dart';
 import 'animal_avatar.dart';
 import 'brand.dart';
@@ -556,8 +558,13 @@ class AnimalPicker extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(appControllerProvider);
-    final animal = state.selectedAnimal;
+    final activeAnimals = (ref.watch(animalsProvider(null)).value ?? const <Animal>[])
+        .where((animal) => !animal.archived)
+        .toList();
+    final selectedId = ref.watch(selectedAnimalProvider);
+    final animal =
+        activeAnimals.where((animal) => animal.id == selectedId).firstOrNull ??
+        activeAnimals.firstOrNull;
     if (animal == null) {
       return const SizedBox.shrink();
     }
@@ -565,7 +572,7 @@ class AnimalPicker extends ConsumerWidget {
     return MenuAnchor(
       builder: (context, controller, child) => Semantics(
         button: true,
-        label: 'Selected animal: ${animal.name}. Change animal.',
+        label: AppLocalizations.of(context).selectedAnimalChangeAnimal(animal.name),
         child: TextButton.icon(
           onPressed: () => controller.isOpen ? controller.close() : controller.open(),
           style: compact
@@ -580,9 +587,9 @@ class AnimalPicker extends ConsumerWidget {
         ),
       ),
       menuChildren: [
-        for (final option in state.activeAnimals)
+        for (final option in activeAnimals)
           MenuItemButton(
-            onPressed: () => ref.read(appControllerProvider.notifier).selectAnimal(option.id),
+            onPressed: () => ref.read(selectedAnimalProvider.notifier).selectAnimal(option.id),
             leadingIcon: AnimalAvatar(animal: option, radius: 13),
             child: Text(option.name),
           ),
@@ -590,7 +597,7 @@ class AnimalPicker extends ConsumerWidget {
         MenuItemButton(
           onPressed: () => context.push('/animal/new'),
           leadingIcon: const Icon(Icons.add_rounded),
-          child: const Text('Add animal'),
+          child: Text(AppLocalizations.of(context).addAnimal),
         ),
       ],
     );
@@ -602,7 +609,7 @@ class SettingsAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-    tooltip: 'Settings',
+    tooltip: AppLocalizations.of(context).settings,
     onPressed: () => context.push('/settings'),
     icon: const Icon(Icons.settings_outlined),
   );
@@ -616,7 +623,7 @@ class LoadingPane extends StatelessWidget {
     body: Center(
       child: Semantics(
         container: true,
-        label: 'Loading Creaturely',
+        label: AppLocalizations.of(context).loadingCreaturely,
         child: const ExcludeSemantics(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -625,5 +632,28 @@ class LoadingPane extends StatelessWidget {
         ),
       ),
     ),
+  );
+}
+
+/// A query failure must not look like an empty journal or reset a form draft.
+class QueryPane extends StatelessWidget {
+  const QueryPane({required this.error, required this.onRetry, super.key});
+  final Object? error;
+  final VoidCallback onRetry;
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(actions: const [SettingsAction()]),
+    body: error == null
+        ? const LoadingPane()
+        : EmptyState(
+            icon: Icons.storage_outlined,
+            title: AppLocalizations.of(context).journalDataUnavailable,
+            body: AppLocalizations.of(context).journalDataUnavailableHelp,
+            action: FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(AppLocalizations.of(context).tryAgain),
+            ),
+          ),
   );
 }

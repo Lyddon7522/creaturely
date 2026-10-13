@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
-import 'package:archive/archive.dart';
+import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 
@@ -53,12 +54,12 @@ class AttachmentInventoryEntry {
 }
 
 class BackupManifest {
-  const BackupManifest({
+  BackupManifest({
     required this.createdAt,
     required this.schemaVersion,
     required this.dataChecksumSha256,
-    required this.attachments,
-  });
+    required List<AttachmentInventoryEntry> attachments,
+  }) : attachments = List.unmodifiable(attachments);
 
   factory BackupManifest.fromJson(Map<String, Object?> json) {
     if (json['format'] != formatName) {
@@ -126,11 +127,15 @@ class BackupManifest {
 }
 
 class ValidatedBackup {
-  const ValidatedBackup({
+  ValidatedBackup._({
     required this.manifest,
     required this.snapshot,
-    required this.attachments,
-  });
+    required Map<String, Uint8List> attachments,
+  }) : attachments = Map.unmodifiable(
+         attachments.map(
+           (key, value) => MapEntry(key, Uint8List.fromList(value).asUnmodifiableView()),
+         ),
+       );
 
   final BackupManifest manifest;
   final CreaturelySnapshot snapshot;
@@ -138,7 +143,86 @@ class ValidatedBackup {
 }
 
 class CreaturelyBackupService {
+  Future<ValidatedBackup> validateAsync(Uint8List bytes) => Isolate.run(() => validate(bytes));
+
   const CreaturelyBackupService();
+
+  /// Stream each original into the ZIP in a worker. The platform save/share
+  /// boundary needs the final bytes, but originals aren't accumulated in RAM.
+  Future<Uint8List> createFromFiles({required CreaturelySnapshot snapshot}) => Isolate.run(
+    () async {
+      final sources = <String, File>{};
+      final inventory = <AttachmentInventoryEntry>[];
+      Future<String> add(File file, {String? expectedHash, int? expectedLength}) async {
+        final checksum = await DocumentStorage.checksumFile(file);
+        final length = await file.length();
+        if ((expectedHash != null && checksum != expectedHash) ||
+            (expectedLength != null && length != expectedLength)) {
+          throw const FormatException('An attachment failed checksum validation.');
+        }
+        final archivePath = 'attachments/$checksum.blob';
+        if (!sources.containsKey(checksum)) {
+          sources[checksum] = file;
+          inventory.add(
+            AttachmentInventoryEntry(
+              checksumSha256: checksum,
+              archivePath: archivePath,
+              byteLength: length,
+            ),
+          );
+        }
+        return archivePath;
+      }
+
+      final animals = <Animal>[];
+      for (final animal in snapshot.animals) {
+        animals.add(
+          animal.photoPath == null
+              ? animal
+              : animal.copyWith(photoPath: await add(File(animal.photoPath!))),
+        );
+      }
+      final documents = <CareDocument>[];
+      for (final document in snapshot.documents) {
+        documents.add(
+          document.copyWith(
+            storedPath: await add(
+              File(document.storedPath),
+              expectedHash: document.checksumSha256,
+              expectedLength: document.byteLength,
+            ),
+          ),
+        );
+      }
+      final portable = _withPortablePaths(snapshot, animals: animals, documents: documents);
+      final data = utf8.encode(portable.toCanonicalJson());
+      final manifest = BackupManifest(
+        createdAt: snapshot.exportedAt,
+        schemaVersion: snapshot.schemaVersion,
+        dataChecksumSha256: sha256.convert(data).toString(),
+        attachments: inventory,
+      );
+      final temporary = await Directory.systemTemp.createTemp('creaturely-backup-');
+      final output = File(path.join(temporary.path, 'backup.zip'));
+      final encoder = ZipFileEncoder();
+      var opened = false;
+      try {
+        encoder.create(output.path);
+        opened = true;
+        encoder.addArchiveFile(ArchiveFile.string('manifest.json', jsonEncode(manifest.toJson())));
+        encoder.addArchiveFile(ArchiveFile.bytes('data.json', data));
+        for (final entry in sources.entries) {
+          await encoder.addFile(entry.value, 'attachments/${entry.key}.blob');
+        }
+        await encoder.close();
+        opened = false;
+        return await output.readAsBytes();
+      } finally {
+        if (opened) await encoder.close();
+        await temporary.delete(recursive: true);
+      }
+    },
+  );
 
   Uint8List create({
     required CreaturelySnapshot snapshot,
@@ -325,7 +409,7 @@ class CreaturelyBackupService {
         !attachmentBytes.keys.every(referenced.contains)) {
       throw const CorruptBackupException('Attachment inventory contains unreferenced blobs.');
     }
-    return ValidatedBackup(manifest: manifest, snapshot: snapshot, attachments: attachmentBytes);
+    return ValidatedBackup._(manifest: manifest, snapshot: snapshot, attachments: attachmentBytes);
   }
 
   bool _unsafePath(String value) =>
@@ -512,7 +596,7 @@ class CreaturelyBackupService {
 final RegExp _sha256Pattern = RegExp(r'^[a-f0-9]{64}$');
 
 abstract interface class SafetySnapshotWriter {
-  Future<File> write(Uint8List bytes);
+  Future<File> write(Uint8List bytes, {bool incomplete = false});
 }
 
 class DirectorySafetySnapshotWriter implements SafetySnapshotWriter {
@@ -521,10 +605,15 @@ class DirectorySafetySnapshotWriter implements SafetySnapshotWriter {
   final Directory directory;
 
   @override
-  Future<File> write(Uint8List bytes) async {
+  Future<File> write(Uint8List bytes, {bool incomplete = false}) async {
     await directory.create(recursive: true);
     final stamp = DateTime.now().toUtc().toIso8601String().replaceAll(':', '-');
-    final file = File(path.join(directory.path, 'before-restore-$stamp.creaturely'));
+    final file = File(
+      path.join(
+        directory.path,
+        'before-restore-$stamp.${incomplete ? 'recovery.zip' : 'creaturely'}',
+      ),
+    );
     await file.writeAsBytes(bytes, flush: true);
     return file;
   }
@@ -543,65 +632,115 @@ class AtomicRestoreCoordinator {
   final RestoreDocumentStore documents;
   final SafetySnapshotWriter safetyWriter;
 
-  Future<void> restore(Uint8List bytes) async {
-    final validated = backups.validate(bytes);
-    final previous = await store.loadSnapshot();
-    final previousAttachments = await documents.readAttachments(previous.documents);
-    final previousPhotos = await documents.readAnimalPhotos(previous.animals);
-    await safetyWriter.write(
-      backups.create(
-        snapshot: previous,
-        attachments: previousAttachments,
-        animalPhotos: previousPhotos,
-      ),
-    );
-    final staged = await documents.stageRestore(validated.attachments);
-    final remapped = _remapPaths(validated.snapshot, staged.finalPaths);
+  Future<void> restore(Uint8List bytes) async =>
+      restoreValidated(await backups.validateAsync(bytes));
 
-    var databaseChanged = false;
-    try {
-      await store.replaceSnapshot(remapped);
-      databaseChanged = true;
-      await staged.commit();
-    } on Object {
-      if (databaseChanged) {
-        await store.replaceSnapshot(previous);
+  /// The validated value comes from the confirmation step; do not inflate and
+  /// validate the same archive again. SQLite serializes restore with live writes.
+  Future<void> restoreValidated(ValidatedBackup validated) => documents.exclusiveFiles(
+    () => store.exclusive(() async {
+      final previous = await store.loadSnapshot();
+      try {
+        await safetyWriter.write(await backups.createFromFiles(snapshot: previous));
+      } on FileSystemException {
+        await _preserveDamagedJournal(previous);
+      } on FormatException {
+        await _preserveDamagedJournal(previous);
       }
-      await staged.rollback();
-      rethrow;
-    }
-    await staged.finalize();
+      final staged = await documents.stageRestore(validated.attachments);
+      try {
+        await staged.commit();
+      } on Object {
+        await staged.rollback();
+        rethrow;
+      }
+      // Never delete a published generation on an uncertain commit outcome. A
+      // restart can determine reachability from the authoritative SQLite rows.
+      await store.replaceSnapshot(
+        _remapPaths(validated.snapshot, staged.finalPaths, previous.settings),
+      );
+    }),
+  );
+
+  Future<void> _preserveDamagedJournal(CreaturelySnapshot snapshot) async {
+    // This recovery bundle deliberately retains original metadata, including
+    // references to missing/corrupt files. It is evidence for repair, not a
+    // portable backup claiming that every attachment passed validation.
+    final paths = <String>{
+      ...snapshot.documents.map((document) => document.storedPath),
+      ...snapshot.animals.map((animal) => animal.photoPath).whereType<String>(),
+    };
+    final bytes = await Isolate.run(() async {
+      final temporary = await Directory.systemTemp.createTemp('creaturely-safety-');
+      final output = File(path.join(temporary.path, 'recovery.zip'));
+      final encoder = ZipFileEncoder();
+      var opened = false;
+      try {
+        encoder.create(output.path);
+        opened = true;
+        encoder.addArchiveFile(
+          ArchiveFile.string('original-data.json', snapshot.toCanonicalJson()),
+        );
+        final inventory = <String, String?>{};
+        for (final source in paths) {
+          final file = File(source);
+          if (!await file.exists()) {
+            inventory[source] = null;
+            continue;
+          }
+          final name = 'available/${sha256.convert(utf8.encode(source))}.blob';
+          await encoder.addFile(file, name);
+          inventory[source] = name;
+        }
+        encoder.addArchiveFile(ArchiveFile.string('recovery-files.json', jsonEncode(inventory)));
+        await encoder.close();
+        opened = false;
+        return await output.readAsBytes();
+      } finally {
+        if (opened) await encoder.close();
+        await temporary.delete(recursive: true);
+      }
+    });
+    await safetyWriter.write(bytes, incomplete: true);
   }
 
-  CreaturelySnapshot _remapPaths(CreaturelySnapshot snapshot, Map<String, String> finalPaths) =>
-      CreaturelySnapshot(
-        schemaVersion: snapshot.schemaVersion,
-        exportedAt: snapshot.exportedAt,
-        animals: snapshot.animals
-            .map((animal) {
-              final portablePath = animal.photoPath;
-              if (portablePath == null) {
-                return animal;
-              }
-              final checksum = path.basenameWithoutExtension(portablePath);
-              final finalPath = finalPaths[checksum];
-              if (finalPath == null) {
-                throw CorruptBackupException('Profile photo for "${animal.name}" was not staged.');
-              }
-              return animal.copyWith(photoPath: finalPath);
-            })
-            .toList(growable: false),
-        identifiers: snapshot.identifiers,
-        respiratorySessions: snapshot.respiratorySessions,
-        respiratoryReminders: snapshot.respiratoryReminders,
-        weightReminders: snapshot.weightReminders,
-        medications: snapshot.medications,
-        medicationSchedules: snapshot.medicationSchedules,
-        doseLedger: snapshot.doseLedger,
-        healthRecords: snapshot.healthRecords,
-        documents: snapshot.documents
-            .map((document) => document.copyWith(storedPath: finalPaths[document.checksumSha256]!))
-            .toList(growable: false),
-        settings: snapshot.settings,
-      );
+  CreaturelySnapshot _remapPaths(
+    CreaturelySnapshot snapshot,
+    Map<String, String> finalPaths,
+    AppSettings deviceSettings,
+  ) => CreaturelySnapshot(
+    schemaVersion: snapshot.schemaVersion,
+    exportedAt: snapshot.exportedAt,
+    animals: snapshot.animals
+        .map((animal) {
+          final portablePath = animal.photoPath;
+          if (portablePath == null) {
+            return animal;
+          }
+          final checksum = path.basenameWithoutExtension(portablePath);
+          final finalPath = finalPaths[checksum];
+          if (finalPath == null) {
+            throw CorruptBackupException('Profile photo for "${animal.name}" was not staged.');
+          }
+          return animal.copyWith(photoPath: finalPath);
+        })
+        .toList(growable: false),
+    identifiers: snapshot.identifiers,
+    respiratorySessions: snapshot.respiratorySessions,
+    respiratoryReminders: snapshot.respiratoryReminders,
+    weightReminders: snapshot.weightReminders,
+    medications: snapshot.medications,
+    medicationSchedules: snapshot.medicationSchedules,
+    doseLedger: snapshot.doseLedger,
+    healthRecords: snapshot.healthRecords,
+    documents: snapshot.documents
+        .map((document) => document.copyWith(storedPath: finalPaths[document.checksumSha256]!))
+        .toList(growable: false),
+    settings: snapshot.settings.copyWith(
+      notificationPermissionAsked: deviceSettings.notificationPermissionAsked,
+      notificationsAllowed: deviceSettings.notificationsAllowed,
+      automaticRecoveryEnabled: deviceSettings.automaticRecoveryEnabled,
+      cloudProvider: deviceSettings.cloudProvider,
+    ),
+  );
 }

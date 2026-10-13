@@ -15,7 +15,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1000, 900);
     addTearDown(tester.view.reset);
-    final harness = await WidgetHarness.create(snapshot: fixtureSnapshot());
+    final harness = await WidgetHarness.create(
+      snapshot: fixtureSnapshot(),
+      clock: () => fixtureTime,
+    );
     addTearDown(() => harness.close(tester));
     await harness.pumpApp(tester);
 
@@ -245,7 +248,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(430, 1000);
     addTearDown(tester.view.reset);
-    final now = DateTime.now().toUtc();
+    final now = DateTime.utc(2026, 9, 6, 12);
     final next = now.add(const Duration(hours: 1));
     final thisWeek = now.add(const Duration(days: 2));
     final far = now.add(const Duration(days: 80));
@@ -255,7 +258,10 @@ void main() {
       _dose('week-dose', thisWeek).toJson(),
       _dose('far-dose', far).toJson(),
     ];
-    final harness = await WidgetHarness.create(snapshot: CreaturelySnapshot.fromJson(json));
+    final harness = await WidgetHarness.create(
+      snapshot: CreaturelySnapshot.fromJson(json),
+      clock: () => now,
+    );
     addTearDown(() => harness.close(tester));
     await harness.pumpApp(tester);
 
@@ -270,12 +276,21 @@ void main() {
     await tester.tap(find.text('7 days'));
     await WidgetHarness.pumpFrames(tester);
 
-    await tester.scrollUntilVisible(find.text('Supportive care'), 240);
-    expect(find.text('Supportive care'), findsOneWidget);
-    final secondDay = DateFormat.EEEE().add_MMMd().format(thisWeek.toLocal());
-    await tester.scrollUntilVisible(find.text(secondDay), 300);
-    expect(find.text(secondDay), findsOneWidget);
-    expect(find.text('Supportive care'), findsOneWidget);
+    final nextOccurrence = find.byKey(const ValueKey('schedule_dose:next-dose'));
+    final weekOccurrence = find.byKey(const ValueKey('schedule_dose:week-dose'));
+    final list = find
+        .descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable))
+        .first;
+    await tester.scrollUntilVisible(nextOccurrence, 240, scrollable: list);
+    expect(
+      find.descendant(of: nextOccurrence, matching: find.text('Supportive care')),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(weekOccurrence, 240, scrollable: list);
+    expect(
+      find.descendant(of: weekOccurrence, matching: find.text('Supportive care')),
+      findsOneWidget,
+    );
     expect(find.text(DateFormat.EEEE().add_MMMd().format(far.toLocal())), findsNothing);
   });
 

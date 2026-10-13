@@ -6,6 +6,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
+import '../domain/care_data.dart';
 import '../domain/models.dart' as domain;
 
 part 'database.g.dart';
@@ -155,6 +156,8 @@ class MedicationScheduleRows extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+@TableIndex(name: 'dose_medication_due', columns: {#medicationId, #dueAt})
+@TableIndex(name: 'dose_pending_due', columns: {#status, #dueAt})
 @DataClassName('DoseLedgerEntity')
 class DoseLedgerRows extends Table {
   TextColumn get id => text()();
@@ -246,7 +249,7 @@ class AppDatabase extends _$AppDatabase {
     : super(
         driftDatabase(
           name: 'creaturely',
-          native: DriftNativeOptions(databasePath: _databasePathWithSafetySnapshot),
+          native: const DriftNativeOptions(databasePath: _databasePathWithSafetySnapshot),
         ),
       );
 
@@ -287,67 +290,202 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      // Add non-unique query indexes to existing schema-v5 journals as well.
+      final ledger = await customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'dose_ledger_rows'",
+      ).get();
+      if (ledger.isNotEmpty) {
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS dose_medication_due ON dose_ledger_rows (medication_id, due_at)',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS dose_pending_due ON dose_ledger_rows (status, due_at)',
+        );
+      }
     },
   );
 
-  Future<domain.CreaturelySnapshot> snapshot({DateTime? exportedAt}) async {
-    final results = await Future.wait<List<Object>>([
-      select(animalRows).get(),
-      select(identifierRows).get(),
-      select(respiratorySessionRows).get(),
-      select(respiratoryReminderRows).get(),
-      select(weightReminderRows).get(),
-      select(medicationRows).get(),
-      select(medicationScheduleRows).get(),
-      select(doseLedgerRows).get(),
-      select(healthRecordRows).get(),
-      select(careDocumentRows).get(),
-    ]);
-    final settingsRow = await (select(
-      settingRows,
-    )..where((row) => row.key.equals('app'))).getSingleOrNull();
+  Future<domain.CreaturelySnapshot> snapshot({DateTime? exportedAt}) => transaction(() async {
     return domain.CreaturelySnapshot(
       schemaVersion: schemaVersion,
       exportedAt: exportedAt ?? DateTime.now().toUtc(),
-      animals: results[0].cast<AnimalEntity>().map(_animalFromEntity).toList(growable: false),
-      identifiers: results[1]
-          .cast<IdentifierEntity>()
-          .map(_identifierFromEntity)
-          .toList(growable: false),
-      respiratorySessions: results[2]
-          .cast<RespiratorySessionEntity>()
-          .map(_sessionFromEntity)
-          .toList(growable: false),
-      respiratoryReminders: results[3]
-          .cast<RespiratoryReminderEntity>()
-          .map(_respiratoryReminderFromEntity)
-          .toList(growable: false),
-      weightReminders: results[4]
-          .cast<WeightReminderEntity>()
-          .map(_weightReminderFromEntity)
-          .toList(growable: false),
-      medications: results[5]
-          .cast<MedicationEntity>()
-          .map(_medicationFromEntity)
-          .toList(growable: false),
-      medicationSchedules: results[6]
-          .cast<MedicationScheduleEntity>()
-          .map(_scheduleFromEntity)
-          .toList(growable: false),
-      doseLedger: results[7].cast<DoseLedgerEntity>().map(_doseFromEntity).toList(growable: false),
-      healthRecords: results[8]
-          .cast<HealthRecordEntity>()
-          .map(_healthFromEntity)
-          .toList(growable: false),
-      documents: results[9]
-          .cast<CareDocumentEntity>()
-          .map(_documentFromEntity)
-          .toList(growable: false),
-      settings: settingsRow == null
-          ? const domain.AppSettings()
-          : domain.AppSettings.fromJson(jsonDecode(settingsRow.jsonValue) as Map<String, Object?>),
+      animals: (await select(animalRows).get()).map(_animalFromEntity).toList(),
+      identifiers: (await select(identifierRows).get()).map(_identifierFromEntity).toList(),
+      respiratorySessions: (await select(
+        respiratorySessionRows,
+      ).get()).map(_sessionFromEntity).toList(),
+      respiratoryReminders: (await select(
+        respiratoryReminderRows,
+      ).get()).map(_respiratoryReminderFromEntity).toList(),
+      weightReminders: (await select(
+        weightReminderRows,
+      ).get()).map(_weightReminderFromEntity).toList(),
+      medications: (await select(medicationRows).get()).map(_medicationFromEntity).toList(),
+      medicationSchedules: (await select(
+        medicationScheduleRows,
+      ).get()).map(_scheduleFromEntity).toList(),
+      doseLedger: (await select(doseLedgerRows).get()).map(_doseFromEntity).toList(),
+      healthRecords: (await select(healthRecordRows).get()).map(_healthFromEntity).toList(),
+      documents: (await select(careDocumentRows).get()).map(_documentFromEntity).toList(),
+      settings: await readSettings(),
     );
+  });
+
+  Future<List<domain.Animal>> readAnimals() async =>
+      (await select(animalRows).get()).map(_animalFromEntity).toList();
+
+  Stream<List<domain.Animal>> watchAnimals({String? animalId}) {
+    final query = select(animalRows);
+    if (animalId != null) query.where((row) => row.id.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_animalFromEntity)));
   }
+
+  Stream<List<domain.AnimalIdentifier>> watchIdentifiers({String? animalId}) {
+    final query = select(identifierRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_identifierFromEntity)));
+  }
+
+  Stream<List<domain.RespiratorySession>> watchSessions({String? animalId, int? limit}) {
+    final query = select(respiratorySessionRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    if (limit != null) {
+      query
+        ..orderBy([(row) => OrderingTerm.desc(row.recordedAt), (row) => OrderingTerm.desc(row.id)])
+        ..limit(limit);
+    }
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_sessionFromEntity)));
+  }
+
+  Stream<List<domain.RespiratoryReminder>> watchRespiratoryReminders({String? animalId}) {
+    final query = select(respiratoryReminderRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_respiratoryReminderFromEntity)));
+  }
+
+  Stream<List<domain.WeightCheckReminder>> watchWeightReminders({String? animalId}) {
+    final query = select(weightReminderRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_weightReminderFromEntity)));
+  }
+
+  Stream<List<domain.Medication>> watchMedications({String? animalId}) {
+    final query = select(medicationRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_medicationFromEntity)));
+  }
+
+  Stream<List<domain.MedicationSchedule>> watchSchedules({String? animalId}) {
+    final query = select(medicationScheduleRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_scheduleFromEntity)));
+  }
+
+  Stream<List<domain.DoseLedgerEntry>> watchDoses({String? animalId}) {
+    final query = select(doseLedgerRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_doseFromEntity)));
+  }
+
+  Stream<List<domain.HealthRecord>> watchHealthRecords({String? animalId}) {
+    final query = select(healthRecordRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_healthFromEntity)));
+  }
+
+  Stream<List<domain.CareDocument>> watchDocuments({String? animalId}) {
+    final query = select(careDocumentRows);
+    if (animalId != null) query.where((row) => row.animalId.equals(animalId));
+    return query
+        .watch()
+        .distinct(_sameRows)
+        .map((rows) => List.unmodifiable(rows.map(_documentFromEntity)));
+  }
+
+  Future<domain.AppSettings> readSettings() async {
+    final row = await (select(
+      settingRows,
+    )..where((row) => row.key.equals('app'))).getSingleOrNull();
+    return row == null
+        ? const domain.AppSettings()
+        : domain.AppSettings.fromJson(jsonDecode(row.jsonValue) as Map<String, Object?>);
+  }
+
+  Stream<domain.AppSettings> watchSettings() =>
+      (select(settingRows)..where((row) => row.key.equals('app'))).watchSingleOrNull().map(
+        (row) => row == null
+            ? const domain.AppSettings()
+            : domain.AppSettings.fromJson(jsonDecode(row.jsonValue) as Map<String, Object?>),
+      );
+
+  Future<domain.DoseLedgerEntry?> findDose(String id) async {
+    final row = await (select(doseLedgerRows)..where((row) => row.id.equals(id))).getSingleOrNull();
+    return row == null ? null : _doseFromEntity(row);
+  }
+
+  Future<DateTime?> lastPlannedDose(String medicationId) async {
+    final query = select(doseLedgerRows)
+      ..where((row) => row.medicationId.equals(medicationId))
+      ..orderBy([(row) => OrderingTerm.desc(row.dueAt)])
+      ..limit(1);
+    return (await query.getSingleOrNull())?.dueAt;
+  }
+
+  Future<void> markOverdue(DateTime now) =>
+      (update(doseLedgerRows)..where(
+            (row) =>
+                row.status.equals('unrecorded') &
+                row.dueAt.isSmallerThanValue(now.subtract(const Duration(hours: 2))),
+          ))
+          .write(DoseLedgerRowsCompanion(status: const Value('missed'), updatedAt: Value(now)));
+
+  /// A consistent read of only the tables used by care maintenance/scheduling.
+  Future<CareData> readCareData() => transaction(
+    () async => CareData(
+      animals: (await select(animalRows).get()).map(_animalFromEntity).toList(),
+      respiratoryReminders: (await select(
+        respiratoryReminderRows,
+      ).get()).map(_respiratoryReminderFromEntity).toList(),
+      weightReminders: (await select(
+        weightReminderRows,
+      ).get()).map(_weightReminderFromEntity).toList(),
+      medications: (await select(medicationRows).get()).map(_medicationFromEntity).toList(),
+      medicationSchedules: (await select(
+        medicationScheduleRows,
+      ).get()).map(_scheduleFromEntity).toList(),
+      doseLedger: (await (select(
+        doseLedgerRows,
+      )..where((row) => row.status.equals('unrecorded'))).get()).map(_doseFromEntity).toList(),
+      settings: await readSettings(),
+    ),
+  );
 
   Future<void> replaceWith(domain.CreaturelySnapshot value) => transaction(() async {
     await delete(doseLedgerRows).go();
@@ -617,36 +755,22 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
-  Future<void> deleteRecord(String tableName, String id) async {
-    final allowed = <String>{
-      'respiratory_sessions',
-      'respiratory_reminders',
-      'weight_reminders',
-      'medications',
-      'health_records',
-      'documents',
-      'identifiers',
-    };
-    if (!allowed.contains(tableName)) {
-      throw ArgumentError.value(tableName, 'tableName', 'Deletion table is not allowed.');
-    }
+  Future<void> deleteRecord(domain.RecordKind tableName, String id) async {
     switch (tableName) {
-      case 'respiratory_sessions':
+      case domain.RecordKind.respiratorySession:
         await (delete(respiratorySessionRows)..where((row) => row.id.equals(id))).go();
-      case 'respiratory_reminders':
+      case domain.RecordKind.respiratoryReminder:
         await (delete(respiratoryReminderRows)..where((row) => row.id.equals(id))).go();
-      case 'weight_reminders':
+      case domain.RecordKind.weightReminder:
         await (delete(weightReminderRows)..where((row) => row.id.equals(id))).go();
-      case 'medications':
+      case domain.RecordKind.medication:
         await (delete(medicationRows)..where((row) => row.id.equals(id))).go();
-      case 'health_records':
+      case domain.RecordKind.healthRecord:
         await (delete(healthRecordRows)..where((row) => row.id.equals(id))).go();
-      case 'documents':
+      case domain.RecordKind.document:
         await (delete(careDocumentRows)..where((row) => row.id.equals(id))).go();
-      case 'identifiers':
+      case domain.RecordKind.identifier:
         await (delete(identifierRows)..where((row) => row.id.equals(id))).go();
-      default:
-        throw StateError('Unreachable table selection.');
     }
   }
 
@@ -871,4 +995,12 @@ Future<String> _databasePathWithSafetySnapshot() async {
     }
   }
   return database.path;
+}
+
+bool _sameRows<T>(List<T> before, List<T> after) {
+  if (before.length != after.length) return false;
+  for (var index = 0; index < before.length; index++) {
+    if (before[index] != after[index]) return false;
+  }
+  return true;
 }

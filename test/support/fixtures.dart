@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:creaturely/domain/care_data.dart';
 import 'package:creaturely/domain/models.dart';
 import 'package:crypto/crypto.dart';
 
@@ -170,3 +171,16 @@ CreaturelySnapshot fixtureSnapshot({String storedPath = '/managed/rabies.pdf'}) 
         notificationsAllowed: true,
       ),
     );
+
+CareData fixtureCareData([CreaturelySnapshot? snapshot]) {
+  final journal = snapshot ?? fixtureSnapshot();
+  return CareData(
+    animals: journal.animals,
+    medications: journal.medications,
+    medicationSchedules: journal.medicationSchedules,
+    doseLedger: journal.doseLedger,
+    respiratoryReminders: journal.respiratoryReminders,
+    weightReminders: journal.weightReminders,
+    settings: journal.settings,
+  );
+}

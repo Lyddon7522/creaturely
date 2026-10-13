@@ -4,17 +4,20 @@ import 'dart:typed_data';
 import 'package:creaturely/app.dart';
 import 'package:creaturely/data/database.dart';
 import 'package:creaturely/data/document_storage.dart';
+import 'package:creaturely/data/repository.dart';
 import 'package:creaturely/domain/models.dart';
 import 'package:creaturely/platform/cloud_recovery_bridge.dart';
 import 'package:creaturely/platform/document_save_service.dart';
 import 'package:creaturely/platform/external_link_service.dart';
 import 'package:creaturely/platform/feedback_service.dart';
+import 'package:creaturely/platform/media_service.dart';
 import 'package:creaturely/platform/notification_service.dart';
 import 'package:creaturely/platform/time_zone_service.dart';
 import 'package:creaturely/ui/app_controller.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -38,6 +41,11 @@ class WidgetHarness {
     RecordingFeedback feedback = const NoopRecordingFeedback(),
     DocumentSaveService? documentSaver,
     ExternalLinkService? externalLinks,
+    DateTime Function()? clock,
+    CreaturelyRepository Function(AppDatabase)? repositoryFactory,
+    MediaService? media,
+    CloudRecoveryBridge? cloud,
+    List<Override> providerOverrides = const [],
   }) async {
     tz_data.initializeTimeZones();
     tz.setLocalLocation(tz.UTC);
@@ -50,13 +58,18 @@ class WidgetHarness {
     final container = ProviderContainer(
       overrides: [
         databaseProvider.overrideWithValue(database),
+        if (repositoryFactory != null)
+          repositoryProvider.overrideWithValue(repositoryFactory(database)),
+        if (clock != null) wallClockProvider.overrideWithValue(clock),
         documentStorageProvider.overrideWith((ref) async => documents),
         reminderServiceProvider.overrideWithValue(NoopReminderService(permission: permission)),
         timeZoneServiceProvider.overrideWithValue(const _UtcTimeZoneService()),
         recordingFeedbackProvider.overrideWithValue(feedback),
-        cloudRecoveryBridgeProvider.overrideWithValue(const _OfflineCloudBridge()),
+        cloudRecoveryBridgeProvider.overrideWithValue(cloud ?? const _OfflineCloudBridge()),
+        if (media != null) mediaServiceProvider.overrideWithValue(media),
         if (documentSaver != null) documentSaveServiceProvider.overrideWithValue(documentSaver),
         if (externalLinks != null) externalLinkServiceProvider.overrideWithValue(externalLinks),
+        ...providerOverrides,
       ],
     );
     return WidgetHarness._(

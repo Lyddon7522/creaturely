@@ -41,8 +41,12 @@ class RespiratoryMath {
 }
 
 class RespiratoryTimerController {
-  RespiratoryTimerController({required this.targetDuration, DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now {
+  RespiratoryTimerController({
+    required this.targetDuration,
+    DateTime Function()? clock,
+    Duration Function()? elapsedClock,
+  }) : _clock = clock ?? DateTime.now,
+       _elapsedClock = elapsedClock ?? _stopwatchClock() {
     if (!const <int>[15, 20, 30, 60].contains(targetDuration.inSeconds)) {
       throw ArgumentError.value(
         targetDuration,
@@ -54,23 +58,24 @@ class RespiratoryTimerController {
 
   final Duration targetDuration;
   final DateTime Function() _clock;
-  final List<DateTime> _breaths = <DateTime>[];
+  final Duration Function() _elapsedClock;
+  int _breathCount = 0;
 
   RespiratoryTimerStatus _status = RespiratoryTimerStatus.ready;
-  DateTime? _runStartedAt;
+  Duration? _runStartedAt;
   Duration _elapsedBeforeRun = Duration.zero;
   Duration? _completedElapsed;
 
   RespiratoryTimerStatus get status => _status;
 
   RespiratoryTimerSnapshot snapshot([DateTime? at]) {
-    final elapsed = _elapsed(at ?? _clock());
+    final elapsed = _elapsed(_tickAt(at));
     return RespiratoryTimerSnapshot(
       status: _status,
       targetDuration: targetDuration,
       elapsed: elapsed,
-      breathCount: _breaths.length,
-      canUndo: _breaths.isNotEmpty && _status != RespiratoryTimerStatus.saved,
+      breathCount: _breathCount,
+      canUndo: _breathCount > 0 && _status != RespiratoryTimerStatus.saved,
     );
   }
 
@@ -78,24 +83,24 @@ class RespiratoryTimerController {
     if (_status != RespiratoryTimerStatus.ready) {
       throw StateError('A respiratory timer can only be started once.');
     }
-    _runStartedAt = at ?? _clock();
+    _runStartedAt = _tickAt(at);
     _status = RespiratoryTimerStatus.running;
   }
 
   void recordBreath([DateTime? at]) {
-    final now = at ?? _clock();
+    final now = _tickAt(at);
     _completeIfDue(now);
     if (_status != RespiratoryTimerStatus.running) {
       throw StateError('Breaths can only be recorded while the timer is running.');
     }
-    _breaths.add(now);
+    _breathCount++;
   }
 
   bool undoLastBreath() {
-    if (_breaths.isEmpty || _status == RespiratoryTimerStatus.saved) {
+    if (_breathCount == 0 || _status == RespiratoryTimerStatus.saved) {
       return false;
     }
-    _breaths.removeLast();
+    _breathCount--;
     return true;
   }
 
@@ -103,8 +108,8 @@ class RespiratoryTimerController {
     if (_status != RespiratoryTimerStatus.running) {
       return;
     }
-    final now = at ?? _clock();
-    _elapsedBeforeRun += now.difference(_runStartedAt!);
+    final now = _tickAt(at);
+    _elapsedBeforeRun = _elapsed(now);
     _runStartedAt = null;
     _status = RespiratoryTimerStatus.paused;
   }
@@ -118,30 +123,17 @@ class RespiratoryTimerController {
       _status = RespiratoryTimerStatus.completed;
       return;
     }
-    _runStartedAt = at ?? _clock();
+    _runStartedAt = _tickAt(at);
     _status = RespiratoryTimerStatus.running;
   }
 
-  bool tick([DateTime? at]) => _completeIfDue(at ?? _clock());
-
-  void finish([DateTime? at]) {
-    if (_status != RespiratoryTimerStatus.running && _status != RespiratoryTimerStatus.paused) {
-      throw StateError('Only an active timer can finish.');
-    }
-    final elapsed = _elapsed(at ?? _clock());
-    if (elapsed <= Duration.zero) {
-      throw StateError('A zero-length session cannot be completed.');
-    }
-    _completedElapsed = elapsed;
-    _runStartedAt = null;
-    _status = RespiratoryTimerStatus.completed;
-  }
+  bool tick([DateTime? at]) => _completeIfDue(_tickAt(at));
 
   bool cancel({bool confirmDataLoss = false}) {
     if (_status == RespiratoryTimerStatus.saved) {
       return false;
     }
-    if (_breaths.isNotEmpty && !confirmDataLoss) {
+    if (_breathCount > 0 && !confirmDataLoss) {
       return false;
     }
     _runStartedAt = null;
@@ -161,11 +153,10 @@ class RespiratoryTimerController {
       throw StateError('Complete the timer before saving.');
     }
     final elapsed = _completedElapsed!;
-    if (elapsed <= Duration.zero || _breaths.isEmpty) {
+    if (elapsed <= Duration.zero || _breathCount == 0) {
       throw StateError('A respiratory session needs elapsed time and at least one breath.');
     }
     final now = recordedAt ?? _clock();
-    _status = RespiratoryTimerStatus.saved;
     return RespiratorySession(
       id: id,
       animalId: animalId,
@@ -173,26 +164,44 @@ class RespiratoryTimerController {
       updatedAt: now.toUtc(),
       recordedAt: now.toUtc(),
       durationMilliseconds: elapsed.inMilliseconds,
-      breathCount: _breaths.length,
-      ratePerMinute: RespiratoryMath.ratePerMinute(breathCount: _breaths.length, elapsed: elapsed),
+      breathCount: _breathCount,
+      ratePerMinute: RespiratoryMath.ratePerMinute(breathCount: _breathCount, elapsed: elapsed),
       context: context,
       note: note,
       thresholdSnapshot: thresholds,
     );
   }
 
-  Duration _elapsed(DateTime at) {
+  /// Call only after persistence succeeds. Building a draft never consumes it.
+  void markSaved() {
+    if (_status != RespiratoryTimerStatus.completed) {
+      throw StateError('Only a completed recording can be marked saved.');
+    }
+    _status = RespiratoryTimerStatus.saved;
+  }
+
+  static Duration Function() _stopwatchClock() {
+    final stopwatch = Stopwatch()..start();
+    return () => stopwatch.elapsed;
+  }
+
+  // Explicit timestamps remain useful for deterministic simulations. Production
+  // calls omit them and use a monotonic clock, independent of clock corrections.
+  Duration _tickAt(DateTime? at) =>
+      at == null ? _elapsedClock() : Duration(microseconds: at.microsecondsSinceEpoch);
+
+  Duration _elapsed(Duration at) {
     if (_completedElapsed != null) {
       return _completedElapsed!;
     }
     if (_runStartedAt == null) {
       return _elapsedBeforeRun;
     }
-    final running = at.difference(_runStartedAt!);
+    final running = at - _runStartedAt!;
     return running.isNegative ? _elapsedBeforeRun : _elapsedBeforeRun + running;
   }
 
-  bool _completeIfDue(DateTime at) {
+  bool _completeIfDue(Duration at) {
     if (_status != RespiratoryTimerStatus.running) {
       return _status == RespiratoryTimerStatus.completed;
     }

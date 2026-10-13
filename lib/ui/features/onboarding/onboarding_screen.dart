@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/app_strings.dart';
 import '../../../platform/notification_service.dart';
 import '../../app_controller.dart';
 import '../../core/brand.dart';
+import '../../core/commands.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../animals/animal_profile_fields.dart';
@@ -28,7 +29,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final TextEditingController _thresholdTarget = TextEditingController();
   final TextEditingController _thresholdMax = TextEditingController();
   int _page = 0;
-  String _species = 'Dog';
+  String _species = appStrings.dog;
   bool _disclaimerAccepted = false;
   bool _saving = false;
   NotificationPermissionState _permission = NotificationPermissionState.unknown;
@@ -59,7 +60,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: [
                   const CreaturelyLogo(width: 164, header: true),
                   const Spacer(),
-                  Text('${_page + 1} of 4'),
+                  Text(AppLocalizations.of(context).of4(_page + 1)),
                 ],
               ),
             ),
@@ -97,7 +98,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   if (_page > 0)
                     TextButton(
                       onPressed: _saving ? null : () => _showPage(_page - 1),
-                      child: const Text('Back'),
+                      child: Text(AppLocalizations.of(context).back),
                     ),
                   const Spacer(),
                   FilledButton.icon(
@@ -109,7 +110,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Icon(_page == 3 ? Icons.check_rounded : Icons.arrow_forward_rounded),
-                    label: Text(_page == 3 ? 'Create journal' : l10n.continueLabel),
+                    label: Text(
+                      _page == 3 ? AppLocalizations.of(context).createJournal : l10n.continueLabel,
+                    ),
                   ),
                 ],
               ),
@@ -120,12 +123,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Future<void> _requestNotifications() async {
-    final value = await ref.read(appControllerProvider.notifier).requestNotifications();
+  Future<void> _requestNotifications() => runUiCommand(context, () async {
+    final value = await ref.read(settingsControllerProvider.notifier).requestNotifications();
     if (mounted) {
       setState(() => _permission = value);
     }
-  }
+  });
 
   void _changeSpecies(String value) {
     if (value == _species) {
@@ -155,9 +158,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
     if (!_form.currentState!.validate() || !_disclaimerAccepted) {
       if (!_disclaimerAccepted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please acknowledge the medical disclaimer.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).pleaseAcknowledgeTheMedicalDisclaimer),
+          ),
+        );
       }
       return;
     }
@@ -168,7 +173,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
     if (!thresholds.isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review the respiratory-rate values and try again.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).reviewTheRespiratoryRateValuesAndTryAgain),
+        ),
       );
       return;
     }
@@ -176,7 +183,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
       final species = resolvedSpecies(_species, _customSpecies);
       await ref
-          .read(appControllerProvider.notifier)
+          .read(animalControllerProvider.notifier)
           .createAnimal(
             name: _name.text,
             species: species,
@@ -270,11 +277,9 @@ class _WelcomeStep extends StatelessWidget {
   Widget build(BuildContext context) => _StepBody(
     icon: Icons.pets_rounded,
     leading: const CreaturelyMark(size: 44),
-    eyebrow: 'Welcome',
-    title: 'Know their normal.',
-    body:
-        'Track everyday signs, spot changes, and keep a clearer health history '
-        'for every animal in your life.',
+    eyebrow: AppLocalizations.of(context).welcome,
+    title: AppLocalizations.of(context).knowTheirNormal,
+    body: AppLocalizations.of(context).trackEverydaySignsSpotChangesAndKeepAClearer,
     children: [
       CalmNotice(
         icon: Icons.lock_outline_rounded,
@@ -282,9 +287,9 @@ class _WelcomeStep extends StatelessWidget {
         tone: NoticeTone.supportive,
       ),
       const SizedBox(height: 12),
-      const CalmNotice(
+      CalmNotice(
         icon: Icons.person_outline_rounded,
-        text: 'No account, ads, analytics, or background health-data collection.',
+        text: AppLocalizations.of(context).noAccountAdsAnalyticsOrBackgroundHealthDataCollection,
       ),
     ],
   );
@@ -294,22 +299,20 @@ class _BackupStep extends StatelessWidget {
   const _BackupStep();
 
   @override
-  Widget build(BuildContext context) => const _StepBody(
+  Widget build(BuildContext context) => _StepBody(
     icon: Icons.inventory_2_outlined,
-    eyebrow: 'Local first',
-    title: 'You decide where copies go.',
-    body:
-        'Your device is the source of truth. You can create an open .creaturely backup '
-        'to Files, iCloud Drive, Google Drive, Dropbox, or another provider you choose.',
+    eyebrow: AppLocalizations.of(context).localFirst,
+    title: AppLocalizations.of(context).youDecideWhereCopiesGo,
+    body: AppLocalizations.of(context).yourDeviceIsTheSourceOfTruthYouCan,
     children: [
       CalmNotice(
         icon: Icons.cloud_off_outlined,
-        text: 'Cloud access is optional. Declining it never limits the journal.',
+        text: AppLocalizations.of(context).cloudAccessIsOptionalDecliningItNeverLimitsThe,
       ),
-      SizedBox(height: 12),
+      const SizedBox(height: 12),
       CalmNotice(
         icon: Icons.restore_rounded,
-        text: 'Optional recovery snapshots are backup and restore—not live multi-device sync.',
+        text: AppLocalizations.of(context).optionalRecoverySnapshotsAreBackupAndRestoreNotLive,
       ),
     ],
   );
@@ -324,24 +327,21 @@ class _NotificationStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _StepBody(
     icon: Icons.notifications_none_rounded,
-    eyebrow: 'Reminders',
-    title: 'Helpful, never required.',
-    body:
-        'Creaturely can schedule medication, breathing, and weight reminders on this device. '
-        'You can say no now and change this later.',
+    eyebrow: AppLocalizations.of(context).reminders,
+    title: AppLocalizations.of(context).helpfulNeverRequired,
+    body: AppLocalizations.of(context).creaturelyCanScheduleMedicationBreathingAndWeightRemindersOn,
     children: [
       if (permission == NotificationPermissionState.denied)
-        const CalmNotice(
+        CalmNotice(
           icon: Icons.notifications_off_outlined,
-          text:
-              'Notifications are off. Medication schedules and due doses will still '
-              'appear inside Creaturely.',
+          text: AppLocalizations.of(context).notificationsAreOffMedicationSchedulesAndDueDosesWill,
           tone: NoticeTone.attention,
         )
       else if (permission == NotificationPermissionState.allowed)
-        const CalmNotice(
+        CalmNotice(
           icon: Icons.check_circle_outline_rounded,
-          text: 'Notifications are ready. Individual schedules remain under your control.',
+          text: AppLocalizations.of(context)
+              .notificationsAreReadyIndividualSchedulesRemainUnderYourControl,
           tone: NoticeTone.supportive,
         )
       else
@@ -349,7 +349,7 @@ class _NotificationStep extends StatelessWidget {
           key: const ValueKey('request_notifications'),
           onPressed: onRequest,
           icon: const Icon(Icons.notifications_active_outlined),
-          label: const Text('Allow reminders'),
+          label: Text(AppLocalizations.of(context).allowReminders),
         ),
     ],
   );
@@ -388,9 +388,9 @@ class _AnimalStep extends StatelessWidget {
   Widget build(BuildContext context) => _StepBody(
     key: const ValueKey('onboarding_animal_step'),
     icon: Icons.favorite_outline_rounded,
-    eyebrow: 'First animal',
-    title: 'Who are you caring for?',
-    body: 'Only a name and species are needed. Add or change anything else later.',
+    eyebrow: AppLocalizations.of(context).firstAnimal,
+    title: AppLocalizations.of(context).whoAreYouCaringFor,
+    body: AppLocalizations.of(context).onlyANameAndSpeciesAreNeededAddOr,
     children: [
       Form(
         key: formKey,
@@ -401,8 +401,10 @@ class _AnimalStep extends StatelessWidget {
               controller: name,
               textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'Name *'),
-              validator: (value) => value == null || value.trim().isEmpty ? 'Enter a name.' : null,
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).name),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? AppLocalizations.of(context).enterAName
+                  : null,
             ),
             const SizedBox(height: 14),
             SpeciesSelector(
@@ -417,13 +419,17 @@ class _AnimalStep extends StatelessWidget {
             TextFormField(
               controller: age,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Approximate age in months (optional)'),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context).approximateAgeInMonthsOptional,
+              ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return null;
                 }
                 final parsed = int.tryParse(value);
-                return parsed == null || parsed < 0 ? 'Enter a whole number of months.' : null;
+                return parsed == null || parsed < 0
+                    ? AppLocalizations.of(context).enterAWholeNumberOfMonths
+                    : null;
               },
             ),
             const SizedBox(height: 20),
@@ -440,7 +446,7 @@ class _AnimalStep extends StatelessWidget {
               onChanged: (value) => onDisclaimerChanged(value ?? false),
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
-              title: const Text('I understand this is a journal, not veterinary care.'),
+              title: Text(AppLocalizations.of(context).iUnderstandThisIsAJournalNotVeterinaryCare),
               subtitle: Text(AppLocalizations.of(context).medicalDisclaimer),
             ),
           ],

@@ -68,7 +68,7 @@ open-source license view.
 
 ## Supported platforms and toolchain
 
-- Flutter **3.47.0** (stable)
+- Flutter **3.47.2** (stable)
 - Dart **3.13.0**
 - Android API **24+**; compile/target SDK supplied by Flutter (API 36 in the
   current toolchain); Java 17

@@ -1,3 +1,4 @@
+import 'package:creaturely/l10n/generated/app_localizations.dart';
 import 'package:creaturely/ui/core/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,8 @@ void main() {
   testWidgets('empty state remains scrollable in a short landscape viewport', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SizedBox(
             height: 72,
@@ -27,6 +30,8 @@ void main() {
   testWidgets('empty state still shrink-wraps inside a parent scroll view', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
             child: EmptyState(

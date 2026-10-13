@@ -1,3 +1,4 @@
+import 'package:creaturely/l10n/generated/app_localizations.dart';
 import 'package:creaturely/ui/features/animals/animal_profile_fields.dart';
 import 'package:creaturely/ui/navigation/app_router.dart';
 import 'package:flutter/material.dart';
@@ -166,6 +167,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(24),

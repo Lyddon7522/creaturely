@@ -27,12 +27,13 @@ void main() {
   test('chart points and accessible table source share the same ordered data', () {
     final snapshot = fixtureSnapshot();
     final builder = const TrendDataBuilder();
-    final respiratory = builder.respiratory(snapshot, 'animal-1');
-    final weight = builder.weight(snapshot, 'animal-1', WeightUnit.pounds);
+    final respiratory = builder.respiratory(snapshot.respiratorySessions, 'animal-1');
+    final weight = builder.weight(snapshot.healthRecords, 'animal-1', WeightUnit.pounds);
 
     expect(respiratory.single.id, 'breathing-1');
     expect(respiratory.single.rawValue, 10);
-    expect(respiratory.single.rawUnit, 'breaths in 30 seconds');
+    expect(respiratory.single.rawUnit, 'breaths');
+    expect(respiratory.single.durationMilliseconds, 30000);
     expect(weight.single.id, 'weight-1');
     expect(weight.single.rawValue, closeTo(0.2645547, 0.0000001));
     expect(weight.single.rawUnit, 'lb');
