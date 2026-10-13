@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../domain/models.dart';
+import '../../../l10n/app_strings.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../app_controller.dart';
+import '../../core/calendar_date_field.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
@@ -40,10 +42,13 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   bool _saving = false;
   final List<_ScheduleDraft> _schedules = <_ScheduleDraft>[];
 
-  @override
-  void initState() {
-    super.initState();
-    final snapshot = ref.read(appControllerProvider).snapshot;
+  bool _draftLoaded = false;
+
+  void _loadDraft() {
+    _draftLoaded = true;
+    final snapshot = ref.read(
+      journalViewProvider((feature: JournalFeature.medication, animalId: widget.animalId)),
+    );
     _existing = snapshot.medications.where((value) => value.id == widget.medicationId).firstOrNull;
     final existing = _existing;
     _name = TextEditingController(text: existing?.name);
@@ -80,34 +85,51 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
 
   @override
   void dispose() {
-    for (final controller in <TextEditingController>[
-      _name,
-      _formName,
-      _dose,
-      _unit,
-      _instructions,
-      _strength,
-      _prescriber,
-      _pharmacy,
-      _prescriptionNumber,
-      _refillsRemaining,
-      _notes,
-    ]) {
-      controller.dispose();
+    if (_draftLoaded) {
+      for (final controller in <TextEditingController>[
+        _name,
+        _formName,
+        _dose,
+        _unit,
+        _instructions,
+        _strength,
+        _prescriber,
+        _pharmacy,
+        _prescriptionNumber,
+        _refillsRemaining,
+        _notes,
+      ]) {
+        controller.dispose();
+      }
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(appControllerProvider);
+    final draft = ref.watch(
+      journalViewProvider((feature: JournalFeature.medication, animalId: widget.animalId)),
+    );
+    if (draft.loading || draft.error != null) {
+      return QueryPane(error: draft.error, onRetry: () => draft.retry(ref));
+    }
+    if (!_draftLoaded) _loadDraft();
+    final state = ref.watch(
+      journalViewProvider((feature: JournalFeature.medication, animalId: widget.animalId)),
+    );
     final l10n = AppLocalizations.of(context);
-    final animal = state.snapshot.animals.where((value) => value.id == widget.animalId).firstOrNull;
+    final animal = state.animals.where((value) => value.id == widget.animalId).firstOrNull;
     if (animal == null) {
-      return const Scaffold(body: Center(child: Text('Animal not found.')));
+      return Scaffold(body: Center(child: Text(AppLocalizations.of(context).animalNotFound)));
     }
     return Scaffold(
-      appBar: AppBar(title: Text(_existing == null ? 'Add medication' : 'Edit medication')),
+      appBar: AppBar(
+        title: Text(
+          _existing == null
+              ? AppLocalizations.of(context).addMedication
+              : AppLocalizations.of(context).editMedication,
+        ),
+      ),
       body: Form(
         key: _form,
         child: ListView(
@@ -120,17 +142,19 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     PageHeading(
-                      title: _existing == null ? 'Medication for ${animal.name}' : _existing!.name,
-                      subtitle: 'Add directions and dose times for ${animal.name}.',
+                      title: _existing == null
+                          ? AppLocalizations.of(context).medicationFor(animal.name)
+                          : _existing!.name,
+                      subtitle: AppLocalizations.of(context)
+                          .addDirectionsAndDoseTimesFor(animal.name),
                     ),
-                    if (state.snapshot.settings.notificationPermissionAsked &&
-                        !state.snapshot.settings.notificationsAllowed) ...[
+                    if (state.settings.notificationPermissionAsked &&
+                        !state.settings.notificationsAllowed) ...[
                       const SizedBox(height: 16),
-                      const CalmNotice(
+                      CalmNotice(
                         icon: Icons.notifications_off_outlined,
-                        text:
-                            'Notifications are off. Due doses remain visible in Creaturely, '
-                            'and the schedule can still be saved.',
+                        text: AppLocalizations.of(context)
+                            .notificationsAreOffDueDosesRemainVisibleInCreaturely,
                         tone: NoticeTone.attention,
                       ),
                     ],
@@ -139,15 +163,17 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                       key: const ValueKey('medication_name'),
                       controller: _name,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Medication name *'),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).medicationName,
+                      ),
                       validator: _required,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _formName,
-                      decoration: const InputDecoration(
-                        labelText: 'Form *',
-                        hintText: 'Tablet, liquid, drops, injection…',
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).form,
+                        hintText: AppLocalizations.of(context).tabletLiquidDropsInjection,
                       ),
                       validator: _required,
                     ),
@@ -158,7 +184,9 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                           child: TextFormField(
                             controller: _dose,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(labelText: 'Dose amount *'),
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context).doseAmount,
+                            ),
                             validator: _positiveDecimal,
                           ),
                         ),
@@ -166,9 +194,9 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _unit,
-                            decoration: const InputDecoration(
-                              labelText: 'Dose unit *',
-                              hintText: 'mg, mL, tablet',
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context).doseUnit,
+                              hintText: AppLocalizations.of(context).mgMLTablet,
                             ),
                             validator: _required,
                           ),
@@ -182,25 +210,27 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                       minLines: 2,
                       maxLines: 4,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(labelText: 'Instructions *'),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).instructions,
+                      ),
                       validator: _required,
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
-                          child: _DateField(
-                            label: 'Start date',
+                          child: CalendarDateField(
+                            label: AppLocalizations.of(context).startDate,
                             value: _startDate,
                             onTap: () => _pickDate(start: true),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _DateField(
-                            label: 'End date',
+                          child: CalendarDateField(
+                            label: AppLocalizations.of(context).endDate,
                             value: _endDate,
-                            emptyLabel: 'No end date',
+                            emptyLabel: AppLocalizations.of(context).noEndDate,
                             onTap: () => _pickDate(start: false),
                           ),
                         ),
@@ -261,7 +291,7 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                                 validator: _nonNegativeInteger,
                               ),
                               const SizedBox(height: 12),
-                              _DateField(
+                              CalendarDateField(
                                 key: const ValueKey('medication_next_refill_date'),
                                 label: l10n.medicationNextRefillDateLabel,
                                 value: _nextRefillDate,
@@ -280,18 +310,20 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                             minLines: 2,
                             maxLines: 4,
                             textCapitalization: TextCapitalization.sentences,
-                            decoration: const InputDecoration(labelText: 'Notes'),
+                            decoration: InputDecoration(
+                              labelText: AppLocalizations.of(context).notes,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 26),
                     SectionHeading(
-                      'Schedules',
+                      AppLocalizations.of(context).schedules,
                       trailing: TextButton.icon(
                         onPressed: _addSchedule,
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('Add'),
+                        label: Text(AppLocalizations.of(context).add),
                       ),
                     ),
                     for (var index = 0; index < _schedules.length; index++) ...[
@@ -308,8 +340,10 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                       value: _active,
                       onChanged: (value) => setState(() => _active = value),
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Active medication'),
-                      subtitle: const Text('Inactive records remain in the timeline.'),
+                      title: Text(AppLocalizations.of(context).activeMedication),
+                      subtitle: Text(
+                        AppLocalizations.of(context).inactiveRecordsRemainInTheTimeline,
+                      ),
                     ),
                     const SizedBox(height: 22),
                     FilledButton.icon(
@@ -321,7 +355,7 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.check_rounded),
-                      label: const Text('Save medication'),
+                      label: Text(AppLocalizations.of(context).saveMedication),
                     ),
                     const SizedBox(height: 32),
                   ],
@@ -382,7 +416,7 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
       lastDate: DateTime.now().add(const Duration(days: 3650)),
       initialDate: _nextRefillDate ?? DateTime.now(),
     );
-    if (value != null) {
+    if (value != null && mounted) {
       setState(() => _nextRefillDate = value);
     }
   }
@@ -393,18 +427,19 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     }
     if (_endDate != null && _endDate!.isBefore(_startDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('The end date must be on or after the start date.')),
+        SnackBar(content: Text(AppLocalizations.of(context).theEndDateMustBeOnOrAfterThe)),
       );
       return;
     }
     if (_schedules.any((draft) => !draft.isValid)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Complete every schedule before saving.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).completeEveryScheduleBeforeSaving)),
+      );
       return;
     }
     setState(() => _saving = true);
     try {
-      final controller = ref.read(appControllerProvider.notifier);
+      final controller = ref.read(careControllerProvider.notifier);
       final now = DateTime.now().toUtc();
       final id = _existing?.id ?? controller.newId();
       final medication = Medication(
@@ -429,8 +464,9 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
         active: _active,
       );
       final existingSchedules = ref
-          .read(appControllerProvider)
-          .snapshot
+          .read(
+            journalViewProvider((feature: JournalFeature.medication, animalId: widget.animalId)),
+          )
           .medicationSchedules
           .where((value) => value.medicationId == id)
           .toList(growable: false);
@@ -455,6 +491,14 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
       if (mounted) {
         context.pop();
       }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).couldNotSaveYourChangesAreKeptHereTry),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -462,12 +506,15 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
     }
   }
 
-  String? _required(String? value) =>
-      value == null || value.trim().isEmpty ? 'This field is required.' : null;
+  String? _required(String? value) => value == null || value.trim().isEmpty
+      ? AppLocalizations.of(context).thisFieldIsRequired
+      : null;
 
   String? _positiveDecimal(String? value) {
     final parsed = double.tryParse(value ?? '');
-    return parsed == null || !parsed.isFinite || parsed <= 0 ? 'Use a positive number.' : null;
+    return parsed == null || !parsed.isFinite || parsed <= 0
+        ? AppLocalizations.of(context).useAPositiveNumber
+        : null;
   }
 
   String? _nonNegativeInteger(String? value) {
@@ -483,51 +530,6 @@ class _MedicationFormScreenState extends ConsumerState<MedicationFormScreen> {
   String? _nullable(String value) => value.trim().isEmpty ? null : value.trim();
 
   int? _nullableInteger(String value) => value.trim().isEmpty ? null : int.parse(value.trim());
-}
-
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.onTap,
-    this.emptyLabel = 'Choose date',
-    this.onClear,
-    this.clearTooltip,
-    super.key,
-  });
-
-  final String label;
-  final DateTime? value;
-  final VoidCallback onTap;
-  final String emptyLabel;
-  final VoidCallback? onClear;
-  final String? clearTooltip;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(14),
-    child: InputDecorator(
-      decoration: InputDecoration(labelText: label),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              value == null
-                  ? emptyLabel
-                  : MaterialLocalizations.of(context).formatMediumDate(value!),
-            ),
-          ),
-          if (onClear != null)
-            IconButton(
-              tooltip: clearTooltip,
-              onPressed: onClear,
-              icon: const Icon(Icons.clear_rounded),
-            ),
-        ],
-      ),
-    ),
-  );
 }
 
 class _ScheduleDraft {
@@ -584,20 +586,23 @@ class _ScheduleEditor extends StatelessWidget {
                 child: DropdownButtonFormField<ScheduleKind>(
                   initialValue: draft.kind,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Schedule type'),
-                  items: const [
-                    DropdownMenuItem(value: ScheduleKind.daily, child: Text('Every day')),
+                  decoration: InputDecoration(labelText: AppLocalizations.of(context).scheduleType),
+                  items: [
+                    DropdownMenuItem(
+                      value: ScheduleKind.daily,
+                      child: Text(AppLocalizations.of(context).everyDay),
+                    ),
                     DropdownMenuItem(
                       value: ScheduleKind.selectedWeekdays,
-                      child: Text('Selected weekdays'),
+                      child: Text(AppLocalizations.of(context).selectedWeekdays),
                     ),
                     DropdownMenuItem(
                       value: ScheduleKind.interval,
-                      child: Text('Repeating interval'),
+                      child: Text(AppLocalizations.of(context).repeatingInterval),
                     ),
                   ],
                   onChanged: (value) {
-                    if (value != null) {
+                    if (value != null && context.mounted) {
                       draft.kind = value;
                       if (value == ScheduleKind.interval && draft.times.length > 1) {
                         draft.times = <LocalClockTime>[draft.times.first];
@@ -609,7 +614,7 @@ class _ScheduleEditor extends StatelessWidget {
               ),
               if (canRemove)
                 IconButton(
-                  tooltip: 'Remove schedule',
+                  tooltip: AppLocalizations.of(context).removeSchedule,
                   onPressed: onRemove,
                   icon: const Icon(Icons.delete_outline_rounded),
                 ),
@@ -619,9 +624,14 @@ class _ScheduleEditor extends StatelessWidget {
             const SizedBox(height: 12),
             DropdownButtonFormField<int>(
               initialValue: draft.intervalHours,
-              decoration: const InputDecoration(labelText: 'Every'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).every),
               items: const <int>[4, 6, 8, 12, 24, 48]
-                  .map((value) => DropdownMenuItem(value: value, child: Text('$value hours')))
+                  .map(
+                    (value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(AppLocalizations.of(context).hours(value)),
+                    ),
+                  )
                   .toList(),
               onChanged: (value) {
                 draft.intervalHours = value ?? draft.intervalHours;
@@ -638,7 +648,15 @@ class _ScheduleEditor extends StatelessWidget {
                 for (var day = 1; day <= 7; day++)
                   FilterChip(
                     label: Text(
-                      const <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day - 1],
+                      <String>[
+                        AppLocalizations.of(context).mon,
+                        AppLocalizations.of(context).tue,
+                        AppLocalizations.of(context).wed,
+                        AppLocalizations.of(context).thu,
+                        AppLocalizations.of(context).fri,
+                        AppLocalizations.of(context).sat,
+                        AppLocalizations.of(context).sun,
+                      ][day - 1],
                     ),
                     selected: draft.weekdays.contains(day),
                     onSelected: (selected) {
@@ -662,8 +680,10 @@ class _ScheduleEditor extends StatelessWidget {
                     MaterialLocalizations.of(context)
                         .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
                   ),
-                  deleteButtonTooltipMessage:
-                      'Remove ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute))}',
+                  deleteButtonTooltipMessage: AppLocalizations.of(context).remove(
+                    MaterialLocalizations.of(context)
+                        .formatTimeOfDay(TimeOfDay(hour: time.hour, minute: time.minute)),
+                  ),
                   onDeleted: () {
                     draft.times.remove(time);
                     onChanged();
@@ -679,9 +699,9 @@ class _ScheduleEditor extends StatelessWidget {
                 label: Text(
                   draft.kind == ScheduleKind.interval
                       ? draft.times.isEmpty
-                            ? 'Set start time'
-                            : 'Change start time'
-                      : 'Add time',
+                            ? AppLocalizations.of(context).setStartTime
+                            : AppLocalizations.of(context).changeStartTime
+                      : AppLocalizations.of(context).addTime,
                 ),
                 onPressed: () async {
                   final picked = await showTimePicker(
@@ -690,7 +710,7 @@ class _ScheduleEditor extends StatelessWidget {
                         ? const TimeOfDay(hour: 8, minute: 0)
                         : TimeOfDay(hour: draft.times.first.hour, minute: draft.times.first.minute),
                   );
-                  if (picked != null) {
+                  if (picked != null && context.mounted) {
                     final value = LocalClockTime(picked.hour, picked.minute);
                     if (draft.kind == ScheduleKind.interval) {
                       draft.times = <LocalClockTime>[value];

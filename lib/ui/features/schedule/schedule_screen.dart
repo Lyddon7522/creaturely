@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../domain/care_schedule.dart';
 import '../../../domain/models.dart';
+import '../../../l10n/app_strings.dart';
 import '../../app_controller.dart';
+import '../../core/commands.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../../navigation/top_level_scroll.dart';
@@ -56,16 +58,21 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(appControllerProvider);
+    final state = ref.watch(
+      journalViewProvider((feature: JournalFeature.schedule, animalId: null)),
+    );
+    if (state.loading || state.error != null) {
+      return QueryPane(error: state.error, onRetry: () => state.retry(ref));
+    }
     final animal = state.selectedAnimal;
     final compact = usesCompactVerticalLayout(context);
     if (animal == null) {
       return Scaffold(
         appBar: AppBar(actions: const [SettingsAction()]),
-        body: const EmptyState(
+        body: EmptyState(
           icon: Icons.calendar_month_outlined,
-          title: 'No animal selected',
-          body: 'Add an animal to create a care schedule.',
+          title: AppLocalizations.of(context).noAnimalSelected,
+          body: AppLocalizations.of(context).addAnAnimalToCreateACareSchedule,
         ),
       );
     }
@@ -75,32 +82,32 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         title: const AnimalPicker(),
         actions: [
           PopupMenuButton<_AddCare>(
-            tooltip: 'Add scheduled care',
+            tooltip: AppLocalizations.of(context).addScheduledCare,
             icon: const Icon(Icons.add_rounded),
             onSelected: (value) => _add(value, animal.id),
-            itemBuilder: (context) => const [
+            itemBuilder: (context) => [
               PopupMenuItem(
                 value: _AddCare.breathing,
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.air_rounded),
-                  title: Text('Breathing reminder'),
+                  leading: const Icon(Icons.air_rounded),
+                  title: Text(AppLocalizations.of(context).breathingReminder),
                 ),
               ),
               PopupMenuItem(
                 value: _AddCare.medication,
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.medication_outlined),
-                  title: Text('Medication'),
+                  leading: const Icon(Icons.medication_outlined),
+                  title: Text(AppLocalizations.of(context).medications),
                 ),
               ),
               PopupMenuItem(
                 value: _AddCare.weight,
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.monitor_weight_outlined),
-                  title: Text('Weight check reminder'),
+                  leading: const Icon(Icons.monitor_weight_outlined),
+                  title: Text(AppLocalizations.of(context).weightCheckReminder),
                 ),
               ),
             ],
@@ -115,27 +122,27 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             PageHeading(
-              title: '${animal.name}’s schedule',
-              subtitle: 'Medication, breathing checks, and weight checks.',
+              title: AppLocalizations.of(context).sSchedule(animal.name),
+              subtitle: AppLocalizations.of(context).medicationBreathingChecksAndWeightChecks,
             ),
             SizedBox(height: compact ? 8 : 16),
             SegmentedButton<_ScheduleView>(
               showSelectedIcon: false,
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: _ScheduleView.today,
-                  icon: Icon(Icons.today_outlined),
-                  label: Text('Today'),
+                  icon: const Icon(Icons.today_outlined),
+                  label: Text(AppLocalizations.of(context).today),
                 ),
                 ButtonSegment(
                   value: _ScheduleView.sevenDays,
-                  icon: Icon(Icons.date_range_outlined),
-                  label: Text('7 days'),
+                  icon: const Icon(Icons.date_range_outlined),
+                  label: Text(AppLocalizations.of(context).label7Days),
                 ),
                 ButtonSegment(
                   value: _ScheduleView.schedules,
-                  icon: Icon(Icons.repeat_rounded),
-                  label: Text('Schedules'),
+                  icon: const Icon(Icons.repeat_rounded),
+                  label: Text(AppLocalizations.of(context).schedules),
                 ),
               ],
               selected: {_view},
@@ -147,10 +154,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               },
             ),
             SizedBox(height: compact ? 8 : 14),
-            if (!state.snapshot.settings.notificationsAllowed) ...[
-              const CalmNotice(
+            if (!state.settings.notificationsAllowed) ...[
+              CalmNotice(
                 icon: Icons.notifications_off_outlined,
-                text: 'Notifications are off. Your care schedule still works here in Creaturely.',
+                text: AppLocalizations.of(context)
+                    .notificationsAreOffYourCareScheduleStillWorksHere,
                 tone: NoticeTone.attention,
               ),
               const SizedBox(height: 10),
@@ -166,14 +174,18 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     );
   }
 
-  Widget _occurrences(CreaturelyState state, Animal animal) {
-    final now = DateTime.now();
+  Widget _occurrences(JournalView state, Animal animal) {
+    final now = ref.read(wallClockProvider)();
     final startLocal = DateTime(now.year, now.month, now.day);
     final endLocal = _view == _ScheduleView.today
         ? DateTime(now.year, now.month, now.day + 1)
         : DateTime(now.year, now.month, now.day + 7);
     final items = _builder.build(
-      snapshot: state.snapshot,
+      animals: state.animals,
+      medications: state.medications,
+      doses: state.doseLedger,
+      respiratoryReminders: state.respiratoryReminders,
+      weightReminders: state.weightReminders,
       rangeStartUtc: startLocal.toUtc(),
       rangeEndUtc: endLocal.toUtc(),
       animalId: animal.id,
@@ -182,9 +194,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       return EmptyState(
         icon: Icons.event_available_outlined,
         title: _view == _ScheduleView.today
-            ? 'Nothing scheduled today'
-            : 'Nothing scheduled in the next 7 days',
-        body: 'Use Add to create a breathing reminder, medication, or weight check.',
+            ? AppLocalizations.of(context).nothingScheduledToday
+            : AppLocalizations.of(context).nothingScheduledInTheNext7Days,
+        body: AppLocalizations.of(context).useAddToCreateABreathingReminderMedicationOr,
       );
     }
     final children = <Widget>[];
@@ -201,41 +213,46 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         );
         previousDay = day;
       }
-      children.add(_OccurrenceCard(item: item, onDose: _recordDose, onOpen: _openItem));
+      children.add(
+        KeyedSubtree(
+          key: ValueKey('schedule_${item.id}'),
+          child: _OccurrenceCard(item: item, onDose: _recordDose, onOpen: _openItem),
+        ),
+      );
       children.add(const SizedBox(height: 10));
     }
     return ListView(controller: _scrollController, children: children);
   }
 
-  Widget _savedSchedules(CreaturelyState state, Animal animal) {
-    final reminders = state.snapshot.respiratoryReminders
+  Widget _savedSchedules(JournalView state, Animal animal) {
+    final reminders = state.respiratoryReminders
         .where((value) => value.animalId == animal.id)
         .toList(growable: false);
-    final medications = state.snapshot.medications
+    final medications = state.medications
         .where((value) => value.animalId == animal.id && value.active)
         .toList(growable: false);
-    final weightReminders = state.snapshot.weightReminders
+    final weightReminders = state.weightReminders
         .where((value) => value.animalId == animal.id)
         .toList(growable: false);
     if (reminders.isEmpty && medications.isEmpty && weightReminders.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.event_repeat_outlined,
-        title: 'No saved schedules',
-        body: 'Use Add to create a breathing reminder, medication, or weight check.',
+        title: AppLocalizations.of(context).noSavedSchedules,
+        body: AppLocalizations.of(context).useAddToCreateABreathingReminderMedicationOr,
       );
     }
     return ListView(
       controller: _scrollController,
       children: [
         if (reminders.isNotEmpty) ...[
-          const SectionHeading('Breathing reminders'),
+          SectionHeading(AppLocalizations.of(context).breathingReminders),
           for (final reminder in reminders) ...[
             _RespiratoryScheduleCard(
               reminder: reminder,
               onEdit: () =>
                   context.push('/breathing-reminder/${reminder.id}/edit/${reminder.animalId}'),
               onToggle: (enabled) => ref
-                  .read(appControllerProvider.notifier)
+                  .read(careControllerProvider.notifier)
                   .saveRespiratoryReminder(
                     reminder.copyWith(updatedAt: DateTime.now().toUtc(), enabled: enabled),
                   ),
@@ -245,11 +262,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           ],
         ],
         if (medications.isNotEmpty) ...[
-          const SectionHeading('Medication schedules'),
+          SectionHeading(AppLocalizations.of(context).medicationSchedules),
           for (final medication in medications) ...[
             _MedicationScheduleCard(
               medication: medication,
-              schedules: state.snapshot.medicationSchedules
+              schedules: state.medicationSchedules
                   .where((value) => value.medicationId == medication.id)
                   .toList(growable: false),
               onTap: () => context.push('/medication/${medication.id}/${medication.animalId}'),
@@ -258,14 +275,14 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           ],
         ],
         if (weightReminders.isNotEmpty) ...[
-          const SectionHeading('Weight check reminders'),
+          SectionHeading(AppLocalizations.of(context).weightCheckReminders),
           for (final reminder in weightReminders) ...[
             _WeightScheduleCard(
               reminder: reminder,
               onEdit: () =>
                   context.push('/weight-reminder/${reminder.id}/edit/${reminder.animalId}'),
               onToggle: (enabled) => ref
-                  .read(appControllerProvider.notifier)
+                  .read(careControllerProvider.notifier)
                   .saveWeightReminder(
                     reminder.copyWith(updatedAt: DateTime.now().toUtc(), enabled: enabled),
                   ),
@@ -279,17 +296,19 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     );
   }
 
-  Future<void> _recordDose(DoseLedgerEntry dose, DoseStatus status) =>
-      ref.read(appControllerProvider.notifier).recordDose(dose.id, status);
+  Future<void> _recordDose(DoseLedgerEntry dose, DoseStatus status) => runUiCommand(
+    context,
+    () => ref.read(careControllerProvider.notifier).recordDose(dose.id, status),
+  );
 
   void _openItem(CareScheduleItem item) {
     switch (item.source) {
       case RespiratoryReminderOccurrence(:final reminder):
-        ref.read(appControllerProvider.notifier).selectAnimal(reminder.animalId);
+        ref.read(selectedAnimalProvider.notifier).selectAnimal(reminder.animalId);
         context.push('/record/breaths/${reminder.animalId}?context=${reminder.context.name}');
         break;
       case WeightReminderOccurrence(:final reminder):
-        ref.read(appControllerProvider.notifier).selectAnimal(reminder.animalId);
+        ref.read(selectedAnimalProvider.notifier).selectAnimal(reminder.animalId);
         context.push('/health/new/${reminder.animalId}');
         break;
       case DoseLedgerEntry():
@@ -318,18 +337,19 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete breathing reminder?'),
-            content: const Text(
-              'This removes future prompts. Saved breathing measurements are unchanged.',
+            title: Text(AppLocalizations.of(context).deleteBreathingReminder),
+            content: Text(
+              AppLocalizations.of(context)
+                  .thisRemovesFuturePromptsSavedBreathingMeasurementsAreUnchanged,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
+                child: Text(AppLocalizations.of(context).delete2),
               ),
             ],
           ),
@@ -337,8 +357,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         false;
     if (confirmed) {
       await ref
-          .read(appControllerProvider.notifier)
-          .deleteRecord('respiratory_reminders', reminder.id);
+          .read(careControllerProvider.notifier)
+          .deleteRecord(RecordKind.respiratoryReminder, reminder.id);
     }
   }
 
@@ -347,36 +367,39 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete weight check reminder?'),
-            content: const Text(
-              'This removes future prompts. Saved weight measurements are unchanged.',
+            title: Text(AppLocalizations.of(context).deleteWeightCheckReminder),
+            content: Text(
+              AppLocalizations.of(context)
+                  .thisRemovesFuturePromptsSavedWeightMeasurementsAreUnchanged,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
+                child: Text(AppLocalizations.of(context).delete2),
               ),
             ],
           ),
         ) ??
         false;
     if (confirmed) {
-      await ref.read(appControllerProvider.notifier).deleteRecord('weight_reminders', reminder.id);
+      await ref
+          .read(careControllerProvider.notifier)
+          .deleteRecord(RecordKind.weightReminder, reminder.id);
     }
   }
 
   String _dayLabel(DateTime day) {
-    final now = DateTime.now();
+    final now = ref.read(wallClockProvider)();
     final today = DateTime(now.year, now.month, now.day);
     if (day == today) {
-      return 'Today';
+      return AppLocalizations.of(context).today;
     }
     if (day == today.add(const Duration(days: 1))) {
-      return 'Tomorrow';
+      return AppLocalizations.of(context).tomorrow;
     }
     return DateFormat.EEEE().add_MMMd().format(day);
   }
@@ -394,6 +417,31 @@ class _OccurrenceCard extends StatelessWidget {
   final CareScheduleItem item;
   final Future<void> Function(DoseLedgerEntry dose, DoseStatus status) onDose;
   final ValueChanged<CareScheduleItem> onOpen;
+
+  String _title(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    return switch (item.kind) {
+      CareScheduleItemKind.medication => item.medication!.name,
+      CareScheduleItemKind.respiratory =>
+        (item.source as RespiratoryReminderOccurrence).reminder.context ==
+                RespiratoryContext.sleeping
+            ? strings.sleepingBreathingCheck
+            : strings.restingBreathingCheck,
+      CareScheduleItemKind.weight => strings.weightCheck,
+    };
+  }
+
+  String _detail(BuildContext context) {
+    final medication = item.medication;
+    return switch (item.kind) {
+      CareScheduleItemKind.medication =>
+        '${medication!.doseAmount} ${medication.doseUnit} • ${medication.instructions}',
+      CareScheduleItemKind.respiratory => AppLocalizations.of(
+        context,
+      ).manualRespiratoryRateReminder,
+      CareScheduleItemKind.weight => AppLocalizations.of(context).recordAWeighIn,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -426,16 +474,16 @@ class _OccurrenceCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.title, style: Theme.of(context).textTheme.titleMedium),
+                  Text(_title(context), style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 2),
                   Text(
                     DateFormat.jm().format(item.dueAt.toLocal()),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
-                  if (item.detail.isNotEmpty) ...[
+                  if (_detail(context).isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      item.detail,
+                      _detail(context),
                       style: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
@@ -459,11 +507,11 @@ class _OccurrenceCard extends StatelessWidget {
                         FilledButton.tonalIcon(
                           onPressed: () => onDose(dose, DoseStatus.given),
                           icon: const Icon(Icons.check_rounded),
-                          label: const Text('Given'),
+                          label: Text(AppLocalizations.of(context).given),
                         ),
                         OutlinedButton(
                           onPressed: () => onDose(dose, DoseStatus.skipped),
-                          child: const Text('Skip'),
+                          child: Text(AppLocalizations.of(context).skip),
                         ),
                       ],
                     ),
@@ -474,8 +522,8 @@ class _OccurrenceCard extends StatelessWidget {
             if (item.kind != CareScheduleItemKind.medication)
               IconButton(
                 tooltip: item.kind == CareScheduleItemKind.respiratory
-                    ? 'Start breathing check'
-                    : 'Record weight',
+                    ? AppLocalizations.of(context).startBreathingCheck
+                    : AppLocalizations.of(context).recordWeight,
                 onPressed: () => onOpen(item),
                 icon: Icon(
                   item.kind == CareScheduleItemKind.respiratory
@@ -490,10 +538,10 @@ class _OccurrenceCard extends StatelessWidget {
   }
 
   static String _statusLabel(DoseStatus status) => switch (status) {
-    DoseStatus.given => 'Given',
-    DoseStatus.skipped => 'Skipped',
-    DoseStatus.missed => 'Missed',
-    DoseStatus.unrecorded => 'Not recorded',
+    DoseStatus.given => appStrings.given,
+    DoseStatus.skipped => appStrings.skipped,
+    DoseStatus.missed => appStrings.missed,
+    DoseStatus.unrecorded => appStrings.notRecorded,
   };
 }
 
@@ -520,19 +568,21 @@ class _RespiratoryScheduleCard extends StatelessWidget {
         )
         .join(', ');
     final repeat = reminder.recurrence == ReminderRecurrence.daily
-        ? 'Every day'
+        ? AppLocalizations.of(context).everyDay
         : _weekdayLabel(reminder.weekdays);
-    final contextLabel = reminder.context == RespiratoryContext.sleeping ? 'Sleeping' : 'Resting';
+    final contextLabel = reminder.context == RespiratoryContext.sleeping
+        ? AppLocalizations.of(context).sleeping
+        : AppLocalizations.of(context).resting;
     return Card(
       child: Column(
         children: [
           ListTile(
             minTileHeight: 76,
             leading: const Icon(Icons.air_rounded),
-            title: Text('$contextLabel breathing check'),
+            title: Text(AppLocalizations.of(context).breathingCheck(contextLabel)),
             subtitle: Text('$repeat • $times'),
             trailing: PopupMenuButton<String>(
-              tooltip: 'Breathing reminder options',
+              tooltip: AppLocalizations.of(context).breathingReminderOptions,
               onSelected: (value) {
                 if (value == 'edit') {
                   onEdit();
@@ -540,9 +590,9 @@ class _RespiratoryScheduleCard extends StatelessWidget {
                   onDelete();
                 }
               },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit')),
-                PopupMenuItem(value: 'delete', child: Text('Delete')),
+              itemBuilder: (context) => [
+                PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context).edit)),
+                PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context).delete2)),
               ],
             ),
             onTap: onEdit,
@@ -551,7 +601,11 @@ class _RespiratoryScheduleCard extends StatelessWidget {
           SwitchListTile(
             value: reminder.enabled,
             onChanged: onToggle,
-            title: Text(reminder.enabled ? 'Active' : 'Paused'),
+            title: Text(
+              reminder.enabled
+                  ? AppLocalizations.of(context).active
+                  : AppLocalizations.of(context).paused,
+            ),
             secondary: Icon(
               reminder.enabled
                   ? Icons.notifications_active_outlined
@@ -564,7 +618,15 @@ class _RespiratoryScheduleCard extends StatelessWidget {
   }
 
   static String _weekdayLabel(Set<int> days) {
-    const labels = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final labels = <String>[
+      appStrings.mon,
+      appStrings.tue,
+      appStrings.wed,
+      appStrings.thu,
+      appStrings.fri,
+      appStrings.sat,
+      appStrings.sun,
+    ];
     final sorted = days.toList()..sort();
     return sorted.map((day) => labels[day - 1]).join(', ');
   }
@@ -593,7 +655,7 @@ class _WeightScheduleCard extends StatelessWidget {
         )
         .join(', ');
     final repeat = reminder.recurrence == ReminderRecurrence.daily
-        ? 'Every day'
+        ? AppLocalizations.of(context).everyDay
         : _RespiratoryScheduleCard._weekdayLabel(reminder.weekdays);
     return Card(
       child: Column(
@@ -601,10 +663,10 @@ class _WeightScheduleCard extends StatelessWidget {
           ListTile(
             minTileHeight: 76,
             leading: const Icon(Icons.monitor_weight_outlined),
-            title: const Text('Weight check'),
+            title: Text(AppLocalizations.of(context).weightCheck),
             subtitle: Text('$repeat • $times'),
             trailing: PopupMenuButton<String>(
-              tooltip: 'Weight reminder options',
+              tooltip: AppLocalizations.of(context).weightReminderOptions,
               onSelected: (value) {
                 if (value == 'edit') {
                   onEdit();
@@ -612,9 +674,9 @@ class _WeightScheduleCard extends StatelessWidget {
                   onDelete();
                 }
               },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Edit')),
-                PopupMenuItem(value: 'delete', child: Text('Delete')),
+              itemBuilder: (context) => [
+                PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context).edit)),
+                PopupMenuItem(value: 'delete', child: Text(AppLocalizations.of(context).delete2)),
               ],
             ),
             onTap: onEdit,
@@ -623,7 +685,11 @@ class _WeightScheduleCard extends StatelessWidget {
           SwitchListTile(
             value: reminder.enabled,
             onChanged: onToggle,
-            title: Text(reminder.enabled ? 'Active' : 'Paused'),
+            title: Text(
+              reminder.enabled
+                  ? AppLocalizations.of(context).active
+                  : AppLocalizations.of(context).paused,
+            ),
             secondary: Icon(
               reminder.enabled
                   ? Icons.notifications_active_outlined
@@ -655,7 +721,7 @@ class _MedicationScheduleCard extends StatelessWidget {
       title: Text(medication.name),
       subtitle: Text(
         schedules.isEmpty
-            ? 'No active times'
+            ? AppLocalizations.of(context).noActiveTimes
             : schedules.map((schedule) => _summary(context, schedule)).join('\n'),
       ),
       isThreeLine: schedules.length > 1,
@@ -673,9 +739,11 @@ class _MedicationScheduleCard extends StatelessWidget {
         )
         .join(', ');
     return switch (schedule.kind) {
-      ScheduleKind.daily => 'Daily • $times',
-      ScheduleKind.selectedWeekdays => 'Selected days • $times',
-      ScheduleKind.interval => 'Every ${schedule.intervalHours} hours • starts $times',
+      ScheduleKind.daily => AppLocalizations.of(context).daily(times),
+      ScheduleKind.selectedWeekdays => AppLocalizations.of(context).selectedDays(times),
+      ScheduleKind.interval => AppLocalizations.of(
+        context,
+      ).everyHoursStarts(schedule.intervalHours.toString(), times),
     };
   }
 }

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../domain/time_zone.dart';
+
 abstract interface class TimeZoneService {
   /// Returns the resolved IANA identifier, or null when UTC is only a fallback.
   Future<String?> configure();
@@ -27,7 +29,8 @@ class DeviceTimeZoneService implements TimeZoneService {
     tz.setLocalLocation(tz.UTC);
     try {
       final identifier = await _lookupIdentifier().timeout(timeout);
-      tz.setLocalLocation(tz.getLocation(identifier));
+      if (!isKnownTimeZone(identifier)) return null;
+      tz.setLocalLocation(timeZoneLocation(identifier));
       return identifier;
     } on Object {
       // A lookup, plugin, or zone-database failure must never block the journal.

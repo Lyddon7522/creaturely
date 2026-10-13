@@ -1,17 +1,16 @@
 import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../data/backup_service.dart';
 import '../../../data/export_service.dart';
 import '../../../domain/models.dart';
+import '../../../l10n/app_strings.dart';
+import '../../../l10n/model_labels.dart';
 import '../../app_controller.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -31,10 +30,7 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
   static const PetExportService _exports = PetExportService();
 
   String? _animalId;
-  DateTimeRange _range = DateTimeRange(
-    start: DateTime.now().subtract(const Duration(days: 30)),
-    end: DateTime.now(),
-  );
+  late DateTimeRange _range;
   final Set<String> _selectedDocuments = <String>{};
   bool _working = false;
 
@@ -42,17 +38,22 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
   void initState() {
     super.initState();
     _animalId = widget.initialAnimalId;
+    final now = ref.read(wallClockProvider)();
+    _range = DateTimeRange(start: now.subtract(const Duration(days: 30)), end: now);
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(appControllerProvider);
+    final state = ref.watch(journalViewProvider((feature: JournalFeature.data, animalId: null)));
+    if (state.loading || state.error != null) {
+      return QueryPane(error: state.error, onRetry: () => state.retry(ref));
+    }
     final animals = state.activeAnimals;
     if (_animalId == null || !animals.any((value) => value.id == _animalId)) {
       _animalId = state.selectedAnimal?.id ?? animals.firstOrNull?.id;
     }
     final selectedAnimal = animals.where((value) => value.id == _animalId).firstOrNull;
-    final documents = state.snapshot.documents
+    final documents = state.documents
         .where(
           (value) =>
               value.animalId == _animalId &&
@@ -61,7 +62,11 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
         .toList(growable: false);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.petExportOnly ? 'Pet export' : 'Backup, restore & pet export'),
+        title: Text(
+          widget.petExportOnly
+              ? AppLocalizations.of(context).petExport
+              : AppLocalizations.of(context).backupRestorePetExport,
+        ),
       ),
       body: ConstrainedPage(
         maxWidth: 820,
@@ -69,34 +74,33 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
           children: [
             PageHeading(
               title: widget.petExportOnly
-                  ? 'Export ${selectedAnimal?.name ?? 'pet'}’s health history'
-                  : 'Copies you control',
+                  ? selectedAnimal == null
+                        ? AppLocalizations.of(context).petExport
+                        : AppLocalizations.of(context).exportSHealthHistory(selectedAnimal.name)
+                  : AppLocalizations.of(context).copiesYouControl,
               subtitle: widget.petExportOnly
-                  ? 'Choose a date range and create a vet-friendly PDF, CSV, or document package.'
-                  : 'Create an open backup, safely restore one, or save and share a focused pet '
-                        'health summary.',
+                  ? AppLocalizations.of(context).chooseADateRangeAndCreateAVetFriendly
+                  : AppLocalizations.of(context).createAnOpenBackupSafelyRestoreOneOrSave,
             ),
             if (!widget.petExportOnly) ...[
               const SizedBox(height: 18),
-              const CalmNotice(
+              CalmNotice(
                 icon: Icons.lock_outline_rounded,
-                text:
-                    'Save-file and share actions open only when you choose them. Creaturely performs '
-                    'no upload on its own during normal journaling.',
+                text: AppLocalizations.of(context).saveFileAndShareActionsOpenOnlyWhenYou,
                 tone: NoticeTone.supportive,
               ),
               const SizedBox(height: 22),
-              const SectionHeading('Whole-journal backup'),
+              SectionHeading(AppLocalizations.of(context).wholeJournalBackup),
               Card(
                 child: Column(
                   children: [
                     ListTile(
                       minTileHeight: 72,
                       leading: const Icon(Icons.archive_outlined),
-                      title: const Text('Create .creaturely backup'),
+                      title: Text(AppLocalizations.of(context).createCreaturelyBackup),
                       subtitle: Text(
-                        '${state.snapshot.animals.length} animals • '
-                        '${state.snapshot.documents.length} documents',
+                        AppLocalizations.of(context)
+                            .animalsDocuments(state.animals.length, state.documents.length),
                       ),
                       trailing: const Icon(Icons.save_alt_rounded),
                       onTap: _working ? null : _createBackup,
@@ -105,8 +109,10 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
                     ListTile(
                       minTileHeight: 72,
                       leading: const Icon(Icons.settings_backup_restore_rounded),
-                      title: const Text('Restore from .creaturely'),
-                      subtitle: const Text('Fully validated before an atomic replacement.'),
+                      title: Text(AppLocalizations.of(context).restoreFromCreaturely),
+                      subtitle: Text(
+                        AppLocalizations.of(context).fullyValidatedBeforeAnAtomicReplacement,
+                      ),
                       trailing: const Icon(Icons.folder_open_rounded),
                       onTap: _working ? null : _restoreBackup,
                     ),
@@ -115,7 +121,11 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
               ),
             ],
             const SizedBox(height: 22),
-            SectionHeading(widget.petExportOnly ? 'Export options' : 'Pet export'),
+            SectionHeading(
+              widget.petExportOnly
+                  ? AppLocalizations.of(context).exportOptions
+                  : AppLocalizations.of(context).petExport,
+            ),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -124,24 +134,28 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: _animalId,
-                      decoration: const InputDecoration(labelText: 'Animal'),
+                      decoration: InputDecoration(labelText: AppLocalizations.of(context).animal),
                       items: animals
                           .map(
                             (animal) =>
                                 DropdownMenuItem(value: animal.id, child: Text(animal.name)),
                           )
                           .toList(growable: false),
-                      onChanged: (value) => setState(() {
-                        _animalId = value;
-                        _selectedDocuments.clear();
-                      }),
+                      onChanged: _working
+                          ? null
+                          : (value) => setState(() {
+                              _animalId = value;
+                              _selectedDocuments.clear();
+                            }),
                     ),
                     const SizedBox(height: 12),
                     InkWell(
-                      onTap: _pickRange,
+                      onTap: _working ? null : _pickRange,
                       borderRadius: BorderRadius.circular(14),
                       child: InputDecorator(
-                        decoration: const InputDecoration(labelText: 'Date range'),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).dateRange,
+                        ),
                         child: Text(
                           '${DateFormat.yMMMd().format(_range.start)} – '
                           '${DateFormat.yMMMd().format(_range.end)}',
@@ -150,12 +164,12 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Original documents to include',
+                      AppLocalizations.of(context).originalDocumentsToInclude,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 6),
                     if (documents.isEmpty)
-                      const Text('No documents in this range.')
+                      Text(AppLocalizations.of(context).noDocumentsInThisRange)
                     else
                       Card(
                         color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -164,13 +178,17 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
                             for (final document in documents)
                               CheckboxListTile(
                                 value: _selectedDocuments.contains(document.id),
-                                onChanged: (selected) => setState(
-                                  () => selected == true
-                                      ? _selectedDocuments.add(document.id)
-                                      : _selectedDocuments.remove(document.id),
-                                ),
+                                onChanged: _working
+                                    ? null
+                                    : (selected) => setState(
+                                        () => selected == true
+                                            ? _selectedDocuments.add(document.id)
+                                            : _selectedDocuments.remove(document.id),
+                                      ),
                                 title: Text(document.title),
-                                subtitle: Text(document.category.name),
+                                subtitle: Text(
+                                  AppLocalizations.of(context).documentCategory(document.category),
+                                ),
                               ),
                           ],
                         ),
@@ -180,7 +198,7 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
                       key: const ValueKey('open_pet_export'),
                       onPressed: _working || _animalId == null ? null : _showExportChooser,
                       icon: const Icon(Icons.ios_share_rounded),
-                      label: const Text('Export or share'),
+                      label: Text(AppLocalizations.of(context).exportOrShare),
                     ),
                   ],
                 ),
@@ -198,114 +216,150 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
   }
 
   Future<void> _createBackup() async {
+    if (_working || !mounted) return;
+    final strings = AppLocalizations.of(context);
+    final backup = ref.read(recoveryControllerProvider.notifier);
+    final saver = ref.read(documentSaveServiceProvider);
+    final fileName =
+        'creaturely-${DateFormat('yyyyMMdd-HHmm').format(ref.read(wallClockProvider)())}.creaturely';
     setState(() => _working = true);
     try {
-      final snapshot = ref.read(appControllerProvider).snapshot;
-      final storage = await ref.read(documentStorageProvider.future);
-      final attachments = await storage.readAttachments(snapshot.documents);
-      final animalPhotos = await storage.readAnimalPhotos(snapshot.animals);
-      final bytes = _backups.create(
-        snapshot: snapshot,
-        attachments: attachments,
-        animalPhotos: animalPhotos,
+      final bytes = await backup.createBackup();
+      if (!mounted) return;
+      final savedAt = await saver.save(
+        fileName: fileName,
+        dialogTitle: strings.saveCreaturelyBackup,
+        bytes: bytes,
+        allowedExtensions: const ['creaturely'],
       );
-      final fileName =
-          'creaturely-${DateFormat('yyyyMMdd-HHmm').format(DateTime.now())}.creaturely';
-      final savedAt = await ref
-          .read(documentSaveServiceProvider)
-          .save(
-            fileName: fileName,
-            dialogTitle: 'Save Creaturely backup',
-            bytes: bytes,
-            allowedExtensions: const <String>['creaturely'],
-          );
       if (savedAt != null && mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Creaturely backup saved.')));
+            .showSnackBar(SnackBar(content: Text(strings.creaturelyBackupSaved)));
       }
     } on Object catch (error) {
-      _showError('Backup could not be created', error);
+      _showError(strings.backupCouldNotBeCreated, error);
     } finally {
-      if (mounted) {
-        setState(() => _working = false);
-      }
+      if (mounted) setState(() => _working = false);
     }
   }
 
   Future<void> _restoreBackup() async {
-    final selectedFile = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: <String>['creaturely', 'zip'],
-    );
-    final selectedPath = selectedFile?.path;
-    if (selectedPath == null) {
-      return;
-    }
+    if (_working || !mounted) return;
+    final strings = AppLocalizations.of(context);
+    final media = ref.read(mediaServiceProvider);
+    final restore = ref.read(recoveryControllerProvider.notifier);
     setState(() => _working = true);
     try {
-      final bytes = await File(selectedPath).readAsBytes();
-      final validated = _backups.validate(bytes);
-      if (!mounted) {
-        return;
-      }
+      final selected = await media.pickFile(['creaturely']);
+      if (selected == null || !mounted) return;
+      final validated = await _backups.validateAsync(await selected.readAsBytes());
+      if (!mounted) return;
       final confirmed =
           await showDialog<bool>(
             context: context,
             builder: (context) => RestoreConfirmationDialog(validated: validated),
           ) ??
           false;
-      if (!confirmed) {
-        return;
-      }
-      final documents = await ref.read(documentStorageProvider.future);
-      final appDirectory = await getApplicationDocumentsDirectory();
-      final coordinator = AtomicRestoreCoordinator(
-        backups: _backups,
-        store: ref.read(repositoryProvider),
-        documents: documents,
-        safetyWriter: DirectorySafetySnapshotWriter(
-          Directory(path.join(appDirectory.path, 'recovery')),
-        ),
-      );
-      await coordinator.restore(bytes);
-      await ref.read(appControllerProvider.notifier).refresh(syncReminders: true);
+      if (!confirmed || !mounted) return;
+      await restore.restore(validated);
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Backup restored successfully.')));
+            .showSnackBar(SnackBar(content: Text(strings.backupRestoredSuccessfully)));
       }
     } on Object catch (error) {
-      _showError('Restore stopped safely', error);
+      _showError(strings.restoreStoppedSafely, error);
     } finally {
-      if (mounted) {
-        setState(() => _working = false);
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  _ExportRequest _captureExport(_ExportChoice choice) {
+    final animalId = _animalId!;
+    final animal = ref
+        .read(journalViewProvider((feature: JournalFeature.data, animalId: null)))
+        .animals
+        .singleWhere((animal) => animal.id == animalId);
+    return (
+      format: choice.format,
+      animalId: animalId,
+      start: _range.start,
+      end: _range.end,
+      documents: Set<String>.unmodifiable(_selectedDocuments),
+      locale: Localizations.localeOf(context).toLanguageTag(),
+      fileName:
+          'creaturely-${_safeFileName(animal.name)}-${DateFormat('yyyyMMdd').format(ref.read(wallClockProvider)())}.${choice.extension}',
+    );
+  }
+
+  Future<void> _saveExport(_ExportChoice choice) async {
+    if (_working || !mounted) return;
+    final strings = AppLocalizations.of(context);
+    final saver = ref.read(documentSaveServiceProvider);
+    setState(() => _working = true);
+    try {
+      final request = _captureExport(choice);
+      final bytes = await _buildExport(request);
+      if (!mounted) return;
+      final savedAt = await saver.save(
+        fileName: request.fileName,
+        dialogTitle: strings.savePetExport(choice.label),
+        bytes: bytes,
+        allowedExtensions: [choice.extension],
+      );
+      if (savedAt != null && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(strings.exportSaved(choice.label))));
       }
+    } on Object catch (error) {
+      _showError(strings.exportCouldNotBeSaved(choice.label), error);
+    } finally {
+      if (mounted) setState(() => _working = false);
     }
   }
 
   Future<void> _shareExport(_ExportChoice choice) async {
+    if (_working || !mounted) return;
+    final strings = AppLocalizations.of(context);
+    final media = ref.read(mediaServiceProvider);
     setState(() => _working = true);
-    TemporaryExportFiles? files;
+    TemporaryExportFile? files;
     try {
-      final bundle = await _buildExport();
-      files = await TemporaryExportFiles.write(await getTemporaryDirectory(), bundle);
-      final (file, mime) = switch (choice) {
-        _ExportChoice.pdf => (files.pdf, 'application/pdf'),
-        _ExportChoice.csv => (files.csv, 'text/csv'),
-        _ExportChoice.zip => (files.zip, 'application/zip'),
-      };
-      await SharePlus.instance.share(
-        ShareParams(
-          title: 'Creaturely pet health summary',
-          subject: 'Creaturely pet health export',
-          files: <XFile>[XFile(file.path, mimeType: mime)],
-        ),
+      final box = context.findRenderObject();
+      final origin = box is RenderBox && box.hasSize
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+      final request = _captureExport(choice);
+      final bytes = await _buildExport(request);
+      if (!mounted) return;
+      files = await TemporaryExportFile.write(
+        await media.temporaryDirectory(),
+        bytes,
+        request.format,
+      );
+      if (!mounted) return;
+      await media.share(
+        files.file,
+        origin: origin,
+        mimeType: switch (request.format) {
+          PetExportFormat.pdf => 'application/pdf',
+          PetExportFormat.csv => 'text/csv',
+          PetExportFormat.zip => 'application/zip',
+        },
+        title: strings.creaturelyPetHealthSummary,
+        subject: strings.creaturelyPetHealthExport,
       );
     } on Object catch (error) {
-      _showError('Export could not be shared', error);
+      _showError(strings.exportCouldNotBeShared, error);
     } finally {
-      await files?.cleanup();
-      if (mounted) {
-        setState(() => _working = false);
+      try {
+        await files?.cleanup();
+      } on Object {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(strings.temporaryExportCleanupFailed)));
+        }
+      } finally {
+        if (mounted) setState(() => _working = false);
       }
     }
   }
@@ -317,61 +371,19 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
     builder: (context) => _ExportChooserSheet(onSave: _saveExport, onShare: _shareExport),
   );
 
-  Future<void> _saveExport(_ExportChoice choice) async {
-    setState(() => _working = true);
-    try {
-      final bundle = await _buildExport();
-      final bytes = switch (choice) {
-        _ExportChoice.pdf => bundle.pdf,
-        _ExportChoice.csv => bundle.csv,
-        _ExportChoice.zip => bundle.zip,
-      };
-      final animal = ref
-          .read(appControllerProvider)
-          .snapshot
-          .animals
-          .where((value) => value.id == _animalId)
-          .firstOrNull;
-      final animalName = _safeFileName(animal?.name ?? 'pet');
-      final fileName =
-          'creaturely-$animalName-${DateFormat('yyyyMMdd').format(DateTime.now())}.${choice.extension}';
-      final savedAt = await ref
-          .read(documentSaveServiceProvider)
-          .save(
-            fileName: fileName,
-            dialogTitle: 'Save ${choice.label} pet export',
-            bytes: bytes,
-            allowedExtensions: <String>[choice.extension],
-          );
-      if (savedAt != null && mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${choice.label} export saved.')));
-      }
-    } on Object catch (error) {
-      _showError('${choice.label} export could not be saved', error);
-    } finally {
-      if (mounted) {
-        setState(() => _working = false);
-      }
-    }
-  }
-
-  Future<PetExportBundle> _buildExport() async {
-    final locale = Localizations.localeOf(context).toLanguageTag();
-    final snapshot = ref.read(appControllerProvider).snapshot;
+  Future<Uint8List> _buildExport(_ExportRequest request) async {
+    final repository = ref.read(repositoryProvider);
     final storage = await ref.read(documentStorageProvider.future);
-    final selectedDocuments = snapshot.documents.where(
-      (document) => _selectedDocuments.contains(document.id),
-    );
-    final attachments = await storage.readAttachments(selectedDocuments);
-    return _exports.build(
-      snapshot: snapshot,
-      animalId: _animalId!,
-      startDate: _range.start,
-      endDate: _range.end,
-      selectedDocumentIds: _selectedDocuments,
-      attachmentBytes: attachments,
-      locale: locale,
+    return storage.exclusiveFiles(
+      () async => _exports.build(
+        format: request.format,
+        snapshot: await repository.loadSnapshot(),
+        animalId: request.animalId,
+        startDate: request.start,
+        endDate: request.end,
+        selectedDocumentIds: request.documents,
+        locale: request.locale,
+      ),
     );
   }
 
@@ -384,10 +396,10 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
     final value = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      lastDate: ref.read(wallClockProvider)(),
       initialDateRange: _range,
     );
-    if (value != null) {
+    if (value != null && mounted) {
       setState(() {
         _range = value;
         _selectedDocuments.clear();
@@ -399,46 +411,47 @@ class _DataManagementScreenState extends ConsumerState<DataManagementScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$title: $error')));
+    final strings = AppLocalizations.of(context);
+    final detail = switch (error) {
+      CorruptBackupException() => strings.backupCorruptHelp,
+      UnsupportedBackupException() => strings.backupUnsupportedHelp,
+      FileSystemException() => strings.fileUnavailableHelp,
+      _ => strings.operationFailed,
+    };
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$title. $detail')));
   }
 }
 
+typedef _ExportRequest = ({
+  PetExportFormat format,
+  String animalId,
+  String fileName,
+  DateTime start,
+  DateTime end,
+  Set<String> documents,
+  String locale,
+});
+
 enum _ExportChoice {
-  pdf(
-    label: 'PDF',
-    title: 'PDF summary',
-    description: 'A readable overview of the selected dates.',
-    extension: 'pdf',
-    icon: Icons.picture_as_pdf_outlined,
-  ),
-  csv(
-    label: 'CSV',
-    title: 'CSV data',
-    description: 'Raw journal data for a spreadsheet.',
-    extension: 'csv',
-    icon: Icons.table_view_outlined,
-  ),
-  zip(
-    label: 'ZIP',
-    title: 'ZIP package',
-    description: 'PDF, CSV, and any selected original documents.',
-    extension: 'zip',
-    icon: Icons.folder_zip_outlined,
-  );
+  pdf(PetExportFormat.pdf, Icons.picture_as_pdf_outlined),
+  csv(PetExportFormat.csv, Icons.table_view_outlined),
+  zip(PetExportFormat.zip, Icons.folder_zip_outlined);
 
-  const _ExportChoice({
-    required this.label,
-    required this.title,
-    required this.description,
-    required this.extension,
-    required this.icon,
-  });
-
-  final String label;
-  final String title;
-  final String description;
-  final String extension;
+  const _ExportChoice(this.format, this.icon);
+  final PetExportFormat format;
   final IconData icon;
+  String get label => name.toUpperCase();
+  String get extension => name;
+  String get title => switch (this) {
+    pdf => appStrings.pdfSummary,
+    csv => appStrings.csvData,
+    zip => appStrings.zipPackage,
+  };
+  String get description => switch (this) {
+    pdf => appStrings.aReadableOverviewOfTheSelectedDates,
+    csv => appStrings.rawJournalDataForASpreadsheet,
+    zip => appStrings.pdfCSVAndAnySelectedOriginalDocuments,
+  };
 }
 
 class _ExportChooserSheet extends StatefulWidget {
@@ -462,10 +475,13 @@ class _ExportChooserSheetState extends State<_ExportChooserSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Choose export format', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            AppLocalizations.of(context).chooseExportFormat,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 4),
           Text(
-            'Select one format, then save it to Files or share it with another app.',
+            AppLocalizations.of(context).selectOneFormatThenSaveItToFilesOr,
             style: Theme.of(context).textTheme.bodyMedium
                 ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
@@ -502,7 +518,7 @@ class _ExportChooserSheetState extends State<_ExportChooserSheet> {
                   widget.onSave(_choice);
                 },
                 icon: const Icon(Icons.save_alt_rounded),
-                label: const Text('Save to Files'),
+                label: Text(AppLocalizations.of(context).saveToFiles),
               ),
               FilledButton.icon(
                 key: const ValueKey('share_selected_export'),
@@ -511,7 +527,7 @@ class _ExportChooserSheetState extends State<_ExportChooserSheet> {
                   widget.onShare(_choice);
                 },
                 icon: const Icon(Icons.share_outlined),
-                label: const Text('Share'),
+                label: Text(AppLocalizations.of(context).share),
               ),
             ],
           ),
@@ -528,22 +544,26 @@ class RestoreConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Replace this local journal?'),
+    title: Text(AppLocalizations.of(context).replaceThisLocalJournal),
     content: Text(
-      'Validated backup from '
-      '${DateFormat.yMMMd().add_jm().format(validated.manifest.createdAt.toLocal())}.\n\n'
-      '${validated.snapshot.animals.length} animals, '
-      '${validated.snapshot.respiratorySessions.length} breathing sessions, '
-      '${validated.snapshot.medications.length} medications, and '
-      '${validated.snapshot.documents.length} documents.\n\n'
-      'Creaturely will create a safety snapshot first. Nothing is partially imported.',
+      AppLocalizations.of(context)
+          .validatedBackupFromAnimalsBreathingSessionsMedicationsAndDocuments(
+            DateFormat.yMMMd().add_jm().format(validated.manifest.createdAt.toLocal()),
+            validated.snapshot.animals.length,
+            validated.snapshot.respiratorySessions.length,
+            validated.snapshot.medications.length,
+            validated.snapshot.documents.length,
+          ),
     ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+      TextButton(
+        onPressed: () => Navigator.pop(context, false),
+        child: Text(AppLocalizations.of(context).cancel),
+      ),
       FilledButton(
         key: const ValueKey('confirm_restore'),
         onPressed: () => Navigator.pop(context, true),
-        child: const Text('Restore'),
+        child: Text(AppLocalizations.of(context).restore),
       ),
     ],
   );
@@ -568,27 +588,28 @@ class _DeleteJournalScreenState extends ConsumerState<DeleteJournalScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Delete local journal')),
+    appBar: AppBar(title: Text(AppLocalizations.of(context).deleteLocalJournal)),
     body: ConstrainedPage(
       maxWidth: CreaturelySpacing.maxFormWidth,
       child: ListView(
         children: [
-          const PageHeading(
-            title: 'This removes the journal from this device',
-            subtitle:
-                'Animal records, measurements, schedules, dose history, settings, and app-managed '
-                'attachments will be deleted. Backups you already saved are not affected.',
+          PageHeading(
+            title: AppLocalizations.of(context).thisRemovesTheJournalFromThisDevice,
+            subtitle: AppLocalizations.of(context)
+                .animalRecordsMeasurementsSchedulesDoseHistorySettingsAndApp,
           ),
           const SizedBox(height: 18),
-          const CalmNotice(
+          CalmNotice(
             icon: Icons.warning_amber_rounded,
-            text: 'Create a .creaturely backup first if you might want this journal again.',
+            text: AppLocalizations.of(context).createACreaturelyBackupFirstIfYouMightWant,
             tone: NoticeTone.attention,
           ),
           const SizedBox(height: 20),
           TextField(
             controller: _confirmation,
-            decoration: const InputDecoration(labelText: 'Type DELETE to confirm'),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context).typeDELETEToConfirm,
+            ),
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 16),
@@ -597,9 +618,11 @@ class _DeleteJournalScreenState extends ConsumerState<DeleteJournalScreen> {
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            onPressed: _confirmation.text == 'DELETE' && !_working ? _delete : null,
+            onPressed: _confirmation.text == AppLocalizations.of(context).delete && !_working
+                ? _delete
+                : null,
             icon: const Icon(Icons.delete_forever_outlined),
-            label: const Text('Delete everything local'),
+            label: Text(AppLocalizations.of(context).deleteEverythingLocal),
           ),
         ],
       ),
@@ -609,11 +632,14 @@ class _DeleteJournalScreenState extends ConsumerState<DeleteJournalScreen> {
   Future<void> _delete() async {
     setState(() => _working = true);
     try {
-      final storage = await ref.read(documentStorageProvider.future);
-      await ref.read(appControllerProvider.notifier).replaceSnapshot(CreaturelySnapshot.empty());
-      await storage.deleteJournalArtifacts();
+      await ref.read(recoveryControllerProvider.notifier).deleteLocalJournal();
       if (mounted) {
         context.go('/');
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).operationFailed)));
       }
     } finally {
       if (mounted) {

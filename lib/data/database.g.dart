@@ -7560,6 +7560,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $HealthRecordRowsTable healthRecordRows = $HealthRecordRowsTable(this);
   late final $CareDocumentRowsTable careDocumentRows = $CareDocumentRowsTable(this);
   late final $SettingRowsTable settingRows = $SettingRowsTable(this);
+  late final Index doseMedicationDue = Index(
+    'dose_medication_due',
+    'CREATE INDEX dose_medication_due ON dose_ledger_rows (medication_id, due_at)',
+  );
+  late final Index dosePendingDue = Index(
+    'dose_pending_due',
+    'CREATE INDEX dose_pending_due ON dose_ledger_rows (status, due_at)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7576,6 +7584,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     healthRecordRows,
     careDocumentRows,
     settingRows,
+    doseMedicationDue,
+    dosePendingDue,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([

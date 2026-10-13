@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import 'package:creaturely/data/repository.dart';
+import 'package:creaturely/domain/models.dart';
+import 'package:creaturely/l10n/generated/app_localizations.dart';
 import 'package:creaturely/platform/feedback_service.dart';
 import 'package:creaturely/ui/app_controller.dart';
 import 'package:creaturely/ui/core/theme.dart';
@@ -5,11 +10,140 @@ import 'package:creaturely/ui/features/respiratory/respiratory_recording_screen.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import '../support/fixtures.dart';
 import '../support/widget_harness.dart';
 
 void main() {
+  testWidgets('a failed recording save retains breaths and retries the same record ID', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(700, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    late _FailOnceRepository repository;
+    final harness = await WidgetHarness.create(
+      snapshot: fixtureSnapshot(),
+      repositoryFactory: (database) => repository = _FailOnceRepository(database),
+    );
+    addTearDown(() => harness.close(tester));
+    await harness.container.read(appControllerProvider.notifier).initialize();
+    var now = fixtureTime;
+    await _pumpRecorder(tester, harness, () => now);
+    await tester.tap(find.text('15 s'));
+    await tester.tap(find.byKey(const ValueKey('start_breathing_session')));
+    await tester.pump();
+    now = now.add(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const ValueKey('breath_tap_target')));
+    now = now.add(const Duration(seconds: 15));
+    await WidgetHarness.pumpFrames(tester);
+    await tester.tap(find.byKey(const ValueKey('save_breathing_session')));
+    await WidgetHarness.pumpFrames(tester);
+    expect(find.textContaining('Could not save the recording'), findsOneWidget);
+    expect(find.byKey(const ValueKey('save_breathing_session')), findsOneWidget);
+    expect(repository.ids, hasLength(1));
+    await tester.tap(find.byKey(const ValueKey('save_breathing_session')));
+    await WidgetHarness.pumpFrames(tester);
+    expect(repository.ids, hasLength(2));
+    expect(repository.ids[0], repository.ids[1]);
+    final stored = await harness.database.snapshot();
+    expect(
+      stored.respiratorySessions.where((session) => session.id == repository.ids.first),
+      hasLength(1),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'the recorder waits for persisted defaults and remains usable without native feedback',
+    (tester) async {
+      tester.view.physicalSize = const Size(700, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final json = fixtureSnapshot().toJson();
+      json['settings'] = fixtureSnapshot().settings.copyWith(defaultTimerSeconds: 60).toJson();
+      final harness = await WidgetHarness.create(
+        snapshot: CreaturelySnapshot.fromJson(json),
+        feedback: _FailFeedback(),
+      );
+      addTearDown(() => harness.close(tester));
+      var now = fixtureTime;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: harness.container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: RespiratoryRecordingScreen(animalId: 'animal-1', clock: () => now),
+          ),
+        ),
+      );
+      await WidgetHarness.pumpFrames(tester);
+      expect(tester.widget<SegmentedButton<int>>(find.byType(SegmentedButton<int>)).selected, {60});
+      await tester.tap(find.byKey(const ValueKey('start_breathing_session')));
+      await tester.pump();
+      now = now.add(const Duration(seconds: 1));
+      await tester.tap(find.byKey(const ValueKey('breath_tap_target')));
+      await tester.pump();
+      expect(tester.widget<Text>(find.byKey(const ValueKey('breath_count'))).data, '1');
+      expect(
+        find.text('Tap feedback is unavailable. Your breaths are still being counted.'),
+        findsOneWidget,
+      );
+      now = now.add(const Duration(seconds: 1));
+      await tester.tap(find.byKey(const ValueKey('breath_tap_target')));
+      await tester.pump();
+      expect(tester.widget<Text>(find.byKey(const ValueKey('breath_count'))).data, '2');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'a pending recording save disables restart and retains the timer that is being saved',
+    (tester) async {
+      tester.view.physicalSize = const Size(700, 1100);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      late _PendingSessionSave repository;
+      final harness = await WidgetHarness.create(
+        snapshot: fixtureSnapshot(),
+        repositoryFactory: (db) => repository = _PendingSessionSave(db),
+      );
+      addTearDown(() => harness.close(tester));
+      var now = fixtureTime;
+      await _pumpRecorder(tester, harness, () => now);
+      await tester.tap(find.text('15 s'));
+      await tester.tap(find.byKey(const ValueKey('start_breathing_session')));
+      await tester.pump();
+      now = now.add(const Duration(seconds: 1));
+      await tester.tap(find.byKey(const ValueKey('breath_tap_target')));
+      now = now.add(const Duration(seconds: 15));
+      await WidgetHarness.pumpFrames(tester);
+      await tester.tap(find.byKey(const ValueKey('save_breathing_session')));
+      await WidgetHarness.pumpFrames(tester);
+      expect(repository.entered.isCompleted, isTrue);
+      expect(
+        tester.widget<TextButton>(find.widgetWithText(TextButton, 'Try again')).onPressed,
+        isNull,
+      );
+      expect(
+        tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.close_rounded)).onPressed,
+        isNull,
+      );
+      repository.finish.complete();
+      await WidgetHarness.pumpFrames(tester);
+      expect(find.text('Open recorder'), findsOneWidget);
+      expect(
+        (await harness.database.snapshot()).respiratorySessions.where(
+          (value) => value.id == repository.savedId,
+        ),
+        hasLength(1),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('recorder gives clear tap/undo/cancel/interruption/completion feedback', (
     tester,
   ) async {
@@ -26,12 +160,15 @@ void main() {
       UncontrolledProviderScope(
         container: harness.container,
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: CreaturelyTheme.light,
           home: RespiratoryRecordingScreen(animalId: 'animal-1', clock: () => now),
         ),
       ),
     );
     await tester.pump();
+    await WidgetHarness.pumpFrames(tester);
     expect(find.textContaining('does not use phone telemetry'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('start_breathing_session')));
     await tester.pump();
@@ -107,11 +244,14 @@ void main() {
       UncontrolledProviderScope(
         container: harness.container,
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: CreaturelyTheme.light,
           home: RespiratoryRecordingScreen(animalId: 'animal-1', clock: () => now),
         ),
       ),
     );
+    await WidgetHarness.pumpFrames(tester);
     await tester.tap(find.text('15 s'));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('start_breathing_session')));
@@ -142,4 +282,75 @@ class _CapturingFeedback implements RecordingFeedback {
     lastHaptics = haptics;
     lastSound = sound;
   }
+}
+
+class _FailOnceRepository extends CreaturelyRepository {
+  _FailOnceRepository(super.database);
+  final List<String> ids = [];
+  @override
+  Future<void> saveRespiratorySession(RespiratorySession session) async {
+    ids.add(session.id);
+    if (ids.length == 1) throw StateError('Synthetic disk write failure');
+    await super.saveRespiratorySession(session);
+  }
+}
+
+class _FailFeedback implements RecordingFeedback {
+  @override
+  Future<void> breath({required bool haptics, required bool sound}) async =>
+      throw StateError('Synthetic native feedback failure');
+}
+
+class _PendingSessionSave extends CreaturelyRepository {
+  _PendingSessionSave(super.database);
+  final entered = Completer<void>();
+  final finish = Completer<void>();
+  String? savedId;
+  @override
+  Future<void> saveRespiratorySession(RespiratorySession session) async {
+    savedId = session.id;
+    entered.complete();
+    await finish.future;
+    await super.saveRespiratorySession(session);
+  }
+}
+
+Future<void> _pumpRecorder(
+  WidgetTester tester,
+  WidgetHarness harness,
+  DateTime Function() clock,
+) async {
+  final router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => Scaffold(
+          body: TextButton(
+            onPressed: () => context.push('/record'),
+            child: const Text('Open recorder'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/record',
+        builder: (context, state) => RespiratoryRecordingScreen(animalId: 'animal-1', clock: clock),
+      ),
+    ],
+  );
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    router.dispose();
+  });
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: harness.container,
+      child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        routerConfig: router,
+      ),
+    ),
+  );
+  await tester.tap(find.text('Open recorder'));
+  await WidgetHarness.pumpFrames(tester);
 }

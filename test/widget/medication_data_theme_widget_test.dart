@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:creaturely/data/backup_service.dart';
 import 'package:creaturely/domain/models.dart';
+import 'package:creaturely/l10n/generated/app_localizations.dart';
 import 'package:creaturely/platform/document_save_service.dart';
 import 'package:creaturely/ui/app_controller.dart';
 import 'package:creaturely/ui/core/theme.dart';
@@ -153,6 +154,11 @@ void main() {
     await tester.tap(find.text('Create .creaturely backup'));
     await WidgetHarness.pumpFrames(tester, count: 30);
 
+    for (var attempt = 0; attempt < 200 && saver.calls == 0; attempt++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+    await WidgetHarness.pumpFrames(tester);
     expect(saver.calls, 1);
     expect(saver.fileName, startsWith('creaturely-'));
     expect(saver.fileName, endsWith('.creaturely'));
@@ -220,6 +226,11 @@ void main() {
     expect(find.text('CSV data'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('save_selected_export')));
     await WidgetHarness.pumpFrames(tester, count: 40);
+    for (var attempt = 0; attempt < 200 && saver.calls == 0; attempt++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump();
+    }
+    await WidgetHarness.pumpFrames(tester);
     expect(saver.calls, 1);
     expect(saver.fileName, endsWith('.csv'));
     expect(saver.allowedExtensions, const <String>['csv']);
@@ -242,6 +253,8 @@ void main() {
     bool? dialogResult;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (context) => Scaffold(
             body: FilledButton(
@@ -281,9 +294,8 @@ void main() {
     await harness.pumpApp(tester);
     expect(tester.takeException(), isNull);
 
-    final notifier = harness.container.read(appControllerProvider.notifier);
-    final current = harness.container.read(appControllerProvider).snapshot.settings;
-    await notifier.saveSettings(current.copyWith(theme: AppThemePreference.dark));
+    final notifier = harness.container.read(settingsControllerProvider.notifier);
+    await notifier.updateSettings((current) => current.copyWith(theme: AppThemePreference.dark));
     await WidgetHarness.pumpFrames(tester);
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode, ThemeMode.dark);
     expect(tester.takeException(), isNull);

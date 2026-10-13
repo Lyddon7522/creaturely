@@ -12,6 +12,7 @@ class TrendPoint {
     required this.value,
     required this.rawValue,
     required this.rawUnit,
+    this.durationMilliseconds,
   });
 
   final String id;
@@ -19,6 +20,7 @@ class TrendPoint {
   final double value;
   final double rawValue;
   final String rawUnit;
+  final int? durationMilliseconds;
 }
 
 class TrendAxisScale {
@@ -89,12 +91,12 @@ class TrendDataBuilder {
   const TrendDataBuilder();
 
   List<TrendPoint> respiratory(
-    CreaturelySnapshot snapshot,
+    Iterable<RespiratorySession> sessions,
     String animalId, {
     DateTime? start,
     DateTime? end,
   }) {
-    final result = snapshot.respiratorySessions
+    final result = sessions
         .where(
           (value) =>
               value.animalId == animalId &&
@@ -107,7 +109,8 @@ class TrendDataBuilder {
             at: value.recordedAt,
             value: value.ratePerMinute,
             rawValue: value.breathCount.toDouble(),
-            rawUnit: 'breaths in ${formatDisplayNumber(value.durationMilliseconds / 1000)} seconds',
+            rawUnit: 'breaths',
+            durationMilliseconds: value.durationMilliseconds,
           ),
         )
         .toList(growable: false);
@@ -116,17 +119,18 @@ class TrendDataBuilder {
   }
 
   List<TrendPoint> weight(
-    CreaturelySnapshot snapshot,
+    Iterable<HealthRecord> records,
     String animalId,
     WeightUnit displayUnit, {
     DateTime? start,
     DateTime? end,
   }) {
-    final result = snapshot.healthRecords
+    final result = records
         .where(
           (value) =>
               value.animalId == animalId &&
               value.kind == HealthRecordKind.weight &&
+              !value.archived &&
               value.canonicalValue != null &&
               (start == null || !value.occurredAt.isBefore(start)) &&
               (end == null || !value.occurredAt.isAfter(end)),

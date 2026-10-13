@@ -25,7 +25,7 @@ requests.
 
 ## Development workflow
 
-Use Flutter 3.47.0 / Dart 3.13.0 and Java 17. Start from a focused branch and
+Use Flutter 3.47.2 / Dart 3.13.2 and Java 17. Start from a focused branch and
 keep unrelated generated or editor files out of the change.
 
 ```sh

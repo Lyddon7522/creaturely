@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../domain/models.dart';
 import '../../../domain/trends.dart';
 import '../../../domain/units.dart';
+import '../../../l10n/app_strings.dart';
 import '../../app_controller.dart';
 import '../../core/widgets.dart';
 import '../../navigation/top_level_scroll.dart';
@@ -76,14 +77,17 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(appControllerProvider);
+    final state = ref.watch(journalViewProvider((feature: JournalFeature.trends, animalId: null)));
+    if (state.loading || state.error != null) {
+      return QueryPane(error: state.error, onRetry: () => state.retry(ref));
+    }
     final animal = state.selectedAnimal;
     if (animal == null) {
-      return const Scaffold(
+      return Scaffold(
         body: EmptyState(
           icon: Icons.insights_outlined,
-          title: 'No trends yet',
-          body: 'Add an animal and record measurements to see descriptive trends.',
+          title: AppLocalizations.of(context).noTrendsYet,
+          body: AppLocalizations.of(context).addAnAnimalAndRecordMeasurementsToSeeDescriptive,
         ),
       );
     }
@@ -95,7 +99,9 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
         actions: [
           if (_tabs.index != 2)
             IconButton(
-              tooltip: _showList ? 'Show chart' : 'Show measurement list',
+              tooltip: _showList
+                  ? AppLocalizations.of(context).showChart
+                  : AppLocalizations.of(context).showMeasurementList,
               onPressed: () => setState(() => _showList = !_showList),
               icon: Icon(_showList ? Icons.show_chart_rounded : Icons.view_list_outlined),
             ),
@@ -107,9 +113,9 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           tabs: [
-            _trendTab('Breathing', Icons.air_rounded, compact),
-            _trendTab('Weight', Icons.monitor_weight_outlined, compact),
-            _trendTab('Medication', Icons.medication_outlined, compact),
+            _trendTab(AppLocalizations.of(context).breathing, Icons.air_rounded, compact),
+            _trendTab(AppLocalizations.of(context).weight, Icons.monitor_weight_outlined, compact),
+            _trendTab(AppLocalizations.of(context).medications, Icons.medication_outlined, compact),
           ],
         ),
       ),
@@ -158,7 +164,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
   Widget _measurementView({
     required _TrendKind kind,
     required Animal animal,
-    required CreaturelyState state,
+    required JournalView state,
     ScrollController? scrollController,
   }) {
     final now = DateTime.now();
@@ -177,22 +183,26 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
                   59,
                 )
         : now;
-    final unit = state.snapshot.settings.weightUnit == WeightUnit.kilograms ? 'kg' : 'lb';
+    final unit = state.settings.weightUnit == WeightUnit.kilograms ? 'kg' : 'lb';
     final points = kind == _TrendKind.respiratory
-        ? _builder.respiratory(state.snapshot, animal.id, start: start, end: end)
+        ? _builder.respiratory(state.respiratorySessions, animal.id, start: start, end: end)
         : _builder.weight(
-            state.snapshot,
+            state.healthRecords,
             animal.id,
-            state.snapshot.settings.weightUnit,
+            state.settings.weightUnit,
             start: start,
             end: end,
           );
-    final label = kind == _TrendKind.respiratory ? 'breaths/min' : unit;
+    final label = kind == _TrendKind.respiratory
+        ? AppLocalizations.of(context).respiratoryRateUnit
+        : unit;
     if (points.isEmpty) {
       return EmptyState(
         icon: kind == _TrendKind.respiratory ? Icons.air_rounded : Icons.monitor_weight_outlined,
-        title: 'No ${kind == _TrendKind.respiratory ? 'breathing' : 'weight'} data in this range',
-        body: 'Choose another range or record a new measurement from the Animals dashboard.',
+        title: kind == _TrendKind.respiratory
+            ? AppLocalizations.of(context).noBreathingDataInRange
+            : AppLocalizations.of(context).noWeightDataInRange,
+        body: AppLocalizations.of(context).chooseAnotherRangeOrRecordANewMeasurementFrom,
       );
     }
     final summary = TrendSummary.fromValues(points.map((value) => value.value));
@@ -213,9 +223,8 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
         const SizedBox(height: 14),
         Text(
           points.length < 3
-              ? 'Sparse data: each saved measurement is shown; a line is not interpreted as a forecast.'
-              : 'Descriptive view only: latest, average, and observed range. '
-                    'No predictions or diagnosis.',
+              ? AppLocalizations.of(context).sparseDataEachSavedMeasurementIsShownALine
+              : AppLocalizations.of(context).descriptiveViewOnlyLatestAverageAndObservedRangeNo,
           style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
@@ -225,7 +234,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
 
   Widget _medicationView({
     required Animal animal,
-    required CreaturelyState state,
+    required JournalView state,
     required ScrollController scrollController,
   }) {
     final now = DateTime.now();
@@ -244,7 +253,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
                   59,
                 )
         : now;
-    final doses = state.snapshot.doseLedger
+    final doses = state.doseLedger
         .where(
           (dose) =>
               dose.animalId == animal.id &&
@@ -254,14 +263,14 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
         )
         .toList(growable: false);
     if (doses.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.medication_outlined,
-        title: 'No medication outcomes in this range',
-        body: 'Given, skipped, and missed doses will appear here after they are recorded.',
+        title: AppLocalizations.of(context).noMedicationOutcomesInThisRange,
+        body: AppLocalizations.of(context).givenSkippedAndMissedDosesWillAppearHereAfter,
       );
     }
     final medicationNames = <String, String>{
-      for (final medication in state.snapshot.medications)
+      for (final medication in state.medications)
         if (medication.animalId == animal.id) medication.id: medication.name,
     };
     final grouped = <String, List<DoseLedgerEntry>>{};
@@ -270,16 +279,18 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
     }
     final medicationIds = grouped.keys.toList(growable: false)
       ..sort(
-        (first, second) => (medicationNames[first] ?? 'Medication').compareTo(
-          medicationNames[second] ?? 'Medication',
-        ),
+        (first, second) => (medicationNames[first] ?? AppLocalizations.of(context).medications)
+            .compareTo(medicationNames[second] ?? AppLocalizations.of(context).medications),
       );
     return ListView(
       controller: scrollController,
       children: [
         _MedicationSummary(doses: doses),
         const SizedBox(height: 16),
-        Text('By medication', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          AppLocalizations.of(context).byMedication,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         Card(
           child: Column(
@@ -287,7 +298,9 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
               for (var index = 0; index < medicationIds.length; index++) ...[
                 if (index > 0) const Divider(height: 1),
                 _MedicationBreakdownTile(
-                  name: medicationNames[medicationIds[index]] ?? 'Medication',
+                  name:
+                      medicationNames[medicationIds[index]] ??
+                      AppLocalizations.of(context).medications,
                   doses: grouped[medicationIds[index]]!,
                   onTap: () => context.push('/medication/${medicationIds[index]}/${animal.id}'),
                 ),
@@ -297,7 +310,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
         ),
         const SizedBox(height: 14),
         Text(
-          'Counts reflect the dose statuses recorded in this date range.',
+          AppLocalizations.of(context).countsReflectTheDoseStatusesRecordedInThisDate,
           style: Theme.of(context).textTheme.bodySmall
               ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
@@ -316,7 +329,7 @@ class _TrendsScreenState extends ConsumerState<TrendsScreen> with SingleTickerPr
       lastDate: DateTime.now(),
       initialDateRange: _customRange,
     );
-    if (selected != null) {
+    if (selected != null && mounted) {
       setState(() {
         _customRange = selected;
         _range = value;
@@ -336,17 +349,17 @@ class _MedicationSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final metrics = <({String label, int count, IconData icon})>[
       (
-        label: 'Given',
+        label: AppLocalizations.of(context).given,
         count: doses.where((dose) => dose.status == DoseStatus.given).length,
         icon: Icons.check_circle_outline_rounded,
       ),
       (
-        label: 'Skipped',
+        label: AppLocalizations.of(context).skipped,
         count: doses.where((dose) => dose.status == DoseStatus.skipped).length,
         icon: Icons.fast_forward_rounded,
       ),
       (
-        label: 'Missed',
+        label: AppLocalizations.of(context).missed,
         count: doses.where((dose) => dose.status == DoseStatus.missed).length,
         icon: Icons.event_busy_outlined,
       ),
@@ -427,7 +440,7 @@ class _MedicationBreakdownTile extends StatelessWidget {
       minTileHeight: 72,
       leading: const Icon(Icons.medication_outlined),
       title: Text(name),
-      subtitle: Text('$given given • $skipped skipped • $missed missed'),
+      subtitle: Text(AppLocalizations.of(context).givenSkippedMissed(given, skipped, missed)),
       trailing: const Icon(Icons.chevron_right_rounded),
       onTap: onTap,
     );
@@ -451,11 +464,11 @@ class _RangePicker extends StatelessWidget {
       (
         TrendRange.custom,
         customRange == null
-            ? 'Custom'
+            ? AppLocalizations.of(context).custom
             : '${DateFormat.Md().format(customRange!.start)}–'
                   '${DateFormat.Md().format(customRange!.end)}',
       ),
-      (TrendRange.allTime, 'All'),
+      (TrendRange.allTime, AppLocalizations.of(context).all),
     ];
     return Wrap(
       spacing: 8,
@@ -485,14 +498,18 @@ class _SummaryRow extends StatelessWidget {
     String measurement(double value) =>
         kind == _TrendKind.respiratory ? formatRespiratoryRate(value) : formatDisplayNumber(value);
     final values = <({String label, String value, String supporting})>[
-      (label: 'Latest', value: measurement(summary.latest), supporting: unit),
       (
-        label: 'Average',
-        value: summary.average.toStringAsFixed(1),
-        supporting: '$unit • ${summary.count} ${summary.count == 1 ? 'entry' : 'entries'}',
+        label: AppLocalizations.of(context).latest,
+        value: measurement(summary.latest),
+        supporting: unit,
       ),
       (
-        label: 'Observed range',
+        label: AppLocalizations.of(context).average,
+        value: summary.average.toStringAsFixed(1),
+        supporting: '$unit • ${AppLocalizations.of(context).entryCount(summary.count)}',
+      ),
+      (
+        label: AppLocalizations.of(context).observedRange,
         value: '${measurement(summary.minimum)}–${measurement(summary.maximum)}',
         supporting: unit,
       ),
@@ -604,9 +621,14 @@ class _TrendChart extends StatelessWidget {
     final labelIndexes = <int>{0, (points.length - 1) ~/ 2, points.length - 1};
     String measurement(double value) =>
         kind == _TrendKind.respiratory ? formatRespiratoryRate(value) : formatDisplayNumber(value);
-    final summary =
-        '${points.length} measurements. Latest ${measurement(values.last)} $unit. '
-        'Observed range ${measurement(min)} to ${measurement(max)} $unit.';
+    final summary = AppLocalizations.of(context).measurementsLatestObservedRangeTo(
+      points.length,
+      measurement(values.last),
+      unit,
+      measurement(min),
+      measurement(max),
+      unit,
+    );
     return Semantics(
       image: true,
       label: summary,
@@ -760,7 +782,7 @@ class _TrendTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'Accessible measurement list with ${points.length} rows',
+    label: AppLocalizations.of(context).accessibleMeasurementListWithRows(points.length),
     child: Card(
       child: LayoutBuilder(
         builder: (context, constraints) => constraints.maxWidth >= 680
@@ -771,7 +793,7 @@ class _TrendTable extends StatelessWidget {
                     _MeasurementRow(
                       at: points[index].at,
                       measurement: _measurement(points[index]),
-                      recordedAs: _recordedAs(points[index]),
+                      recordedAs: _recordedAs(context, points[index]),
                     ),
                     if (index < points.length - 1) const Divider(height: 1),
                   ],
@@ -782,10 +804,10 @@ class _TrendTable extends StatelessWidget {
   );
 
   Widget _wideTable(BuildContext context) => DataTable(
-    columns: const [
-      DataColumn(label: Text('Date and time')),
-      DataColumn(label: Text('Measurement'), numeric: true),
-      DataColumn(label: Text('Recorded as')),
+    columns: [
+      DataColumn(label: Text(AppLocalizations.of(context).dateAndTime)),
+      DataColumn(label: Text(AppLocalizations.of(context).measurement), numeric: true),
+      DataColumn(label: Text(AppLocalizations.of(context).recordedAs)),
     ],
     rows: points
         .map(
@@ -793,7 +815,7 @@ class _TrendTable extends StatelessWidget {
             cells: [
               DataCell(Text(DateFormat.yMMMd().add_jm().format(point.at.toLocal()))),
               DataCell(Text(_measurement(point))),
-              DataCell(Text(_recordedAs(point))),
+              DataCell(Text(_recordedAs(context, point))),
             ],
           ),
         )
@@ -803,7 +825,12 @@ class _TrendTable extends StatelessWidget {
   String _measurement(TrendPoint point) =>
       '${kind == _TrendKind.respiratory ? formatRespiratoryRate(point.value) : formatDisplayNumber(point.value)} $unit';
 
-  String _recordedAs(TrendPoint point) => '${formatDisplayNumber(point.rawValue)} ${point.rawUnit}';
+  String _recordedAs(BuildContext context, TrendPoint point) => point.durationMilliseconds == null
+      ? '${formatDisplayNumber(point.rawValue)} ${point.rawUnit}'
+      : AppLocalizations.of(context).breathsInSeconds(
+          point.rawValue.toInt(),
+          formatDisplayNumber(point.durationMilliseconds! / 1000),
+        );
 }
 
 class _MeasurementRow extends StatelessWidget {
@@ -831,7 +858,7 @@ class _MeasurementRow extends StatelessWidget {
         ),
         const SizedBox(height: 3),
         Text(
-          'Recorded as $recordedAs',
+          AppLocalizations.of(context).recordedAs2(recordedAs),
           style: Theme.of(context).textTheme.bodyMedium
               ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),

@@ -7,8 +7,12 @@ import '../../../data/document_storage.dart';
 import '../../../domain/models.dart';
 import '../../../domain/timeline.dart';
 import '../../../domain/units.dart';
+import '../../../l10n/app_strings.dart';
+import '../../../l10n/model_labels.dart';
 import '../../app_controller.dart';
+import '../../core/commands.dart';
 import '../../core/theme.dart';
+import '../../core/timeline_projection.dart';
 import '../../core/widgets.dart';
 import '../../navigation/top_level_scroll.dart';
 
@@ -60,14 +64,19 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(appControllerProvider);
+    final state = ref.watch(
+      journalViewProvider((feature: JournalFeature.timeline, animalId: null)),
+    );
+    if (state.loading || state.error != null) {
+      return QueryPane(error: state.error, onRetry: () => state.retry(ref));
+    }
     final animal = state.selectedAnimal;
     if (animal == null) {
-      return const Scaffold(
+      return Scaffold(
         body: EmptyState(
           icon: Icons.timeline_rounded,
-          title: 'No animal selected',
-          body: 'Add an animal to begin a timeline.',
+          title: AppLocalizations.of(context).noAnimalSelected,
+          body: AppLocalizations.of(context).addAnAnimalToBeginATimeline,
         ),
       );
     }
@@ -79,17 +88,16 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
           _ => <String>{filter},
         },
     };
-    final now = DateTime.now().toUtc();
-    final allItems = ref
-        .read(appControllerProvider.notifier)
-        .timeline(
-          animalId: animal.id,
-          kinds: effectiveKinds,
-          start: _range?.start,
-          end: _range == null
-              ? null
-              : DateTime(_range!.end.year, _range!.end.month, _range!.end.day, 23, 59, 59, 999),
-        );
+    final now = ref.read(wallClockProvider)().toUtc();
+    final allItems = TimelineProjection(AppLocalizations.of(context)).timeline(
+      ref.read(journalViewProvider((feature: JournalFeature.timeline, animalId: null))),
+      animalId: animal.id,
+      kinds: effectiveKinds,
+      start: _range?.start,
+      end: _range == null
+          ? null
+          : DateTime(_range!.end.year, _range!.end.month, _range!.end.day, 23, 59, 59, 999),
+    );
     final items = allItems
         .where(
           (item) =>
@@ -101,9 +109,9 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     final documentsOnly = _filters.length == 1 && _filters.contains('document');
     final leadingWidgets = <Widget>[
       PageHeading(
-        title: '${animal.name}’s timeline',
+        title: AppLocalizations.of(context).sTimeline(animal.name),
         subtitle: _range == null
-            ? 'Every care moment, newest first.'
+            ? AppLocalizations.of(context).everyCareMomentNewestFirst
             : '${DateFormat.yMMMd().format(_range!.start)} – '
                   '${DateFormat.yMMMd().format(_range!.end)}',
       ),
@@ -112,13 +120,25 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _filterChip('breathing', 'Breathing', Icons.air_rounded),
+            _filterChip('breathing', AppLocalizations.of(context).breathing, Icons.air_rounded),
             const SizedBox(width: 8),
-            _filterChip('medication', 'Medication', Icons.medication_outlined),
+            _filterChip(
+              'medication',
+              AppLocalizations.of(context).medications,
+              Icons.medication_outlined,
+            ),
             const SizedBox(width: 8),
-            _filterChip('health', 'Health', Icons.monitor_heart_outlined),
+            _filterChip(
+              'health',
+              AppLocalizations.of(context).health,
+              Icons.monitor_heart_outlined,
+            ),
             const SizedBox(width: 8),
-            _filterChip('document', 'Documents', Icons.description_outlined),
+            _filterChip(
+              'document',
+              AppLocalizations.of(context).documents,
+              Icons.description_outlined,
+            ),
           ],
         ),
       ),
@@ -131,18 +151,18 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
         actions: [
           if (documentsOnly)
             IconButton(
-              tooltip: 'Add document',
+              tooltip: AppLocalizations.of(context).addDocument,
               onPressed: () => context.push('/document/new/${animal.id}'),
               icon: const Icon(Icons.add_rounded),
             ),
           IconButton(
-            tooltip: 'Choose date range',
+            tooltip: AppLocalizations.of(context).chooseDateRange,
             onPressed: _pickRange,
             icon: Icon(_range == null ? Icons.date_range_outlined : Icons.event_available_rounded),
           ),
           if (_range != null)
             IconButton(
-              tooltip: 'Clear date range',
+              tooltip: AppLocalizations.of(context).clearDateRange,
               onPressed: () => setState(() => _range = null),
               icon: const Icon(Icons.filter_alt_off_outlined),
             ),
@@ -163,10 +183,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
             if (items.isEmpty) {
               return EmptyState(
                 icon: Icons.history_toggle_off_rounded,
-                title: 'Nothing recorded here yet',
+                title: AppLocalizations.of(context).nothingRecordedHereYet,
                 body: _filters.isEmpty && _range == null
-                    ? 'Use a quick action from ${animal.name}’s dashboard to add the first entry.'
-                    : 'Try clearing a filter or choosing a wider date range.',
+                    ? AppLocalizations.of(context).useAQuickActionFromSDashboardToAdd(animal.name)
+                    : AppLocalizations.of(context).tryClearingAFilterOrChoosingAWiderDate,
               );
             }
             final item = items[index - leadingWidgets.length];
@@ -176,10 +196,12 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
               onOpen: item.source is RespiratorySession
                   ? () => _showRespiratoryDetails(item)
                   : null,
-              onEdit: () => _edit(item),
-              onDelete: () => _delete(item),
-              onDose: (status) =>
-                  ref.read(appControllerProvider.notifier).recordDose(item.id, status),
+              onEdit: () => runUiCommand(context, () => _edit(item)),
+              onDelete: () => runUiCommand(context, () => _delete(item)),
+              onDose: (status) => runUiCommand(
+                context,
+                () => ref.read(careControllerProvider.notifier).recordDose(item.id, status),
+              ),
             );
           },
         ),
@@ -207,7 +229,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       builder: (context) => _RespiratoryDetailsSheet(session: session),
     );
     if (edit == true && mounted) {
-      await _edit(item);
+      await runUiCommand(context, () => _edit(item));
     }
   }
 
@@ -218,7 +240,7 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDateRange: _range,
     );
-    if (value != null) {
+    if (value != null && mounted) {
       setState(() => _range = value);
     }
   }
@@ -228,44 +250,44 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
     switch (source) {
       case RespiratorySession():
         final note = TextEditingController(text: source.note);
-        final saved = await showDialog<bool>(
+        await showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Edit breathing note'),
+            title: Text(AppLocalizations.of(context).editBreathingNote),
             content: TextField(
               controller: note,
               minLines: 2,
               maxLines: 5,
-              decoration: const InputDecoration(labelText: 'Note'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).note),
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                onPressed: () => Navigator.pop(context),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Save'),
+                onPressed: () => runUiCommand(context, () async {
+                  final updated = RespiratorySession(
+                    id: source.id,
+                    animalId: source.animalId,
+                    createdAt: source.createdAt,
+                    updatedAt: ref.read(wallClockProvider)().toUtc(),
+                    recordedAt: source.recordedAt,
+                    durationMilliseconds: source.durationMilliseconds,
+                    breathCount: source.breathCount,
+                    ratePerMinute: source.ratePerMinute,
+                    context: source.context,
+                    note: note.text.trim().isEmpty ? null : note.text.trim(),
+                    thresholdSnapshot: source.thresholdSnapshot,
+                  );
+                  await ref.read(careControllerProvider.notifier).saveRespiratorySession(updated);
+                  if (context.mounted) Navigator.pop(context);
+                }),
+                child: Text(AppLocalizations.of(context).save),
               ),
             ],
           ),
         );
-        if (saved == true) {
-          final updated = RespiratorySession(
-            id: source.id,
-            animalId: source.animalId,
-            createdAt: source.createdAt,
-            updatedAt: DateTime.now().toUtc(),
-            recordedAt: source.recordedAt,
-            durationMilliseconds: source.durationMilliseconds,
-            breathCount: source.breathCount,
-            ratePerMinute: source.ratePerMinute,
-            context: source.context,
-            note: note.text.trim().isEmpty ? null : note.text.trim(),
-            thresholdSnapshot: source.thresholdSnapshot,
-          );
-          await ref.read(appControllerProvider.notifier).saveRespiratorySession(updated);
-        }
         note.dispose();
       case Medication():
         await context.push('/medication/${source.id}/edit/${source.animalId}');
@@ -285,22 +307,22 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
       context: context,
       builder: (context) => _DoseEditDialog(dose: dose),
     );
-    if (value == null) {
+    if (value == null || !mounted) {
       return;
     }
     if (value.status == DoseStatus.unrecorded) {
-      final updated = dose.reopen(at: DateTime.now().toUtc()).copyWith(note: value.note);
-      // Reopening is an intentional ledger edit, so use repository-facing save.
-      await ref.read(repositoryProvider).saveDose(updated);
-      await ref.read(appControllerProvider.notifier).refresh(syncReminders: true);
+      await ref
+          .read(careControllerProvider.notifier)
+          .reopenDose(dose.id, note: value.note, clearNote: value.note == null);
     } else {
       await ref
-          .read(appControllerProvider.notifier)
+          .read(careControllerProvider.notifier)
           .recordDose(
             dose.id,
             value.status,
             administeredAt: value.administeredAt?.toUtc(),
             note: value.note,
+            clearNote: value.note == null,
           );
     }
   }
@@ -308,10 +330,10 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
   Future<void> _delete(TimelineItem item) async {
     final source = item.source;
     final kind = switch (source) {
-      RespiratorySession() => 'respiratory_sessions',
-      Medication() => 'medications',
-      HealthRecord() => 'health_records',
-      CareDocument() => 'documents',
+      RespiratorySession() => RecordKind.respiratorySession,
+      Medication() => RecordKind.medication,
+      HealthRecord() => RecordKind.healthRecord,
+      CareDocument() => RecordKind.document,
       _ => null,
     };
     if (kind == null) {
@@ -321,27 +343,27 @@ class _TimelineScreenState extends ConsumerState<TimelineScreen> {
         await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Delete ${item.title}?'),
+            title: Text(AppLocalizations.of(context).delete3(item.title)),
             content: Text(
               source is Medication
-                  ? 'This also removes future reminders. Past exported copies are unchanged.'
-                  : 'This record will be removed from the local journal.',
+                  ? AppLocalizations.of(context).thisAlsoRemovesFutureRemindersPastExportedCopiesAre
+                  : AppLocalizations.of(context).thisRecordWillBeRemovedFromTheLocalJournal,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
+                child: Text(AppLocalizations.of(context).delete2),
               ),
             ],
           ),
         ) ??
         false;
-    if (confirmed) {
-      await ref.read(appControllerProvider.notifier).deleteRecord(kind, item.id);
+    if (confirmed && mounted) {
+      await ref.read(careControllerProvider.notifier).deleteRecord(kind, item.id);
     }
   }
 }
@@ -360,36 +382,46 @@ class _RespiratoryDetailsSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Breathing session', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              AppLocalizations.of(context).breathingSession,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 18),
             Text(
-              '${formatRespiratoryRate(session.ratePerMinute)} breaths/min',
+              AppLocalizations.of(context).breathsMin(formatRespiratoryRate(session.ratePerMinute)),
               style: Theme.of(context).textTheme.headlineMedium
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 16),
             _DetailRow(
-              label: 'Recorded',
+              label: AppLocalizations.of(context).recorded,
               value: DateFormat.yMMMd().add_jm().format(session.recordedAt.toLocal()),
             ),
-            _DetailRow(label: 'Context', value: _sentenceCase(session.context.name)),
             _DetailRow(
-              label: 'Counted',
-              value:
-                  '${session.breathCount} breaths in '
-                  '${(session.durationMilliseconds / 1000).toStringAsFixed(1)} seconds',
+              label: AppLocalizations.of(context).context,
+              value: AppLocalizations.of(context).respiratoryContext(session.context),
+            ),
+            _DetailRow(
+              label: AppLocalizations.of(context).counted,
+              value: AppLocalizations.of(context).breathsInSeconds(
+                session.breathCount,
+                (session.durationMilliseconds / 1000).toStringAsFixed(1),
+              ),
             ),
             if (thresholds.isConfigured)
               _DetailRow(
-                label: 'Saved range',
+                label: AppLocalizations.of(context).savedRange,
                 value: [
-                  if (thresholds.minimum != null) 'min ${thresholds.minimum}',
-                  if (thresholds.target != null) 'target ${thresholds.target}',
-                  if (thresholds.maximum != null) 'max ${thresholds.maximum}',
+                  if (thresholds.minimum != null)
+                    AppLocalizations.of(context).min(thresholds.minimum.toString()),
+                  if (thresholds.target != null)
+                    AppLocalizations.of(context).target2(thresholds.target.toString()),
+                  if (thresholds.maximum != null)
+                    AppLocalizations.of(context).max(thresholds.maximum.toString()),
                 ].join(' • '),
               ),
             const SizedBox(height: 18),
-            Text('Note', style: Theme.of(context).textTheme.titleMedium),
+            Text(AppLocalizations.of(context).note, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -398,7 +430,7 @@ class _RespiratoryDetailsSheet extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Text(session.note ?? 'No note added.'),
+                child: Text(session.note ?? AppLocalizations.of(context).noNoteAdded),
               ),
             ),
             const SizedBox(height: 18),
@@ -406,7 +438,7 @@ class _RespiratoryDetailsSheet extends StatelessWidget {
               key: const ValueKey('edit_breathing_note_from_details'),
               onPressed: () => Navigator.pop(context, true),
               icon: const Icon(Icons.edit_note_rounded),
-              label: const Text('Edit note'),
+              label: Text(AppLocalizations.of(context).editNote),
             ),
           ],
         ),
@@ -473,22 +505,34 @@ class _DoseEditDialogState extends State<_DoseEditDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Update dose'),
+    title: Text(AppLocalizations.of(context).updateDose),
     content: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<DoseStatus>(
             initialValue: _status,
-            decoration: const InputDecoration(labelText: 'Status'),
-            items: const [
-              DropdownMenuItem(value: DoseStatus.given, child: Text('Given')),
-              DropdownMenuItem(value: DoseStatus.skipped, child: Text('Skipped')),
-              DropdownMenuItem(value: DoseStatus.missed, child: Text('Missed')),
-              DropdownMenuItem(value: DoseStatus.unrecorded, child: Text('Not recorded yet')),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context).status),
+            items: [
+              DropdownMenuItem(
+                value: DoseStatus.given,
+                child: Text(AppLocalizations.of(context).given),
+              ),
+              DropdownMenuItem(
+                value: DoseStatus.skipped,
+                child: Text(AppLocalizations.of(context).skipped),
+              ),
+              DropdownMenuItem(
+                value: DoseStatus.missed,
+                child: Text(AppLocalizations.of(context).missed),
+              ),
+              DropdownMenuItem(
+                value: DoseStatus.unrecorded,
+                child: Text(AppLocalizations.of(context).notRecordedYet),
+              ),
             ],
             onChanged: (value) {
-              if (value != null) {
+              if (value != null && mounted) {
                 setState(() => _status = value);
               }
             },
@@ -498,7 +542,7 @@ class _DoseEditDialogState extends State<_DoseEditDialog> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.schedule_rounded),
-              title: const Text('Actually administered'),
+              title: Text(AppLocalizations.of(context).actuallyAdministered),
               subtitle: Text(DateFormat.yMMMd().add_jm().format(_administeredAt)),
               trailing: const Icon(Icons.edit_calendar_outlined),
               onTap: _pickAdministeredAt,
@@ -509,13 +553,16 @@ class _DoseEditDialogState extends State<_DoseEditDialog> {
             controller: _note,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(labelText: 'Dose note (optional)'),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context).doseNoteOptional),
           ),
         ],
       ),
     ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text(AppLocalizations.of(context).cancel),
+      ),
       FilledButton(
         key: const ValueKey('save_dose_edit'),
         onPressed: () => Navigator.pop(context, (
@@ -523,7 +570,7 @@ class _DoseEditDialogState extends State<_DoseEditDialog> {
           administeredAt: _status == DoseStatus.given ? _administeredAt : null,
           note: _note.text.trim().isEmpty ? null : _note.text.trim(),
         )),
-        child: const Text('Save'),
+        child: Text(AppLocalizations.of(context).save),
       ),
     ],
   );
@@ -660,8 +707,8 @@ class _TimelineTile extends ConsumerWidget {
                                 padding: const EdgeInsets.only(top: 7),
                                 child: Text(
                                   health == AttachmentHealth.missing
-                                      ? 'Stored file missing'
-                                      : 'Stored file changed or corrupt',
+                                      ? AppLocalizations.of(context).storedFileMissing
+                                      : AppLocalizations.of(context).storedFileChangedOrCorrupt,
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.error,
                                     fontWeight: FontWeight.w700,
@@ -674,11 +721,14 @@ class _TimelineTile extends ConsumerWidget {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    tooltip: 'Entry actions',
+                    tooltip: AppLocalizations.of(context).entryActions,
                     onSelected: (value) => value == 'edit' ? onEdit() : onDelete(),
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: 'edit', child: Text(AppLocalizations.of(context).edit)),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text(AppLocalizations.of(context).delete2),
+                      ),
                     ],
                   ),
                 ],
@@ -709,10 +759,10 @@ class _DoseHistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusLabel = switch (dose.status) {
-      DoseStatus.given => 'Given',
-      DoseStatus.skipped => 'Skipped',
-      DoseStatus.missed => 'Missed',
-      DoseStatus.unrecorded => 'Pending',
+      DoseStatus.given => AppLocalizations.of(context).given,
+      DoseStatus.skipped => AppLocalizations.of(context).skipped,
+      DoseStatus.missed => AppLocalizations.of(context).missed,
+      DoseStatus.unrecorded => AppLocalizations.of(context).pending,
     };
     final statusIcon = switch (dose.status) {
       DoseStatus.given => Icons.check_circle_outline_rounded,
@@ -746,19 +796,19 @@ class _DoseHistoryTile extends StatelessWidget {
                   spacing: 2,
                   children: [
                     IconButton(
-                      tooltip: 'Mark given',
+                      tooltip: AppLocalizations.of(context).markGiven,
                       onPressed: () => onDose(DoseStatus.given),
                       icon: const Icon(Icons.check_rounded),
                     ),
                     IconButton(
-                      tooltip: 'Skip dose',
+                      tooltip: AppLocalizations.of(context).skipDose,
                       onPressed: () => onDose(DoseStatus.skipped),
                       icon: const Icon(Icons.fast_forward_rounded),
                     ),
                   ],
                 )
               : IconButton(
-                  tooltip: 'Edit dose',
+                  tooltip: AppLocalizations.of(context).editDose,
                   onPressed: onEdit,
                   icon: const Icon(Icons.more_vert_rounded),
                 ),
@@ -768,6 +818,3 @@ class _DoseHistoryTile extends StatelessWidget {
     );
   }
 }
-
-String _sentenceCase(String value) =>
-    value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';

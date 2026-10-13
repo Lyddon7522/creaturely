@@ -189,7 +189,13 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('other_animal_animal-2')));
     await WidgetHarness.pumpFrames(tester);
-    expect(harness.container.read(appControllerProvider).selectedAnimal?.id, 'animal-2');
+    expect(
+      harness.container
+          .read(journalViewProvider((feature: JournalFeature.animals, animalId: null)))
+          .selectedAnimal
+          ?.id,
+      'animal-2',
+    );
     expect(find.byKey(const ValueKey('animal_avatar_icon_animal-2')), findsWidgets);
 
     await tester.drag(animalsHome, const Offset(0, -1100));
@@ -238,7 +244,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('record_next_dose_given')));
     await WidgetHarness.pumpFrames(tester);
-    final saved = harness.container.read(appControllerProvider).snapshot;
+    final saved = (await harness.container.read(repositoryProvider).loadSnapshot());
     expect(saved.doseLedger.singleWhere((value) => value.id == 'next').status, DoseStatus.given);
     expect(tester.takeException(), isNull);
   });

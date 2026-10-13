@@ -1,10 +1,12 @@
 import 'package:creaturely/data/database.dart';
 import 'package:creaturely/data/repository.dart';
+import 'package:creaturely/domain/care_data.dart';
 import 'package:creaturely/domain/models.dart';
 import 'package:creaturely/platform/notification_service.dart';
 import 'package:creaturely/platform/time_zone_service.dart';
 import 'package:creaturely/ui/app_controller.dart';
 import 'package:drift/native.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -138,11 +140,11 @@ void main() {
     await repository.saveHealthRecord(older);
     await repository.saveHealthRecord(newer);
 
-    await repository.delete('health_records', newer.id);
+    await repository.delete(RecordKind.healthRecord, newer.id);
     var snapshot = await repository.loadSnapshot();
     expect(snapshot.animals.single.currentWeightKg, 1);
 
-    await repository.delete('health_records', older.id);
+    await repository.delete(RecordKind.healthRecord, older.id);
     snapshot = await repository.loadSnapshot();
     expect(snapshot.animals.single.currentWeightKg, isNull);
   });
@@ -278,21 +280,22 @@ void main() {
           settings: initial.settings,
         ),
       );
-      final controller = AppController(
+      final container = _controllers(
         repository: repository,
         reminders: const NoopReminderService(),
         timeZones: const _UnresolvedTimeZoneService(),
         clock: () => now,
       );
-      addTearDown(controller.dispose);
+      addTearDown(container.dispose);
+      final controller = container.read(appControllerProvider.notifier);
       await controller.initialize();
 
-      await controller.saveMedication(
+      await container.read(careControllerProvider.notifier).saveMedication(
         fixtureMedication().copyWith(updatedAt: now),
         <MedicationSchedule>[fixtureSchedule().copyWith(updatedAt: now)],
       );
 
-      final occurrenceEntries = controller.state.snapshot.doseLedger
+      final occurrenceEntries = (await repository.loadSnapshot()).doseLedger
           .where((dose) => dose.medicationId == 'med-1' && dose.dueAt.isAtSameMomentAs(dueAt))
           .toList(growable: false);
       expect(occurrenceEntries, hasLength(1));
@@ -302,21 +305,22 @@ void main() {
 
   test('deactivating medication preserves history without generating future doses', () async {
     await repository.replaceSnapshot(fixtureSnapshot());
-    final controller = AppController(
+    final container = _controllers(
       repository: repository,
       reminders: const NoopReminderService(),
       timeZones: const _UnresolvedTimeZoneService(),
       clock: () => fixtureTime,
     );
-    addTearDown(controller.dispose);
+    addTearDown(container.dispose);
+    final controller = container.read(appControllerProvider.notifier);
     await controller.initialize();
 
-    await controller.saveMedication(
+    await container.read(careControllerProvider.notifier).saveMedication(
       fixtureMedication().copyWith(active: false, updatedAt: fixtureTime),
       <MedicationSchedule>[fixtureSchedule()],
     );
 
-    final result = controller.state.snapshot;
+    final result = (await repository.loadSnapshot());
     expect(result.medications.single.active, isFalse);
     expect(result.doseLedger, hasLength(1));
     expect(result.doseLedger.single.status, DoseStatus.given);
@@ -326,20 +330,24 @@ void main() {
   test('resume rebases local-time schedules after a device time-zone change', () async {
     await repository.replaceSnapshot(fixtureSnapshot());
     final timeZones = _MutableTimeZoneService('America/Chicago');
-    final controller = AppController(
+    final container = _controllers(
       repository: repository,
       reminders: const NoopReminderService(permission: NotificationPermissionState.allowed),
       timeZones: timeZones,
       clock: () => fixtureTime,
     );
-    addTearDown(controller.dispose);
+    addTearDown(container.dispose);
+    final controller = container.read(appControllerProvider.notifier);
 
     await controller.initialize();
-    expect(controller.state.snapshot.medicationSchedules.single.timeZoneId, 'America/Chicago');
+    expect(
+      (await repository.loadSnapshot()).medicationSchedules.single.timeZoneId,
+      'America/Chicago',
+    );
     timeZones.identifier = 'America/Los_Angeles';
     await controller.handleAppResumed();
 
-    final result = controller.state.snapshot;
+    final result = (await repository.loadSnapshot());
     expect(result.medicationSchedules.single.timeZoneId, 'America/Los_Angeles');
     expect(result.respiratoryReminders.single.timeZoneId, 'America/Los_Angeles');
     expect(result.weightReminders.single.timeZoneId, 'America/Los_Angeles');
@@ -359,19 +367,20 @@ void main() {
   test('turning notifications off clears already scheduled reminders', () async {
     await repository.replaceSnapshot(fixtureSnapshot());
     final reminders = _CapturingReminderService();
-    final controller = AppController(
+    final container = _controllers(
       repository: repository,
       reminders: reminders,
       timeZones: const _UnresolvedTimeZoneService(),
       clock: () => fixtureTime,
     );
-    addTearDown(controller.dispose);
+    addTearDown(container.dispose);
+    final controller = container.read(appControllerProvider.notifier);
     await controller.initialize();
     expect(reminders.syncCalls, 1);
 
-    await controller.saveSettings(
-      controller.state.snapshot.settings.copyWith(notificationsAllowed: false),
-    );
+    await container
+        .read(settingsControllerProvider.notifier)
+        .updateSettings((current) => current.copyWith(notificationsAllowed: false));
 
     expect(reminders.clearCalls, 1);
   });
@@ -379,40 +388,47 @@ void main() {
   test('weight notification opens a new weigh-in for the correct animal', () async {
     await repository.replaceSnapshot(fixtureSnapshot());
     final reminders = _CapturingReminderService();
-    final controller = AppController(
+    final container = _controllers(
       repository: repository,
       reminders: reminders,
       timeZones: const _UnresolvedTimeZoneService(),
       clock: () => fixtureTime,
     );
-    addTearDown(controller.dispose);
+    addTearDown(container.dispose);
+    final controller = container.read(appControllerProvider.notifier);
     await controller.initialize();
 
+    controller.navigationReady();
     reminders.trigger(
       NotificationAction.openWeight(reminderId: 'weight-reminder-1', animalId: 'animal-1'),
     );
 
-    expect(controller.state.pendingRoute, '/health/new/animal-1');
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(appControllerProvider).pendingRoute, '/health/new/animal-1');
   });
 
   test('platform reminder failures never block the local journal', () async {
     await repository.replaceSnapshot(fixtureSnapshot());
-    final controller = AppController(
+    final container = _controllers(
       repository: repository,
       reminders: const _FailingReminderService(),
       timeZones: const _UnresolvedTimeZoneService(),
       clock: () => fixtureTime,
     );
-    addTearDown(controller.dispose);
+    addTearDown(container.dispose);
+    final controller = container.read(appControllerProvider.notifier);
 
     await controller.initialize();
 
-    expect(controller.state.loading, isFalse);
-    expect(controller.state.error, isNull);
-    expect(controller.state.snapshot.animals.single.name, 'Moss');
-    expect(await controller.requestNotifications(), NotificationPermissionState.denied);
-    expect(controller.state.snapshot.settings.notificationsAllowed, isFalse);
-    expect(controller.state.snapshot.settings.notificationPermissionAsked, isTrue);
+    expect(container.read(appControllerProvider).loading, isFalse);
+    expect(container.read(appControllerProvider).error, isNull);
+    expect((await repository.loadSnapshot()).animals.single.name, 'Moss');
+    final preferences = await database.readSettings();
+    await expectLater(
+      container.read(settingsControllerProvider.notifier).requestNotifications(),
+      throwsStateError,
+    );
+    expect((await database.readSettings()).toJson(), preferences.toJson());
   });
 
   test('actual Drift v1 schema migrates through medication details in v5', () async {
@@ -589,7 +605,7 @@ class _CapturingReminderService implements ReminderService {
       NotificationPermissionState.allowed;
 
   @override
-  Future<void> sync(CreaturelySnapshot snapshot, DateTime now) async {
+  Future<void> sync(CareData care, DateTime now) async {
     syncCalls++;
   }
 }
@@ -609,6 +625,20 @@ class _FailingReminderService implements ReminderService {
       throw StateError('Platform notifications unavailable');
 
   @override
-  Future<void> sync(CreaturelySnapshot snapshot, DateTime now) =>
+  Future<void> sync(CareData care, DateTime now) =>
       throw StateError('Platform notifications unavailable');
 }
+
+ProviderContainer _controllers({
+  required CreaturelyRepository repository,
+  required ReminderService reminders,
+  required TimeZoneService timeZones,
+  required DateTime Function() clock,
+}) => ProviderContainer(
+  overrides: [
+    repositoryProvider.overrideWithValue(repository),
+    reminderServiceProvider.overrideWithValue(reminders),
+    timeZoneServiceProvider.overrideWithValue(timeZones),
+    wallClockProvider.overrideWithValue(clock),
+  ],
+);

@@ -1,5 +1,17 @@
 import 'dart:convert';
 
+import 'time_zone.dart';
+
+enum RecordKind {
+  respiratorySession,
+  respiratoryReminder,
+  weightReminder,
+  medication,
+  healthRecord,
+  document,
+  identifier,
+}
+
 enum RespiratoryContext { sleeping, resting }
 
 enum ThresholdBand { below, inRange, above, notConfigured }
@@ -141,8 +153,12 @@ List<Map<String, Object?>> _objectList(Map<String, Object?> json, String key) {
       .toList(growable: false);
 }
 
-List<Map<String, Object?>> _optionalObjectList(Map<String, Object?> json, String key) {
-  if (!json.containsKey(key)) {
+List<Map<String, Object?>> _versionedObjectList(
+  Map<String, Object?> json,
+  String key,
+  int introduced,
+) {
+  if (!json.containsKey(key) && (json['schemaVersion'] as int) < introduced) {
     return const <Map<String, Object?>>[];
   }
   return _objectList(json, key);
@@ -604,7 +620,7 @@ class Medication {
 }
 
 class MedicationSchedule {
-  const MedicationSchedule({
+  MedicationSchedule({
     required this.id,
     required this.medicationId,
     required this.animalId,
@@ -613,10 +629,11 @@ class MedicationSchedule {
     required this.kind,
     required this.timeZoneId,
     this.intervalHours,
-    this.times = const <LocalClockTime>[],
-    this.weekdays = const <int>{},
+    List<LocalClockTime> times = const <LocalClockTime>[],
+    Set<int> weekdays = const <int>{},
     this.enabled = true,
-  });
+  }) : times = List.unmodifiable(times),
+       weekdays = Set.unmodifiable(weekdays);
 
   factory MedicationSchedule.fromJson(Map<String, Object?> json) {
     final rawTimes = json['times'];
@@ -653,20 +670,20 @@ class MedicationSchedule {
   final Set<int> weekdays;
   final bool enabled;
 
-  bool get _timesAreValid =>
-      times.isNotEmpty &&
-      times.toSet().length == times.length &&
-      times.every(
-        (time) => time.hour >= 0 && time.hour <= 23 && time.minute >= 0 && time.minute <= 59,
-      );
-
-  bool get isValid => switch (kind) {
-    ScheduleKind.interval =>
-      intervalHours != null && intervalHours! > 0 && times.length == 1 && _timesAreValid,
-    ScheduleKind.daily => _timesAreValid,
-    ScheduleKind.selectedWeekdays =>
-      _timesAreValid && weekdays.isNotEmpty && weekdays.every((day) => day >= 1 && day <= 7),
-  };
+  bool get isValid =>
+      isKnownTimeZone(timeZoneId) &&
+      switch (kind) {
+        ScheduleKind.interval =>
+          intervalHours != null &&
+              intervalHours! > 0 &&
+              times.length == 1 &&
+              _validClockTimes(times),
+        ScheduleKind.daily => _validClockTimes(times),
+        ScheduleKind.selectedWeekdays =>
+          _validClockTimes(times) &&
+              weekdays.isNotEmpty &&
+              weekdays.every((day) => day >= 1 && day <= 7),
+      };
 
   MedicationSchedule copyWith({DateTime? updatedAt, String? timeZoneId, bool? enabled}) =>
       MedicationSchedule(
@@ -698,8 +715,37 @@ class MedicationSchedule {
   };
 }
 
-class RespiratoryReminder {
-  const RespiratoryReminder({
+abstract interface class CalendarReminder {
+  DateTime get startDate;
+  DateTime? get endDate;
+  ReminderRecurrence get recurrence;
+  String get timeZoneId;
+  List<LocalClockTime> get times;
+  Set<int> get weekdays;
+  bool get enabled;
+  bool get isValid;
+}
+
+bool _validClockTimes(List<LocalClockTime> times) =>
+    times.isNotEmpty &&
+    times.toSet().length == times.length &&
+    times.every(
+      (time) => time.hour >= 0 && time.hour <= 23 && time.minute >= 0 && time.minute <= 59,
+    );
+
+bool _validCalendarReminder(CalendarReminder reminder) =>
+    isKnownTimeZone(reminder.timeZoneId) &&
+    _validClockTimes(reminder.times) &&
+    (reminder.endDate == null ||
+        compareCalendarDates(reminder.endDate!, reminder.startDate) >= 0) &&
+    switch (reminder.recurrence) {
+      ReminderRecurrence.daily => true,
+      ReminderRecurrence.selectedWeekdays =>
+        reminder.weekdays.isNotEmpty && reminder.weekdays.every((day) => day >= 1 && day <= 7),
+    };
+
+class RespiratoryReminder implements CalendarReminder {
+  RespiratoryReminder({
     required this.id,
     required this.animalId,
     required this.createdAt,
@@ -709,10 +755,11 @@ class RespiratoryReminder {
     required this.recurrence,
     required this.timeZoneId,
     this.endDate,
-    this.times = const <LocalClockTime>[],
-    this.weekdays = const <int>{},
+    List<LocalClockTime> times = const <LocalClockTime>[],
+    Set<int> weekdays = const <int>{},
     this.enabled = true,
-  });
+  }) : times = List.unmodifiable(times),
+       weekdays = Set.unmodifiable(weekdays);
 
   factory RespiratoryReminder.fromJson(Map<String, Object?> json) {
     final rawTimes = json['times'];
@@ -742,31 +789,24 @@ class RespiratoryReminder {
   final String animalId;
   final DateTime createdAt;
   final DateTime updatedAt;
+  @override
   final DateTime startDate;
+  @override
   final DateTime? endDate;
   final RespiratoryContext context;
+  @override
   final ReminderRecurrence recurrence;
+  @override
   final String timeZoneId;
+  @override
   final List<LocalClockTime> times;
+  @override
   final Set<int> weekdays;
+  @override
   final bool enabled;
 
-  bool get _timesAreValid =>
-      times.isNotEmpty &&
-      times.toSet().length == times.length &&
-      times.every(
-        (time) => time.hour >= 0 && time.hour <= 23 && time.minute >= 0 && time.minute <= 59,
-      );
-
-  bool get isValid =>
-      timeZoneId.trim().isNotEmpty &&
-      _timesAreValid &&
-      (endDate == null || compareCalendarDates(endDate!, startDate) >= 0) &&
-      switch (recurrence) {
-        ReminderRecurrence.daily => true,
-        ReminderRecurrence.selectedWeekdays =>
-          weekdays.isNotEmpty && weekdays.every((day) => day >= 1 && day <= 7),
-      };
+  @override
+  bool get isValid => _validCalendarReminder(this);
 
   RespiratoryReminder copyWith({
     DateTime? updatedAt,
@@ -810,8 +850,8 @@ class RespiratoryReminder {
   };
 }
 
-class WeightCheckReminder {
-  const WeightCheckReminder({
+class WeightCheckReminder implements CalendarReminder {
+  WeightCheckReminder({
     required this.id,
     required this.animalId,
     required this.createdAt,
@@ -820,10 +860,11 @@ class WeightCheckReminder {
     required this.recurrence,
     required this.timeZoneId,
     this.endDate,
-    this.times = const <LocalClockTime>[],
-    this.weekdays = const <int>{},
+    List<LocalClockTime> times = const <LocalClockTime>[],
+    Set<int> weekdays = const <int>{},
     this.enabled = true,
-  });
+  }) : times = List.unmodifiable(times),
+       weekdays = Set.unmodifiable(weekdays);
 
   factory WeightCheckReminder.fromJson(Map<String, Object?> json) {
     final rawTimes = json['times'];
@@ -852,30 +893,23 @@ class WeightCheckReminder {
   final String animalId;
   final DateTime createdAt;
   final DateTime updatedAt;
+  @override
   final DateTime startDate;
+  @override
   final DateTime? endDate;
+  @override
   final ReminderRecurrence recurrence;
+  @override
   final String timeZoneId;
+  @override
   final List<LocalClockTime> times;
+  @override
   final Set<int> weekdays;
+  @override
   final bool enabled;
 
-  bool get _timesAreValid =>
-      times.isNotEmpty &&
-      times.toSet().length == times.length &&
-      times.every(
-        (time) => time.hour >= 0 && time.hour <= 23 && time.minute >= 0 && time.minute <= 59,
-      );
-
-  bool get isValid =>
-      timeZoneId.trim().isNotEmpty &&
-      _timesAreValid &&
-      (endDate == null || compareCalendarDates(endDate!, startDate) >= 0) &&
-      switch (recurrence) {
-        ReminderRecurrence.daily => true,
-        ReminderRecurrence.selectedWeekdays =>
-          weekdays.isNotEmpty && weekdays.every((day) => day >= 1 && day <= 7),
-      };
+  @override
+  bool get isValid => _validCalendarReminder(this);
 
   WeightCheckReminder copyWith({
     DateTime? updatedAt,
@@ -965,6 +999,7 @@ class DoseLedgerEntry {
     required DateTime at,
     DateTime? administeredAt,
     String? note,
+    bool clearNote = false,
   }) {
     if (status == DoseStatus.given || status == DoseStatus.skipped) {
       throw StateError('A completed dose cannot be changed without reopening it first.');
@@ -977,6 +1012,7 @@ class DoseLedgerEntry {
       updatedAt: at,
       administeredAt: to == DoseStatus.given ? administeredAt ?? at : null,
       note: note,
+      clearNote: clearNote,
       clearAdministeredAt: to != DoseStatus.given,
     );
   }
@@ -990,6 +1026,7 @@ class DoseLedgerEntry {
     DateTime? administeredAt,
     bool clearAdministeredAt = false,
     String? note,
+    bool clearNote = false,
   }) => DoseLedgerEntry(
     id: id,
     medicationId: medicationId,
@@ -1002,7 +1039,7 @@ class DoseLedgerEntry {
     timeZoneId: timeZoneId,
     status: status ?? this.status,
     administeredAt: clearAdministeredAt ? null : administeredAt ?? this.administeredAt,
-    note: note ?? this.note,
+    note: clearNote ? null : note ?? this.note,
   );
 
   Map<String, Object?> toJson() => {
@@ -1262,21 +1299,30 @@ class AppSettings {
 }
 
 class CreaturelySnapshot {
-  const CreaturelySnapshot({
+  CreaturelySnapshot({
     required this.schemaVersion,
     required this.exportedAt,
-    required this.animals,
-    required this.identifiers,
-    required this.respiratorySessions,
-    this.respiratoryReminders = const <RespiratoryReminder>[],
-    this.weightReminders = const <WeightCheckReminder>[],
-    required this.medications,
-    required this.medicationSchedules,
-    required this.doseLedger,
-    required this.healthRecords,
-    required this.documents,
+    required List<Animal> animals,
+    required List<AnimalIdentifier> identifiers,
+    required List<RespiratorySession> respiratorySessions,
+    List<RespiratoryReminder> respiratoryReminders = const <RespiratoryReminder>[],
+    List<WeightCheckReminder> weightReminders = const <WeightCheckReminder>[],
+    required List<Medication> medications,
+    required List<MedicationSchedule> medicationSchedules,
+    required List<DoseLedgerEntry> doseLedger,
+    required List<HealthRecord> healthRecords,
+    required List<CareDocument> documents,
     required this.settings,
-  });
+  }) : animals = List.unmodifiable(animals),
+       identifiers = List.unmodifiable(identifiers),
+       respiratorySessions = List.unmodifiable(respiratorySessions),
+       respiratoryReminders = List.unmodifiable(respiratoryReminders),
+       weightReminders = List.unmodifiable(weightReminders),
+       medications = List.unmodifiable(medications),
+       medicationSchedules = List.unmodifiable(medicationSchedules),
+       doseLedger = List.unmodifiable(doseLedger),
+       healthRecords = List.unmodifiable(healthRecords),
+       documents = List.unmodifiable(documents);
 
   factory CreaturelySnapshot.empty({DateTime? at}) => CreaturelySnapshot(
     schemaVersion: currentSchemaVersion,
@@ -1306,13 +1352,15 @@ class CreaturelySnapshot {
       json,
       'respiratorySessions',
     ).map(RespiratorySession.fromJson).toList(growable: false),
-    respiratoryReminders: _optionalObjectList(
+    respiratoryReminders: _versionedObjectList(
       json,
       'respiratoryReminders',
+      3,
     ).map(RespiratoryReminder.fromJson).toList(growable: false),
-    weightReminders: _optionalObjectList(
+    weightReminders: _versionedObjectList(
       json,
       'weightReminders',
+      4,
     ).map(WeightCheckReminder.fromJson).toList(growable: false),
     medications: _objectList(json, 'medications').map(Medication.fromJson).toList(growable: false),
     medicationSchedules: _objectList(

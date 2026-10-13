@@ -35,7 +35,7 @@ void main() {
     test('reuses a recent automatic snapshot without loading or uploading journal data', () async {
       final recent = CloudSnapshotInfo(
         id: 'recent',
-        createdAt: DateTime.now().toUtc().subtract(const Duration(hours: 1)),
+        createdAt: fixtureTime.subtract(const Duration(hours: 1)),
         byteLength: 42,
       );
       cloud.snapshots.add(recent);
@@ -44,6 +44,7 @@ void main() {
         documents: documents,
         backups: const CreaturelyBackupService(),
         cloud: cloud,
+        clock: () => fixtureTime,
       );
 
       final result = await manager.createAndPrune();
@@ -58,7 +59,7 @@ void main() {
       cloud.snapshots.add(
         CloudSnapshotInfo(
           id: 'recent',
-          createdAt: DateTime.now().toUtc().subtract(const Duration(hours: 1)),
+          createdAt: fixtureTime.subtract(const Duration(hours: 1)),
           byteLength: 42,
         ),
       );
@@ -67,6 +68,7 @@ void main() {
         documents: documents,
         backups: const CreaturelyBackupService(),
         cloud: cloud,
+        clock: () => fixtureTime,
       );
 
       final result = await manager.createAndPrune(force: true);
@@ -77,10 +79,28 @@ void main() {
       expect(cloud.snapshots.map((value) => value.id), contains(result.id));
       expect(cloud.deletedIds, contains('recent'));
     });
+
+    test('overlapping automatic requests share one snapshot and use the injected clock', () async {
+      final manager = RecoverySnapshotManager(
+        store: store,
+        documents: documents,
+        backups: const CreaturelyBackupService(),
+        cloud: cloud,
+        clock: () => fixtureTime,
+      );
+      final results = await Future.wait([manager.createAndPrune(), manager.createAndPrune()]);
+      expect(results.map((value) => value.id).toSet(), hasLength(1));
+      expect(results.first.createdAt, fixtureTime);
+      expect(store.loadCalls, 1);
+      expect(cloud.uploadCalls, 1);
+    });
   });
 }
 
 class _RecordingStore implements SnapshotStore {
+  @override
+  Future<T> exclusive<T>(Future<T> Function() action) => action();
+
   _RecordingStore(this.snapshot);
 
   CreaturelySnapshot snapshot;

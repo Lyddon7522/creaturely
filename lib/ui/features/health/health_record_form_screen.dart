@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../domain/models.dart';
 import '../../../domain/units.dart';
+import '../../../l10n/app_strings.dart';
 import '../../app_controller.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -37,21 +38,22 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
   DateTime _date = DateTime.now();
   bool _saving = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final state = ref.read(appControllerProvider);
-    _existing = state.snapshot.healthRecords
-        .where((value) => value.id == widget.recordId)
-        .firstOrNull;
+  bool _draftLoaded = false;
+
+  void _loadDraft() {
+    _draftLoaded = true;
+    final state = ref.read(
+      journalViewProvider((feature: JournalFeature.health, animalId: widget.animalId)),
+    );
+    _existing = state.healthRecords.where((value) => value.id == widget.recordId).firstOrNull;
     final existing = _existing;
     _kind = existing?.kind ?? widget.initialKind ?? HealthRecordKind.weight;
-    _weightUnit = existing?.enteredUnit == 'lb'
-        ? WeightUnit.pounds
-        : state.snapshot.settings.weightUnit;
+    _weightUnit = existing?.enteredUnit == 'lb' ? WeightUnit.pounds : state.settings.weightUnit;
     _canonicalWeightDraft = existing?.canonicalValue;
     _title = TextEditingController(
-      text: existing?.title ?? (_kind == HealthRecordKind.weight ? 'Weigh-in' : ''),
+      text:
+          existing?.title ??
+          (_kind == HealthRecordKind.weight ? AppLocalizations.of(context).weighIn : ''),
     );
     _value = TextEditingController(
       text: existing?.canonicalValue == null
@@ -68,25 +70,39 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
 
   @override
   void dispose() {
-    _title.dispose();
-    _value.dispose();
-    _notes.dispose();
+    if (_draftLoaded) {
+      _title.dispose();
+      _value.dispose();
+      _notes.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final draft = ref.watch(
+      journalViewProvider((feature: JournalFeature.health, animalId: widget.animalId)),
+    );
+    if (draft.loading || draft.error != null) {
+      return QueryPane(error: draft.error, onRetry: () => draft.retry(ref));
+    }
+    if (!_draftLoaded) _loadDraft();
     final animal = ref
-        .watch(appControllerProvider)
-        .snapshot
+        .watch(journalViewProvider((feature: JournalFeature.health, animalId: widget.animalId)))
         .animals
         .where((value) => value.id == widget.animalId)
         .firstOrNull;
     if (animal == null) {
-      return const Scaffold(body: Center(child: Text('Animal not found.')));
+      return Scaffold(body: Center(child: Text(AppLocalizations.of(context).animalNotFound)));
     }
     return Scaffold(
-      appBar: AppBar(title: Text(_existing == null ? 'Add health record' : 'Edit health record')),
+      appBar: AppBar(
+        title: Text(
+          _existing == null
+              ? AppLocalizations.of(context).addHealthRecord
+              : AppLocalizations.of(context).editHealthRecord,
+        ),
+      ),
       body: Form(
         key: _form,
         child: ListView(
@@ -99,37 +115,45 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     PageHeading(
-                      title: 'A note about ${animal.name}',
-                      subtitle:
-                          'Record what you observed without turning the animal into a condition.',
+                      title: AppLocalizations.of(context).aNoteAbout(animal.name),
+                      subtitle: AppLocalizations.of(context)
+                          .recordWhatYouObservedWithoutTurningTheAnimalInto,
                     ),
                     const SizedBox(height: 22),
                     DropdownButtonFormField<HealthRecordKind>(
                       key: const ValueKey('health_record_kind'),
                       initialValue: _kind,
                       isExpanded: true,
-                      decoration: const InputDecoration(labelText: 'Record type'),
-                      items: const [
-                        DropdownMenuItem(value: HealthRecordKind.weight, child: Text('Weigh-in')),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context).recordType,
+                      ),
+                      items: [
+                        DropdownMenuItem(
+                          value: HealthRecordKind.weight,
+                          child: Text(AppLocalizations.of(context).weighIn),
+                        ),
                         DropdownMenuItem(
                           value: HealthRecordKind.allergy,
-                          child: Text('Allergy or sensitivity'),
+                          child: Text(AppLocalizations.of(context).allergyOrSensitivity),
                         ),
                         DropdownMenuItem(
                           value: HealthRecordKind.condition,
-                          child: Text('Condition or body issue'),
+                          child: Text(AppLocalizations.of(context).conditionOrBodyIssue),
                         ),
                         DropdownMenuItem(
                           value: HealthRecordKind.observation,
-                          child: Text('Custom observation'),
+                          child: Text(AppLocalizations.of(context).customObservation),
                         ),
                       ],
                       onChanged: (value) {
-                        if (value != null) {
+                        if (value != null && mounted) {
                           setState(() {
                             _kind = value;
-                            if (_title.text.trim().isEmpty || _title.text == 'Weigh-in') {
-                              _title.text = value == HealthRecordKind.weight ? 'Weigh-in' : '';
+                            if (_title.text.trim().isEmpty ||
+                                _title.text == AppLocalizations.of(context).weighIn) {
+                              _title.text = value == HealthRecordKind.weight
+                                  ? AppLocalizations.of(context).weighIn
+                                  : '';
                             }
                           });
                         }
@@ -142,11 +166,12 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         labelText: _kind == HealthRecordKind.weight
-                            ? 'Label'
-                            : 'Name or observation *',
+                            ? AppLocalizations.of(context).label
+                            : AppLocalizations.of(context).nameOrObservation,
                       ),
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty ? 'Enter a short label.' : null,
+                      validator: (value) => value == null || value.trim().isEmpty
+                          ? AppLocalizations.of(context).enterAShortLabel
+                          : null,
                     ),
                     if (_kind == HealthRecordKind.weight) ...[
                       const SizedBox(height: 12),
@@ -157,11 +182,13 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
                               key: const ValueKey('health_weight_value'),
                               controller: _value,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(labelText: 'Weight *'),
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(context).weight2,
+                              ),
                               validator: (value) {
                                 final parsed = double.tryParse(value ?? '');
                                 return parsed == null || parsed <= 0
-                                    ? 'Enter a positive weight.'
+                                    ? AppLocalizations.of(context).enterAPositiveWeight
                                     : null;
                               },
                             ),
@@ -171,7 +198,9 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
                             width: 130,
                             child: DropdownButtonFormField<WeightUnit>(
                               initialValue: _weightUnit,
-                              decoration: const InputDecoration(labelText: 'Unit'),
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(context).unit,
+                              ),
                               items: const [
                                 DropdownMenuItem(value: WeightUnit.kilograms, child: Text('kg')),
                                 DropdownMenuItem(value: WeightUnit.pounds, child: Text('lb')),
@@ -203,7 +232,7 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
                       onTap: _pickDate,
                       borderRadius: BorderRadius.circular(14),
                       child: InputDecorator(
-                        decoration: const InputDecoration(labelText: 'Date'),
+                        decoration: InputDecoration(labelText: AppLocalizations.of(context).date),
                         child: Text(MaterialLocalizations.of(context).formatMediumDate(_date)),
                       ),
                     ),
@@ -213,7 +242,7 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
                       minLines: 3,
                       maxLines: 7,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(labelText: 'Notes'),
+                      decoration: InputDecoration(labelText: AppLocalizations.of(context).notes),
                     ),
                     const SizedBox(height: 22),
                     FilledButton.icon(
@@ -225,7 +254,7 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.check_rounded),
-                      label: const Text('Save record'),
+                      label: Text(AppLocalizations.of(context).saveRecord),
                     ),
                   ],
                 ),
@@ -244,7 +273,7 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
       lastDate: DateTime.now().add(const Duration(days: 1)),
       initialDate: _date,
     );
-    if (value != null) {
+    if (value != null && mounted) {
       setState(() => _date = value);
     }
   }
@@ -261,7 +290,7 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
           ? null
           : _canonicalWeightDraft ?? WeightValue.from(entered, _weightUnit).kilograms;
       final record = HealthRecord(
-        id: _existing?.id ?? ref.read(appControllerProvider.notifier).newId(),
+        id: _existing?.id ?? ref.read(careControllerProvider.notifier).newId(),
         animalId: widget.animalId,
         createdAt: _existing?.createdAt ?? now,
         updatedAt: now,
@@ -277,9 +306,17 @@ class _HealthRecordFormScreenState extends ConsumerState<HealthRecordFormScreen>
             : 'lb',
         note: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
       );
-      await ref.read(appControllerProvider.notifier).saveHealthRecord(record);
+      await ref.read(careControllerProvider.notifier).saveHealthRecord(record);
       if (mounted) {
         context.pop();
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).couldNotSaveYourChangesAreKeptHereTry),
+          ),
+        );
       }
     } finally {
       if (mounted) {

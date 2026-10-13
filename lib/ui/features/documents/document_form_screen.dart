@@ -1,14 +1,17 @@
+import 'dart:async';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../data/document_storage.dart';
 import '../../../domain/models.dart';
+import '../../../l10n/app_strings.dart';
+import '../../../l10n/model_labels.dart';
+import '../../../platform/media_service.dart';
 import '../../app_controller.dart';
+import '../../core/calendar_date_field.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
@@ -32,14 +35,16 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
   DateTime _documentDate = DateTime.now();
   DateTime? _expiryDate;
   bool _saving = false;
+  bool _choosingFile = false;
   AttachmentHealth? _health;
 
-  @override
-  void initState() {
-    super.initState();
+  bool _draftLoaded = false;
+  void Function(String?)? _releaseImport;
+
+  void _loadDraft() {
+    _draftLoaded = true;
     _existing = ref
-        .read(appControllerProvider)
-        .snapshot
+        .read(journalViewProvider((feature: JournalFeature.document, animalId: widget.animalId)))
         .documents
         .where((value) => value.id == widget.documentId)
         .firstOrNull;
@@ -56,207 +61,301 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
 
   @override
   void dispose() {
-    _title.dispose();
-    _notes.dispose();
+    if (_draftLoaded) {
+      _title.dispose();
+      _notes.dispose();
+    }
+    _releaseImport?.call(_attachment?.path);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final animal = ref
-        .watch(appControllerProvider)
-        .snapshot
-        .animals
-        .where((value) => value.id == widget.animalId)
-        .firstOrNull;
-    if (animal == null) {
-      return const Scaffold(body: Center(child: Text('Animal not found.')));
+    final storage = ref.watch(documentStorageProvider).value;
+    final cleanup = ref.read(attachmentCleanupProvider.notifier);
+    if (storage != null) {
+      _releaseImport = (filePath) {
+        if (filePath != null) storage.release(filePath);
+        unawaited(cleanup.collect());
+      };
     }
+
+    final draft = ref.watch(
+      journalViewProvider((feature: JournalFeature.document, animalId: widget.animalId)),
+    );
+    if (draft.loading || draft.error != null) {
+      return QueryPane(error: draft.error, onRetry: () => draft.retry(ref));
+    }
+    if (!_draftLoaded) _loadDraft();
+    final animal = draft.animals.where((value) => value.id == widget.animalId).firstOrNull;
+    if (animal == null) {
+      return Scaffold(body: Center(child: Text(AppLocalizations.of(context).animalNotFound)));
+    }
+    final recovered = ref.watch(recoveredMediaProvider).value ?? [];
     final fileReady = _attachment != null || _existing != null;
     return Scaffold(
-      appBar: AppBar(title: Text(_existing == null ? 'Add document' : 'Edit document')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(CreaturelySpacing.medium),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: CreaturelySpacing.maxFormWidth),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    PageHeading(
-                      title: 'Document for ${animal.name}',
-                      subtitle: 'Images and PDFs are copied into Creaturely-managed storage.',
-                    ),
-                    const SizedBox(height: 22),
-                    if (_health == AttachmentHealth.missing)
-                      const CalmNotice(
-                        icon: Icons.file_present_outlined,
-                        text:
-                            'The original stored file is missing. Select a replacement before '
-                            'saving, or keep the visible record in the timeline.',
-                        tone: NoticeTone.attention,
-                      )
-                    else if (_health == AttachmentHealth.corrupt)
-                      const CalmNotice(
-                        icon: Icons.warning_amber_rounded,
-                        text:
-                            'This stored file no longer matches its checksum. Select a clean '
-                            'replacement before sharing or backing it up.',
-                        tone: NoticeTone.attention,
+      appBar: AppBar(
+        title: Text(
+          _existing == null
+              ? AppLocalizations.of(context).addDocument
+              : AppLocalizations.of(context).editDocument,
+        ),
+      ),
+      body: AbsorbPointer(
+        absorbing: _saving,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(CreaturelySpacing.medium),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: CreaturelySpacing.maxFormWidth),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      PageHeading(
+                        title: AppLocalizations.of(context).documentFor(animal.name),
+                        subtitle: AppLocalizations.of(context)
+                            .imagesAndPDFsAreCopiedIntoCreaturelyManagedStorage,
                       ),
-                    if (_health != null && _health != AttachmentHealth.available)
-                      const SizedBox(height: 14),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          children: [
-                            Icon(
-                              fileReady ? Icons.description_rounded : Icons.upload_file_rounded,
-                              size: 48,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _attachment != null
-                                  ? '${_attachment!.mediaType} • ${_attachment!.byteLength} bytes'
-                                  : _existing != null
-                                  ? '${_existing!.mediaType} • ${_existing!.byteLength} bytes'
-                                  : 'Choose an image or PDF',
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 14),
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                OutlinedButton.icon(
-                                  key: const ValueKey('pick_document'),
-                                  onPressed: _pickFile,
-                                  icon: const Icon(Icons.folder_open_rounded),
-                                  label: const Text('Browse Files'),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _pickImage(ImageSource.gallery),
-                                  icon: const Icon(Icons.photo_library_outlined),
-                                  label: const Text('Photo library'),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () => _pickImage(ImageSource.camera),
-                                  icon: const Icon(Icons.camera_alt_outlined),
-                                  label: const Text('Take photo'),
-                                ),
-                              ],
-                            ),
-                          ],
+                      const SizedBox(height: 22),
+                      for (final image in recovered)
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.restore),
+                          label: Text(AppLocalizations.of(context).useRecoveredImage),
+                          onPressed: _saving || _choosingFile ? null : () => _useRecovered(image),
+                        ),
+                      if (_health == AttachmentHealth.missing)
+                        CalmNotice(
+                          icon: Icons.file_present_outlined,
+                          text: AppLocalizations.of(context)
+                              .theOriginalStoredFileIsMissingSelectAReplacement,
+                          tone: NoticeTone.attention,
+                        )
+                      else if (_health == AttachmentHealth.corrupt)
+                        CalmNotice(
+                          icon: Icons.warning_amber_rounded,
+                          text: AppLocalizations.of(context)
+                              .thisStoredFileNoLongerMatchesItsChecksumSelect,
+                          tone: NoticeTone.attention,
+                        ),
+                      if (_health != null && _health != AttachmentHealth.available)
+                        const SizedBox(height: 14),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            children: [
+                              Icon(
+                                fileReady ? Icons.description_rounded : Icons.upload_file_rounded,
+                                size: 48,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _attachment != null
+                                    ? AppLocalizations.of(context)
+                                          .bytes2(_attachment!.mediaType, _attachment!.byteLength)
+                                    : _existing != null
+                                    ? AppLocalizations.of(context)
+                                          .bytes2(_existing!.mediaType, _existing!.byteLength)
+                                    : AppLocalizations.of(context).chooseAnImageOrPDF,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 14),
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  OutlinedButton.icon(
+                                    key: const ValueKey('pick_document'),
+                                    onPressed: _saving || _choosingFile ? null : _pickFile,
+                                    icon: const Icon(Icons.folder_open_rounded),
+                                    label: Text(AppLocalizations.of(context).browseFiles),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: _saving || _choosingFile
+                                        ? null
+                                        : () => _pickImage(ImageSource.gallery),
+                                    icon: const Icon(Icons.photo_library_outlined),
+                                    label: Text(AppLocalizations.of(context).photoLibrary),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: _saving || _choosingFile
+                                        ? null
+                                        : () => _pickImage(ImageSource.camera),
+                                    icon: const Icon(Icons.camera_alt_outlined),
+                                    label: Text(AppLocalizations.of(context).takePhoto),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      key: const ValueKey('document_title'),
-                      controller: _title,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(labelText: 'Title *'),
-                      validator: (value) =>
-                          value == null || value.trim().isEmpty ? 'Enter a title.' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<DocumentCategory>(
-                      initialValue: _category,
-                      decoration: const InputDecoration(labelText: 'Category'),
-                      items: DocumentCategory.values
-                          .map(
-                            (value) =>
-                                DropdownMenuItem(value: value, child: Text(_friendly(value.name))),
-                          )
-                          .toList(growable: false),
-                      onChanged: (value) => setState(() => _category = value ?? _category),
-                    ),
-                    const SizedBox(height: 12),
-                    _DateField(
-                      label: 'Document date',
-                      value: _documentDate,
-                      onTap: () => _pickDate(_DateTarget.document),
-                    ),
-                    const SizedBox(height: 12),
-                    _DateField(
-                      label: 'Expiry date (optional)',
-                      value: _expiryDate,
-                      emptyLabel: 'No expiry date',
-                      onTap: () => _pickDate(_DateTarget.expiry),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _notes,
-                      minLines: 3,
-                      maxLines: 6,
-                      decoration: const InputDecoration(labelText: 'Notes'),
-                    ),
-                    const SizedBox(height: 22),
-                    FilledButton.icon(
-                      key: const ValueKey('save_document'),
-                      onPressed: !fileReady || _saving ? null : _save,
-                      icon: _saving
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        key: const ValueKey('document_title'),
+                        controller: _title,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(labelText: AppLocalizations.of(context).title),
+                        validator: (value) => value == null || value.trim().isEmpty
+                            ? AppLocalizations.of(context).enterATitle
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<DocumentCategory>(
+                        initialValue: _category,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).category,
+                        ),
+                        items: DocumentCategory.values
+                            .map(
+                              (value) => DropdownMenuItem(
+                                value: value,
+                                child: Text(AppLocalizations.of(context).documentCategory(value)),
+                              ),
                             )
-                          : const Icon(Icons.check_rounded),
-                      label: const Text('Save document'),
-                    ),
-                  ],
+                            .toList(growable: false),
+                        onChanged: (value) => setState(() => _category = value ?? _category),
+                      ),
+                      const SizedBox(height: 12),
+                      CalendarDateField(
+                        label: AppLocalizations.of(context).documentDate,
+                        value: _documentDate,
+                        onTap: () => _pickDate(_DateTarget.document),
+                      ),
+                      const SizedBox(height: 12),
+                      CalendarDateField(
+                        label: AppLocalizations.of(context).expiryDateOptional,
+                        value: _expiryDate,
+                        emptyLabel: AppLocalizations.of(context).noExpiryDate,
+                        onTap: () => _pickDate(_DateTarget.expiry),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _notes,
+                        minLines: 3,
+                        maxLines: 6,
+                        decoration: InputDecoration(labelText: AppLocalizations.of(context).notes),
+                      ),
+                      const SizedBox(height: 22),
+                      FilledButton.icon(
+                        key: const ValueKey('save_document'),
+                        onPressed: !fileReady || _saving || _choosingFile ? null : _save,
+                        icon: _saving
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.check_rounded),
+                        label: Text(AppLocalizations.of(context).saveDocument),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Future<void> _useRecovered(StoredAttachment image) async {
+    if (_saving || _choosingFile) return;
+    final recovered = ref.read(recoveredMediaProvider.notifier);
+    final documents = ref.read(documentStorageProvider.future);
+    final cleanup = ref.read(attachmentCleanupProvider.notifier);
+    setState(() => _choosingFile = true);
+    try {
+      final storage = await documents;
+      if (!mounted) return;
+      await recovered.consume(image);
+      if (!mounted) {
+        storage.release(image.path);
+        unawaited(cleanup.collect());
+        return;
+      }
+      final previous = _attachment?.path;
+      if (previous != null) storage.release(previous);
+      setState(() {
+        _attachment = image;
+        _health = AttachmentHealth.available;
+      });
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).fileOperationFailed)));
+      }
+    } finally {
+      if (mounted) setState(() => _choosingFile = false);
+    }
+  }
+
   Future<void> _inspect(CareDocument document) async {
-    final storage = await ref.read(documentStorageProvider.future);
-    final value = await storage.inspect(document);
-    if (mounted) {
-      setState(() => _health = value);
+    try {
+      final storage = await ref.read(documentStorageProvider.future);
+      final value = await storage.inspect(document);
+      if (mounted) {
+        setState(() => _health = value);
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).fileOperationFailed)));
+      }
     }
   }
 
-  Future<void> _pickFile() async {
-    final selectedFile = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: <String>['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'],
-    );
-    final selectedPath = selectedFile?.path;
-    if (selectedPath == null) {
-      return;
-    }
-    await _import(File(selectedPath));
-  }
+  Future<void> _pickFile() => _pickAttachment(
+    () => ref.read(mediaServiceProvider).pickFile([
+      'pdf',
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'webp',
+      'heic',
+    ]),
+  );
+  Future<void> _pickImage(ImageSource source) =>
+      _pickAttachment(() => ref.read(mediaServiceProvider).pickImage(source));
 
-  Future<void> _pickImage(ImageSource source) async {
-    final result = await ImagePicker().pickImage(source: source, imageQuality: 90);
-    if (result != null) {
-      await _import(File(result.path));
-    }
-  }
-
-  Future<void> _import(File file) async {
-    final storage = await ref.read(documentStorageProvider.future);
-    final attachment = await storage.importFile(file);
-    if (mounted) {
+  Future<void> _pickAttachment(Future<File?> Function() pick) async {
+    if (_saving || _choosingFile) return;
+    final documents = ref.read(documentStorageProvider.future);
+    final cleanup = ref.read(attachmentCleanupProvider.notifier);
+    setState(() => _choosingFile = true);
+    try {
+      final storage = await documents;
+      if (!mounted) return;
+      final file = await pick();
+      if (file == null || !mounted) return;
+      final attachment = await storage.importFile(file);
+      if (!mounted) {
+        storage.release(attachment.path);
+        unawaited(cleanup.collect());
+        return;
+      }
+      if (_attachment != null) storage.release(_attachment!.path);
       setState(() {
         _attachment = attachment;
         _health = AttachmentHealth.available;
-        if (_title.text.trim().isEmpty) {
-          _title.text = file.uri.pathSegments.last.split('.').first;
-        }
+        if (_title.text.trim().isEmpty) _title.text = file.uri.pathSegments.last.split('.').first;
       });
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).fileOperationFailed)));
+      }
+    } finally {
+      if (mounted) setState(() => _choosingFile = false);
     }
   }
 
@@ -271,7 +370,7 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
       lastDate: DateTime.now().add(const Duration(days: 3650)),
       initialDate: initial,
     );
-    if (value == null) {
+    if (value == null || !mounted) {
       return;
     }
     setState(() {
@@ -285,6 +384,7 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving || _choosingFile) return;
     if (!_form.currentState!.validate()) {
       return;
     }
@@ -294,7 +394,7 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
       final existing = _existing;
       final attachment = _attachment;
       final document = CareDocument(
-        id: existing?.id ?? ref.read(appControllerProvider.notifier).newId(),
+        id: existing?.id ?? ref.read(careControllerProvider.notifier).newId(),
         animalId: widget.animalId,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
@@ -308,9 +408,17 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
         notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
         expiryDate: _expiryDate == null ? null : canonicalCalendarDate(_expiryDate!),
       );
-      await ref.read(appControllerProvider.notifier).saveDocument(document);
+      await ref.read(careControllerProvider.notifier).saveDocument(document);
       if (mounted) {
         context.pop();
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).couldNotSaveYourChangesAreKeptHereTry),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -318,35 +426,6 @@ class _DocumentFormScreenState extends ConsumerState<DocumentFormScreen> {
       }
     }
   }
-
-  String _friendly(String value) =>
-      '${value[0].toUpperCase()}${value.substring(1).replaceAllMapped(RegExp('[A-Z]'), (match) => ' ${match.group(0)}')}';
 }
 
 enum _DateTarget { document, expiry }
-
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.onTap,
-    this.emptyLabel = 'Choose date',
-  });
-
-  final String label;
-  final DateTime? value;
-  final VoidCallback onTap;
-  final String emptyLabel;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(14),
-    child: InputDecorator(
-      decoration: InputDecoration(labelText: label),
-      child: Text(
-        value == null ? emptyLabel : MaterialLocalizations.of(context).formatMediumDate(value!),
-      ),
-    ),
-  );
-}

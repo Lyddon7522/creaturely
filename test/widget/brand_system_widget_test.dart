@@ -1,3 +1,4 @@
+import 'package:creaturely/l10n/generated/app_localizations.dart';
 import 'package:creaturely/ui/core/brand.dart';
 import 'package:creaturely/ui/core/theme.dart';
 import 'package:creaturely/ui/core/widgets.dart';
@@ -43,6 +44,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: CreaturelyTheme.light,
         home: const Scaffold(body: CreaturelyLogo()),
       ),
@@ -52,6 +55,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         darkTheme: CreaturelyTheme.dark,
         themeMode: ThemeMode.dark,
         home: const Scaffold(body: CreaturelyLogo()),
@@ -69,6 +74,8 @@ void main() {
     var tapped = false;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: CreaturelyTheme.light,
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),

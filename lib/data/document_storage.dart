@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -23,28 +26,34 @@ class StoredAttachment {
   final String mediaType;
 }
 
-abstract interface class AttachmentSwap {
+abstract interface class AttachmentGeneration {
   Map<String, String> get finalPaths;
 
   Future<void> commit();
 
   Future<void> rollback();
-
-  Future<void> finalize();
 }
 
 abstract interface class RestoreDocumentStore {
-  Future<Map<String, Uint8List>> readAttachments(Iterable<CareDocument> documents);
-
-  Future<Map<String, Uint8List>> readAnimalPhotos(Iterable<Animal> animals);
-
-  Future<AttachmentSwap> stageRestore(Map<String, Uint8List> attachments);
+  Future<T> exclusiveFiles<T>(Future<T> Function() action);
+  Future<AttachmentGeneration> stageRestore(Map<String, Uint8List> attachments);
 }
 
 class DocumentStorage implements RestoreDocumentStore {
   DocumentStorage._(this.root);
 
   final Directory root;
+  final Map<String, int> _leases = {};
+  final Object _fileLock = Object();
+  Future<void> _fileTail = Future.value();
+
+  @override
+  Future<T> exclusiveFiles<T>(Future<T> Function() action) {
+    if (Zone.current[_fileLock] == this) return action();
+    final operation = _fileTail.then((_) => runZoned(action, zoneValues: {_fileLock: this}));
+    _fileTail = operation.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+    return operation;
+  }
 
   static Future<DocumentStorage> openDefault() async {
     final documents = await getApplicationDocumentsDirectory();
@@ -62,23 +71,153 @@ class DocumentStorage implements RestoreDocumentStore {
     return DocumentStorage._(root);
   }
 
-  Future<StoredAttachment> importFile(File source) async {
+  Future<StoredAttachment> importFile(File source) => exclusiveFiles(() => _importFile(source));
+
+  Future<StoredAttachment> _importFile(File source) async {
     if (!await source.exists()) {
       throw FileSystemException('The selected document is no longer available.', source.path);
     }
-    final checksum = await checksumFile(source);
-    final existing = await _findByHash(checksum);
     final extension = path.extension(source.path).toLowerCase();
-    final target = existing ?? File(path.join(root.path, '$checksum$extension'));
-    if (existing == null) {
-      await source.copy(target.path);
+    final staging = await root.createTemp('import-');
+    late StoredAttachment attachment;
+    try {
+      final staged = await source.copy(path.join(staging.path, 'content$extension'));
+      final stagedPath = staged.path;
+      // Hash the copied bytes, so a source changed during picking cannot produce
+      // a filename/checksum that describes different bytes. Hashing stays off UI.
+      final checksum = await Isolate.run(() => DocumentStorage.checksumFile(File(stagedPath)));
+      final length = await staged.length();
+      final existing = await _findByHash(checksum);
+      final target = existing ?? await staged.rename(path.join(root.path, '$checksum$extension'));
+      attachment = StoredAttachment(
+        path: target.path,
+        checksumSha256: checksum,
+        byteLength: length,
+        mediaType: mediaTypeForPath(source.path),
+      );
+    } finally {
+      await staging.delete(recursive: true);
     }
-    return StoredAttachment(
-      path: target.path,
-      checksumSha256: checksum,
-      byteLength: await target.length(),
-      mediaType: mediaTypeForPath(source.path),
+    // Acquire only after all fallible work (including staging cleanup) succeeds.
+    _leases.update(attachment.path, (count) => count + 1, ifAbsent: () => 1);
+    return attachment;
+  }
+
+  void release(String filePath) {
+    final count = _leases[filePath] ?? 0;
+    if (count <= 1) {
+      _leases.remove(filePath);
+    } else {
+      _leases[filePath] = count - 1;
+    }
+  }
+
+  /// Hold references while a command waits in its queue, even if its form closes.
+  Future<T> withLease<T>(Iterable<String> paths, Future<T> Function() action) async {
+    final held = paths.toSet();
+    for (final filePath in held) {
+      _leases.update(filePath, (count) => count + 1, ifAbsent: () => 1);
+    }
+    try {
+      return await action();
+    } finally {
+      for (final filePath in held) {
+        release(filePath);
+      }
+    }
+  }
+
+  File get _recoveredIndex => File(path.join(root.path, '.recovered.json'));
+
+  Future<List<StoredAttachment>> recoveredImages() => exclusiveFiles(_readRecoveredImages);
+
+  Future<List<StoredAttachment>> _readRecoveredImages() async {
+    if (!await _recoveredIndex.exists()) return const [];
+    final decoded = jsonDecode(await _recoveredIndex.readAsString());
+    final entries = switch (decoded) {
+      Map<String, Object?>() => decoded.map((key, value) => MapEntry(key, value as String)),
+      // Preserve images retained by builds with the original path-only index.
+      List<Object?>() => {
+        for (final filePath in decoded.cast<String>()) filePath: mediaTypeForPath(filePath),
+      },
+      _ => throw const FormatException('Recovered image index is invalid.'),
+    };
+    final result = <StoredAttachment>[];
+    for (final entry in entries.entries) {
+      final filePath = entry.key;
+      if (!path.isWithin(root.path, filePath)) {
+        throw const FormatException('Recovered image path is outside attachment storage.');
+      }
+      final file = File(filePath);
+      if (await file.exists()) {
+        result.add(
+          StoredAttachment(
+            path: filePath,
+            checksumSha256: await checksumFile(file),
+            byteLength: await file.length(),
+            mediaType: entry.value,
+          ),
+        );
+      }
+    }
+    return List.unmodifiable(result);
+  }
+
+  Future<void> _writeRecoveredIndex(Iterable<StoredAttachment> images) async {
+    final temporary = File('${_recoveredIndex.path}.tmp');
+    await temporary.writeAsString(
+      jsonEncode({for (final image in images) image.path: image.mediaType}),
+      flush: true,
     );
+    await temporary.rename(_recoveredIndex.path);
+  }
+
+  Future<void> retainRecovered(File file) => exclusiveFiles(() async {
+    final existing = await recoveredImages();
+    final imported = await importFile(file);
+    try {
+      await _writeRecoveredIndex([...existing, imported]);
+    } finally {
+      release(imported.path);
+    }
+  });
+
+  Future<void> consumeRecovered(String filePath) => exclusiveFiles(() async {
+    final recovered = await recoveredImages();
+    if (!recovered.any((item) => item.path == filePath)) {
+      throw const FormatException('The recovered image is no longer available.');
+    }
+    _leases.update(filePath, (count) => count + 1, ifAbsent: () => 1);
+    try {
+      await _writeRecoveredIndex(recovered.where((item) => item.path != filePath));
+    } on Object {
+      release(filePath);
+      rethrow;
+    }
+  });
+
+  Future<void> collectGarbage(Set<String> referencedPaths) =>
+      exclusiveFiles(() => _collectGarbage(referencedPaths));
+
+  Future<void> _collectGarbage(Set<String> referencedPaths) async {
+    final retained = {
+      ...referencedPaths,
+      ..._leases.keys,
+      ...(await recoveredImages()).map((item) => item.path),
+      _recoveredIndex.path,
+    };
+    final directories = <Directory>[];
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (entity is File && !retained.contains(entity.path)) {
+        await entity.delete();
+      } else if (entity is Directory) {
+        directories.add(entity);
+      }
+    }
+    directories.sort((a, b) => b.path.length.compareTo(a.path.length));
+    for (final directory in directories) {
+      if (await directory.list().isEmpty) await directory.delete();
+    }
   }
 
   Future<AttachmentHealth> inspect(CareDocument document) async {
@@ -109,60 +248,13 @@ class DocumentStorage implements RestoreDocumentStore {
         await directory.delete(recursive: true);
       }
     }
+    _leases.clear();
     await root.create(recursive: true);
   }
 
   @override
-  Future<Map<String, Uint8List>> readAttachments(Iterable<CareDocument> documents) async {
-    final result = <String, Uint8List>{};
-    for (final document in documents) {
-      if (result.containsKey(document.checksumSha256)) {
-        continue;
-      }
-      final file = File(document.storedPath);
-      if (!await file.exists()) {
-        throw FileSystemException(
-          'Cannot back up missing document "${document.title}".',
-          document.storedPath,
-        );
-      }
-      final bytes = await file.readAsBytes();
-      final actual = sha256.convert(bytes).toString();
-      if (actual != document.checksumSha256) {
-        throw const FormatException('A document checksum changed before backup.');
-      }
-      result[actual] = bytes;
-    }
-    return result;
-  }
-
-  @override
-  Future<Map<String, Uint8List>> readAnimalPhotos(Iterable<Animal> animals) async {
-    final result = <String, Uint8List>{};
-    for (final animal in animals) {
-      final photoPath = animal.photoPath;
-      if (photoPath == null || result.containsKey(photoPath)) {
-        continue;
-      }
-      final file = File(photoPath);
-      if (!await file.exists()) {
-        throw FileSystemException(
-          'Cannot back up missing profile photo for "${animal.name}".',
-          photoPath,
-        );
-      }
-      result[photoPath] = await file.readAsBytes();
-    }
-    return result;
-  }
-
-  @override
-  Future<AttachmentSwap> stageRestore(Map<String, Uint8List> attachments) async {
-    final parent = root.parent;
-    final stamp = DateTime.now().microsecondsSinceEpoch;
-    final staging = Directory(path.join(parent.path, '.creaturely-restore-$stamp'));
-    final previous = Directory(path.join(parent.path, '.creaturely-previous-$stamp'));
-    await staging.create(recursive: true);
+  Future<AttachmentGeneration> stageRestore(Map<String, Uint8List> attachments) async {
+    final staging = await root.createTemp('generation-');
     final finalPaths = <String, String>{};
     try {
       for (final entry in attachments.entries) {
@@ -172,13 +264,11 @@ class DocumentStorage implements RestoreDocumentStore {
         }
         final staged = File(path.join(staging.path, '${entry.key}.blob'));
         await staged.writeAsBytes(entry.value, flush: true);
-        finalPaths[entry.key] = path.join(root.path, '${entry.key}.blob');
+        finalPaths[entry.key] = path.join(staging.path, '${entry.key}.blob');
       }
-      return StagedAttachmentSwap._(
-        root: root,
+      return StagedAttachmentGeneration._(
         staging: staging,
-        previous: previous,
-        finalPaths: finalPaths,
+        finalPaths: Map.unmodifiable(finalPaths),
       );
     } catch (_) {
       if (await staging.exists()) {
@@ -189,8 +279,10 @@ class DocumentStorage implements RestoreDocumentStore {
   }
 
   Future<File?> _findByHash(String checksum) async {
-    await for (final entity in root.list()) {
-      if (entity is File && path.basename(entity.path).startsWith(checksum)) {
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (entity is File &&
+          path.basename(entity.path).startsWith(checksum) &&
+          await checksumFile(entity) == checksum) {
         return entity;
       }
     }
@@ -212,60 +304,24 @@ class DocumentStorage implements RestoreDocumentStore {
   }
 }
 
-class StagedAttachmentSwap implements AttachmentSwap {
-  StagedAttachmentSwap._({
-    required this.root,
-    required this.staging,
-    required this.previous,
-    required this.finalPaths,
-  });
+/// A generation is published before any database row refers to it. Old paths
+/// remain valid across process termination on either side of the SQLite commit.
+class StagedAttachmentGeneration implements AttachmentGeneration {
+  StagedAttachmentGeneration._({required this.staging, required this.finalPaths});
 
-  final Directory root;
   final Directory staging;
-  final Directory previous;
   @override
   final Map<String, String> finalPaths;
-  bool _committed = false;
 
   @override
   Future<void> commit() async {
-    if (_committed) {
-      throw StateError('Attachment swap was already committed.');
-    }
-    if (await root.exists()) {
-      await root.rename(previous.path);
-    }
-    try {
-      await staging.rename(root.path);
-      _committed = true;
-    } catch (_) {
-      if (await previous.exists() && !await root.exists()) {
-        await previous.rename(root.path);
-      }
-      rethrow;
-    }
+    await File(path.join(staging.path, '.complete')).writeAsString('1', flush: true);
   }
 
   @override
   Future<void> rollback() async {
-    if (_committed && await root.exists()) {
-      await root.delete(recursive: true);
-    } else if (await staging.exists()) {
+    if (await staging.exists()) {
       await staging.delete(recursive: true);
-    }
-    if (await previous.exists()) {
-      await previous.rename(root.path);
-    }
-    _committed = false;
-  }
-
-  @override
-  Future<void> finalize() async {
-    if (!_committed) {
-      throw StateError('Cannot finalize an uncommitted attachment swap.');
-    }
-    if (await previous.exists()) {
-      await previous.delete(recursive: true);
     }
   }
 }

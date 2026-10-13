@@ -5,8 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../domain/models.dart';
 import '../../../domain/units.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/app_strings.dart';
 import '../../app_controller.dart';
+import '../../core/commands.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
@@ -18,31 +19,36 @@ class MedicationDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(appControllerProvider);
+    final state = ref.watch(
+      journalViewProvider((feature: JournalFeature.medication, animalId: animalId)),
+    );
+    if (state.loading || state.error != null) {
+      return QueryPane(error: state.error, onRetry: () => state.retry(ref));
+    }
     final l10n = AppLocalizations.of(context);
-    final medication = state.snapshot.medications
+    final medication = state.medications
         .where((value) => value.id == medicationId && value.animalId == animalId)
         .firstOrNull;
-    final animal = state.snapshot.animals.where((value) => value.id == animalId).firstOrNull;
+    final animal = state.animals.where((value) => value.id == animalId).firstOrNull;
     if (medication == null || animal == null) {
-      return const Scaffold(
+      return Scaffold(
         body: EmptyState(
           icon: Icons.medication_outlined,
-          title: 'Medication not found',
-          body: 'This medication may have been removed from the journal.',
+          title: AppLocalizations.of(context).medicationNotFound,
+          body: AppLocalizations.of(context).thisMedicationMayHaveBeenRemovedFromTheJournal,
         ),
       );
     }
 
-    final schedules = state.snapshot.medicationSchedules
+    final schedules = state.medicationSchedules
         .where((value) => value.medicationId == medication.id)
         .toList(growable: false);
     final doses =
-        state.snapshot.doseLedger
+        state.doseLedger
             .where((value) => value.medicationId == medication.id)
             .toList(growable: false)
           ..sort((left, right) => right.dueAt.compareTo(left.dueAt));
-    final now = DateTime.now().toUtc();
+    final now = ref.read(wallClockProvider)().toUtc();
     final upcoming =
         doses
             .where((value) => value.status == DoseStatus.unrecorded && value.dueAt.isAfter(now))
@@ -56,10 +62,10 @@ class MedicationDetailsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Medication'),
+        title: Text(AppLocalizations.of(context).medications),
         actions: [
           IconButton(
-            tooltip: 'Edit ${medication.name}',
+            tooltip: AppLocalizations.of(context).edit2(medication.name),
             onPressed: () =>
                 context.push('/medication/${medication.id}/edit/${medication.animalId}'),
             icon: const Icon(Icons.edit_outlined),
@@ -101,7 +107,10 @@ class MedicationDetailsScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Directions', style: Theme.of(context).textTheme.labelLarge),
+                          Text(
+                            AppLocalizations.of(context).directions,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
                           const SizedBox(height: 3),
                           Text(
                             medication.instructions,
@@ -115,19 +124,20 @@ class MedicationDetailsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 18),
-            const SectionHeading('Next dose'),
+            SectionHeading(AppLocalizations.of(context).nextDose),
             if (!medication.active)
-              const CalmNotice(
+              CalmNotice(
                 icon: Icons.pause_circle_outline_rounded,
-                text: 'This medication is inactive. Its past dose history remains available.',
+                text: AppLocalizations.of(context)
+                    .thisMedicationIsInactiveItsPastDoseHistoryRemains,
               )
             else if (upcoming.isEmpty)
               Card(
                 child: ListTile(
                   minTileHeight: 72,
                   leading: const Icon(Icons.event_available_outlined),
-                  title: const Text('No upcoming dose'),
-                  subtitle: const Text('Review the saved schedule or add a dose time.'),
+                  title: Text(AppLocalizations.of(context).noUpcomingDose),
+                  subtitle: Text(AppLocalizations.of(context).reviewTheSavedScheduleOrAddADoseTime),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () =>
                       context.push('/medication/${medication.id}/edit/${medication.animalId}'),
@@ -136,28 +146,34 @@ class MedicationDetailsScreen extends ConsumerWidget {
             else
               _NextDoseCard(
                 dose: upcoming.first,
-                onGiven: () => ref
-                    .read(appControllerProvider.notifier)
-                    .recordDose(upcoming.first.id, DoseStatus.given),
-                onSkipped: () => ref
-                    .read(appControllerProvider.notifier)
-                    .recordDose(upcoming.first.id, DoseStatus.skipped),
+                onGiven: () => runUiCommand(
+                  context,
+                  () => ref
+                      .read(careControllerProvider.notifier)
+                      .recordDose(upcoming.first.id, DoseStatus.given),
+                ),
+                onSkipped: () => runUiCommand(
+                  context,
+                  () => ref
+                      .read(careControllerProvider.notifier)
+                      .recordDose(upcoming.first.id, DoseStatus.skipped),
+                ),
               ),
             const SizedBox(height: 18),
             SectionHeading(
-              'Schedule',
+              AppLocalizations.of(context).schedule,
               trailing: TextButton(
                 onPressed: () =>
                     context.push('/medication/${medication.id}/edit/${medication.animalId}'),
-                child: const Text('Edit'),
+                child: Text(AppLocalizations.of(context).edit),
               ),
             ),
             Card(
               child: schedules.isEmpty
-                  ? const ListTile(
+                  ? ListTile(
                       minTileHeight: 72,
-                      leading: Icon(Icons.event_busy_outlined),
-                      title: Text('No saved dose times'),
+                      leading: const Icon(Icons.event_busy_outlined),
+                      title: Text(AppLocalizations.of(context).noSavedDoseTimes),
                     )
                   : Column(
                       children: [
@@ -171,7 +187,9 @@ class MedicationDetailsScreen extends ConsumerWidget {
                             ),
                             title: Text(_scheduleSummary(context, schedules[index])),
                             subtitle: Text(
-                              schedules[index].enabled ? 'Reminders active' : 'Reminders paused',
+                              schedules[index].enabled
+                                  ? AppLocalizations.of(context).remindersActive
+                                  : AppLocalizations.of(context).remindersPaused,
                             ),
                           ),
                           if (index < schedules.length - 1) const Divider(height: 1),
@@ -185,17 +203,19 @@ class MedicationDetailsScreen extends ConsumerWidget {
               _MedicationPrescriptionDetails(medication: medication, l10n: l10n),
             ],
             const SizedBox(height: 18),
-            const SectionHeading('Last 30 days'),
+            SectionHeading(AppLocalizations.of(context).last30Days),
             _DoseSummary(doses: recent),
             const SizedBox(height: 18),
-            const SectionHeading('Dose history'),
+            SectionHeading(AppLocalizations.of(context).doseHistory),
             if (outcomes.isEmpty)
-              const Card(
+              Card(
                 child: ListTile(
                   minTileHeight: 76,
-                  leading: Icon(Icons.history_rounded),
-                  title: Text('No completed doses yet'),
-                  subtitle: Text('Given, skipped, and missed doses will appear here.'),
+                  leading: const Icon(Icons.history_rounded),
+                  title: Text(AppLocalizations.of(context).noCompletedDosesYet),
+                  subtitle: Text(
+                    AppLocalizations.of(context).givenSkippedAndMissedDosesWillAppearHere,
+                  ),
                 ),
               )
             else
@@ -211,7 +231,7 @@ class MedicationDetailsScreen extends ConsumerWidget {
               ),
             if (medication.notes != null) ...[
               const SizedBox(height: 18),
-              const SectionHeading('Notes'),
+              SectionHeading(AppLocalizations.of(context).notes),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
@@ -235,21 +255,23 @@ class MedicationDetailsScreen extends ConsumerWidget {
         )
         .join(', ');
     return switch (schedule.kind) {
-      ScheduleKind.daily => 'Daily • $times',
+      ScheduleKind.daily => AppLocalizations.of(context).daily(times),
       ScheduleKind.selectedWeekdays => '${_weekdaySummary(schedule.weekdays)} • $times',
-      ScheduleKind.interval => 'Every ${schedule.intervalHours} hours • starts $times',
+      ScheduleKind.interval => AppLocalizations.of(
+        context,
+      ).everyHoursStarts(schedule.intervalHours.toString(), times),
     };
   }
 
   static String _weekdaySummary(Set<int> weekdays) {
-    const labels = <int, String>{
-      DateTime.monday: 'Mon',
-      DateTime.tuesday: 'Tue',
-      DateTime.wednesday: 'Wed',
-      DateTime.thursday: 'Thu',
-      DateTime.friday: 'Fri',
-      DateTime.saturday: 'Sat',
-      DateTime.sunday: 'Sun',
+    final labels = <int, String>{
+      DateTime.monday: appStrings.mon,
+      DateTime.tuesday: appStrings.tue,
+      DateTime.wednesday: appStrings.wed,
+      DateTime.thursday: appStrings.thu,
+      DateTime.friday: appStrings.fri,
+      DateTime.saturday: appStrings.sat,
+      DateTime.sunday: appStrings.sun,
     };
     final values = weekdays.toList()..sort();
     return values.map((value) => labels[value]).whereType<String>().join(', ');
@@ -337,7 +359,9 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Chip(
     avatar: Icon(active ? Icons.check_circle_outline_rounded : Icons.pause_circle_outline_rounded),
-    label: Text(active ? 'Active' : 'Inactive'),
+    label: Text(
+      active ? AppLocalizations.of(context).active : AppLocalizations.of(context).inactive,
+    ),
     backgroundColor: active
         ? Theme.of(context).colorScheme.primaryContainer
         : Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -399,13 +423,13 @@ class _NextDoseCard extends StatelessWidget {
                 key: const ValueKey('record_next_dose_given'),
                 onPressed: onGiven,
                 icon: const Icon(Icons.check_rounded),
-                label: const Text('Mark given'),
+                label: Text(AppLocalizations.of(context).markGiven),
               ),
               OutlinedButton.icon(
                 key: const ValueKey('record_next_dose_skipped'),
                 onPressed: onSkipped,
                 icon: const Icon(Icons.fast_forward_rounded),
-                label: const Text('Skip dose'),
+                label: Text(AppLocalizations.of(context).skipDose),
               ),
             ],
           ),
@@ -424,19 +448,19 @@ class _DoseSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final metrics = <({String label, int count, IconData icon, Color color})>[
       (
-        label: 'Given',
+        label: AppLocalizations.of(context).given,
         count: doses.where((value) => value.status == DoseStatus.given).length,
         icon: Icons.check_circle_outline_rounded,
         color: CreaturelyColors.success,
       ),
       (
-        label: 'Skipped',
+        label: AppLocalizations.of(context).skipped,
         count: doses.where((value) => value.status == DoseStatus.skipped).length,
         icon: Icons.fast_forward_rounded,
         color: CreaturelyColors.warning,
       ),
       (
-        label: 'Missed',
+        label: AppLocalizations.of(context).missed,
         count: doses.where((value) => value.status == DoseStatus.missed).length,
         icon: Icons.event_busy_outlined,
         color: Theme.of(context).colorScheme.error,
@@ -497,15 +521,23 @@ class _DoseHistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, icon, color) = switch (dose.status) {
-      DoseStatus.given => ('Given', Icons.check_circle_outline_rounded, CreaturelyColors.success),
-      DoseStatus.skipped => ('Skipped', Icons.fast_forward_rounded, CreaturelyColors.warning),
+      DoseStatus.given => (
+        AppLocalizations.of(context).given,
+        Icons.check_circle_outline_rounded,
+        CreaturelyColors.success,
+      ),
+      DoseStatus.skipped => (
+        AppLocalizations.of(context).skipped,
+        Icons.fast_forward_rounded,
+        CreaturelyColors.warning,
+      ),
       DoseStatus.missed => (
-        'Missed',
+        AppLocalizations.of(context).missed,
         Icons.event_busy_outlined,
         Theme.of(context).colorScheme.error,
       ),
       DoseStatus.unrecorded => (
-        'Pending',
+        AppLocalizations.of(context).pending,
         Icons.schedule_rounded,
         Theme.of(context).colorScheme.primary,
       ),

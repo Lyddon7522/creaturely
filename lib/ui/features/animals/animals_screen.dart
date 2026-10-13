@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../domain/models.dart';
 import '../../../domain/units.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../l10n/app_strings.dart';
 import '../../app_controller.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
@@ -40,19 +40,20 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(appControllerProvider);
+    final state = ref.watch(journalViewProvider((feature: JournalFeature.animals, animalId: null)));
+    if (state.loading || state.error != null) {
+      return QueryPane(error: state.error, onRetry: () => state.retry(ref));
+    }
     final animals = state.activeAnimals;
-    final archived = state.snapshot.animals
-        .where((animal) => animal.archived)
-        .toList(growable: false);
+    final archived = state.animals.where((animal) => animal.archived).toList(growable: false);
     if (animals.isEmpty) {
       return Scaffold(
         appBar: AppBar(
           toolbarHeight: usesCompactVerticalLayout(context) ? 48 : null,
-          title: const Text('Animals'),
+          title: Text(AppLocalizations.of(context).animals),
           actions: [
             IconButton(
-              tooltip: 'Add animal',
+              tooltip: AppLocalizations.of(context).addAnimal,
               onPressed: () => context.push('/animal/new'),
               icon: const Icon(Icons.add_rounded),
             ),
@@ -66,15 +67,15 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
               EmptyState(
                 icon: Icons.pets_outlined,
                 title: archived.isEmpty
-                    ? 'Make space for the animal you care for'
-                    : 'No active animals',
+                    ? AppLocalizations.of(context).noAnimalsTitle
+                    : AppLocalizations.of(context).noActiveAnimals,
                 body: archived.isEmpty
-                    ? 'Creaturely works for any species. Add an animal to begin a private health journal.'
-                    : 'Archived journals remain safe below. Add an animal or reopen an archived profile.',
+                    ? AppLocalizations.of(context).noAnimalsBody
+                    : AppLocalizations.of(context).archivedJournalsRemainSafeBelowAddAnAnimalOr,
                 action: FilledButton.icon(
                   onPressed: () => context.push('/animal/new'),
                   icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add animal'),
+                  label: Text(AppLocalizations.of(context).addAnimal),
                 ),
               ),
               if (archived.isNotEmpty) _ArchivedAnimals(animals: archived),
@@ -86,8 +87,8 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
     final selected = state.selectedAnimal ?? animals.first;
     final careOverview = _AnimalCareOverview.from(
       animal: selected,
-      snapshot: state.snapshot,
-      now: DateTime.now(),
+      journal: state,
+      now: ref.read(wallClockProvider)(),
     );
     final otherAnimals = animals
         .where((animal) => animal.id != selected.id)
@@ -98,7 +99,7 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
         title: const AnimalPicker(),
         actions: [
           IconButton(
-            tooltip: 'Add animal',
+            tooltip: AppLocalizations.of(context).addAnimal,
             onPressed: () => context.push('/animal/new'),
             icon: const Icon(Icons.add_rounded),
           ),
@@ -131,7 +132,7 @@ class _AnimalsScreenState extends ConsumerState<AnimalsScreen> {
                 child: _OtherAnimals(
                   animals: otherAnimals,
                   onSelect: (animal) {
-                    ref.read(appControllerProvider.notifier).selectAnimal(animal.id);
+                    ref.read(selectedAnimalProvider.notifier).selectAnimal(animal.id);
                     animateTopLevelScrollToStart(context, _scrollController);
                   },
                   onAdd: () => context.push('/animal/new'),
@@ -160,18 +161,18 @@ class _AnimalCareOverview {
 
   factory _AnimalCareOverview.from({
     required Animal animal,
-    required CreaturelySnapshot snapshot,
+    required JournalView journal,
     required DateTime now,
   }) {
     final sessions =
-        snapshot.respiratorySessions
+        journal.respiratorySessions
             .where((session) => session.animalId == animal.id)
             .toList(growable: false)
           ..sort((first, second) => second.recordedAt.compareTo(first.recordedAt));
-    final activeMedicationCount = snapshot.medications
+    final activeMedicationCount = journal.medications
         .where((medication) => medication.animalId == animal.id && medication.active)
         .length;
-    final dosesDueSoon = snapshot.doseLedger
+    final dosesDueSoon = journal.doseLedger
         .where(
           (dose) =>
               dose.animalId == animal.id &&
@@ -184,7 +185,7 @@ class _AnimalCareOverview {
       latestBreathing: sessions.firstOrNull,
       activeMedicationCount: activeMedicationCount,
       dosesDueSoon: dosesDueSoon,
-      weightUnit: snapshot.settings.weightUnit,
+      weightUnit: journal.settings.weightUnit,
     );
   }
 
@@ -217,7 +218,7 @@ class _ArchivedAnimals extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const SectionHeading('Archived journals'),
+      SectionHeading(AppLocalizations.of(context).archivedJournals),
       Card(
         child: Column(
           children: [
@@ -226,7 +227,9 @@ class _ArchivedAnimals extends StatelessWidget {
                 minTileHeight: 68,
                 leading: AnimalAvatar(animal: animals[index], radius: 24),
                 title: Text(animals[index].name),
-                subtitle: Text('${animals[index].species} • Hidden from active care'),
+                subtitle: Text(
+                  AppLocalizations.of(context).hiddenFromActiveCare(animals[index].species),
+                ),
                 trailing: const Icon(Icons.edit_outlined),
                 onTap: () => context.push('/animal/${animals[index].id}/edit'),
               ),
@@ -430,14 +433,13 @@ class _AnimalHero extends StatelessWidget {
   }
 
   String _friendlyAge(int months, {required bool approximate}) {
-    final qualifier = approximate ? ' (approximate)' : '';
+    final qualifier = approximate ? appStrings.approximate : '';
     if (months < 12) {
-      return '$months months old$qualifier';
+      return appStrings.ageMonthsOld(months, qualifier);
     }
     final years = months ~/ 12;
     final remainder = months % 12;
-    return '$years ${years == 1 ? 'year' : 'years'}'
-        '${remainder == 0 ? '' : ', $remainder months'} old$qualifier';
+    return appStrings.ageYearsOld(years, remainder, qualifier);
   }
 }
 
@@ -688,12 +690,11 @@ class _CareSummary extends StatelessWidget {
           const SizedBox(height: 12),
           CalmNotice(
             icon: Icons.tune_rounded,
-            text:
-                'Breathing range supplied by you or your veterinarian: '
-                '${animal.thresholds.minimum?.toStringAsFixed(0) ?? '—'} / '
-                '${animal.thresholds.target?.toStringAsFixed(0) ?? '—'} / '
-                '${animal.thresholds.maximum?.toStringAsFixed(0) ?? '—'} breaths/min '
-                '(min / target / max).',
+            text: AppLocalizations.of(context).breathingRangeSuppliedByYouOrYourVeterinarianBreaths(
+              animal.thresholds.minimum?.toStringAsFixed(0) ?? '—',
+              animal.thresholds.target?.toStringAsFixed(0) ?? '—',
+              animal.thresholds.maximum?.toStringAsFixed(0) ?? '—',
+            ),
           ),
         ],
       ],
@@ -887,7 +888,10 @@ class _OtherAnimals extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Other animals', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              AppLocalizations.of(context).otherAnimals,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 14),
             Wrap(
               spacing: 12,
@@ -915,7 +919,7 @@ class _AnimalOrb extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: 'Switch to ${animal.name}, ${animal.species}',
+    label: AppLocalizations.of(context).switchTo(animal.name, animal.species),
     onTap: onTap,
     child: ExcludeSemantics(
       child: SizedBox(
@@ -961,7 +965,7 @@ class _AddAnimalOrb extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: 'Add animal',
+      label: AppLocalizations.of(context).addAnimal,
       onTap: onTap,
       child: ExcludeSemantics(
         child: SizedBox(
@@ -988,7 +992,10 @@ class _AddAnimalOrb extends StatelessWidget {
                       child: Icon(Icons.add_rounded, color: scheme.primary, size: 28),
                     ),
                     const SizedBox(height: 8),
-                    Text('Add pet', style: Theme.of(context).textTheme.labelLarge),
+                    Text(
+                      AppLocalizations.of(context).addPet,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
                   ],
                 ),
               ),

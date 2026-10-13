@@ -35,7 +35,11 @@ void main() {
     );
 
     final items = const CareScheduleBuilder().build(
-      snapshot: snapshot,
+      animals: snapshot.animals,
+      medications: snapshot.medications,
+      doses: snapshot.doseLedger,
+      respiratoryReminders: snapshot.respiratoryReminders,
+      weightReminders: snapshot.weightReminders,
       animalId: 'animal-1',
       rangeStartUtc: DateTime.utc(2026, 3, 8),
       rangeEndUtc: DateTime.utc(2026, 3, 9, 6),
@@ -79,7 +83,11 @@ void main() {
 
     expect(
       const CareScheduleBuilder().build(
-        snapshot: snapshot,
+        animals: snapshot.animals,
+        medications: snapshot.medications,
+        doses: snapshot.doseLedger,
+        respiratoryReminders: snapshot.respiratoryReminders,
+        weightReminders: snapshot.weightReminders,
         rangeStartUtc: DateTime.utc(2026),
         rangeEndUtc: DateTime.utc(2028),
       ),

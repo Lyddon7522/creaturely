@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
-import 'package:archive/archive.dart';
+import 'package:archive/archive_io.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -11,19 +13,51 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../domain/models.dart';
 import '../domain/units.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../l10n/model_labels.dart';
+import 'document_storage.dart';
 
-class PetExportBundle {
-  const PetExportBundle({required this.pdf, required this.csv, required this.zip});
-
-  final Uint8List pdf;
-  final Uint8List csv;
-  final Uint8List zip;
-}
+enum PetExportFormat { pdf, csv, zip }
 
 class PetExportService {
   const PetExportService();
 
-  Future<PetExportBundle> build({
+  Future<Uint8List> build({
+    required PetExportFormat format,
+    required CreaturelySnapshot snapshot,
+    required String animalId,
+    required DateTime startDate,
+    required DateTime endDate,
+    required Set<String> selectedDocumentIds,
+    Map<String, Uint8List> attachmentBytes = const {},
+    String locale = 'en',
+  }) async {
+    final regular = format == PetExportFormat.csv
+        ? null
+        : await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+    final bold = format == PetExportFormat.csv
+        ? null
+        : await rootBundle.load('assets/fonts/Roboto-Bold.ttf');
+    return Isolate.run(
+      () => _build(
+        format: format,
+        snapshot: snapshot,
+        animalId: animalId,
+        startDate: startDate,
+        endDate: endDate,
+        selectedDocumentIds: selectedDocumentIds,
+        attachmentBytes: attachmentBytes,
+        locale: locale,
+        regularFont: regular,
+        boldFont: bold,
+      ),
+    );
+  }
+
+  Future<Uint8List> _build({
+    required PetExportFormat format,
+    required ByteData? regularFont,
+    required ByteData? boldFont,
     required CreaturelySnapshot snapshot,
     required String animalId,
     required DateTime startDate,
@@ -80,19 +114,24 @@ class PetExportService {
         .where((document) => selectedDocumentIds.contains(document.id))
         .toList(growable: false);
 
-    final csv = Uint8List.fromList(
-      utf8.encode(
-        _csv(
-          sessions: sessions,
-          medications: medications,
-          schedules: schedules,
-          doses: doses,
-          health: health,
-          documents: documents,
-        ),
-      ),
-    );
+    final csv = format == PetExportFormat.pdf
+        ? Uint8List(0)
+        : Uint8List.fromList(
+            utf8.encode(
+              _csv(
+                sessions: sessions,
+                medications: medications,
+                schedules: schedules,
+                doses: doses,
+                health: health,
+                documents: documents,
+              ),
+            ),
+          );
+    if (format == PetExportFormat.csv) return csv;
     final pdf = await _pdf(
+      regularFont: regularFont!,
+      boldFont: boldFont!,
       animal: animal,
       sessions: sessions,
       medications: medications,
@@ -103,26 +142,42 @@ class PetExportService {
       endDate: endDate,
       locale: locale,
     );
-    final archive = Archive()
-      ..add(ArchiveFile.bytes('creaturely-summary.pdf', pdf))
-      ..add(ArchiveFile.bytes('creaturely-raw-data.csv', csv));
-    for (final document in selectedDocuments) {
-      final bytes = attachmentBytes[document.checksumSha256];
-      if (bytes == null) {
-        throw FileSystemException(
-          'Selected document "${document.title}" is missing.',
-          document.storedPath,
-        );
+    if (format == PetExportFormat.pdf) return pdf;
+    final temporary = await Directory.systemTemp.createTemp('creaturely-export-');
+    final output = File(path.join(temporary.path, 'summary.zip'));
+    final encoder = ZipFileEncoder();
+    var opened = false;
+    try {
+      encoder.create(output.path);
+      opened = true;
+      encoder.addArchiveFile(ArchiveFile.bytes('creaturely-summary.pdf', pdf));
+      encoder.addArchiveFile(ArchiveFile.bytes('creaturely-raw-data.csv', csv));
+      for (final document in selectedDocuments) {
+        final entryPath =
+            'documents/${_safeName(document.title)}-${document.checksumSha256.substring(0, 8)}${_extensionForMediaType(document.mediaType)}';
+        final bytes = attachmentBytes[document.checksumSha256];
+        if (bytes != null) {
+          if (bytes.length != document.byteLength ||
+              sha256.convert(bytes).toString() != document.checksumSha256) {
+            throw const FormatException('A selected attachment failed checksum validation.');
+          }
+          encoder.addArchiveFile(ArchiveFile.bytes(entryPath, bytes));
+        } else {
+          final file = File(document.storedPath);
+          if (await file.length() != document.byteLength ||
+              await DocumentStorage.checksumFile(file) != document.checksumSha256) {
+            throw const FormatException('A selected attachment failed checksum validation.');
+          }
+          await encoder.addFile(file, entryPath);
+        }
       }
-      final extension = _extensionForMediaType(document.mediaType);
-      archive.add(
-        ArchiveFile.bytes(
-          'documents/${_safeName(document.title)}-${document.checksumSha256.substring(0, 8)}$extension',
-          bytes,
-        ),
-      );
+      await encoder.close();
+      opened = false;
+      return await output.readAsBytes();
+    } finally {
+      if (opened) await encoder.close();
+      await temporary.delete(recursive: true);
     }
-    return PetExportBundle(pdf: pdf, csv: csv, zip: ZipEncoder().encodeBytes(archive));
   }
 
   String _csv({
@@ -281,6 +336,8 @@ class PetExportService {
   }
 
   Future<Uint8List> _pdf({
+    required ByteData regularFont,
+    required ByteData boldFont,
     required Animal animal,
     required List<RespiratorySession> sessions,
     required List<Medication> medications,
@@ -291,14 +348,20 @@ class PetExportService {
     required DateTime endDate,
     required String locale,
   }) async {
+    final strings = lookupAppLocalizations(
+      AppLocalizations.supportedLocales.firstWhere(
+        (value) => value.languageCode == Intl.shortLocale(locale),
+        orElse: () => AppLocalizations.supportedLocales.first,
+      ),
+    );
     final output = pw.Document(
       // Keeping streams uncompressed makes the open report independently
       // inspectable and simplifies deterministic archive validation.
       compress: false,
-      title: 'Creaturely health summary - ${animal.name}',
+      title: strings.pdfTitle(animal.name),
       author: 'Creaturely by Vector42',
-      subject: 'User-created pet health journal summary',
-      keywords: 'Creaturely, animal health journal, diagnostic disclaimer, veterinary advice',
+      subject: strings.pdfSubject,
+      keywords: strings.pdfKeywords,
     );
     final dates = DateFormat.yMMMd(locale);
     final sessionsSummary = sessions.isEmpty
@@ -306,8 +369,8 @@ class PetExportService {
         : TrendSummary.fromValues(sessions.map((value) => value.ratePerMinute));
     final completedDoses = doses.where((value) => value.status != DoseStatus.unrecorded).length;
     final givenDoses = doses.where((value) => value.status == DoseStatus.given).length;
-    final regular = pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Regular.ttf'));
-    final bold = pw.Font.ttf(await rootBundle.load('assets/fonts/Roboto-Bold.ttf'));
+    final regular = pw.Font.ttf(regularFont);
+    final bold = pw.Font.ttf(boldFont);
     output.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
@@ -316,78 +379,93 @@ class PetExportService {
         footer: (context) => pw.Align(
           alignment: pw.Alignment.centerRight,
           child: pw.Text(
-            'Creaturely - Page ${context.pageNumber} of ${context.pagesCount}',
+            strings.pdfPage(context.pageNumber, context.pagesCount),
             style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
           ),
         ),
         build: (context) => <pw.Widget>[
-          pw.Text(animal.name, style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold)),
+          pw.Text(
+            animal.name,
+            style: const pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold),
+          ),
           pw.SizedBox(height: 4),
           pw.Text(
             '${animal.species}${animal.breed == null ? '' : ' - ${animal.breed}'}',
             style: const pw.TextStyle(fontSize: 13, color: PdfColors.grey700),
           ),
-          pw.Text('Journal range: ${dates.format(startDate)} to ${dates.format(endDate)}'),
+          pw.Text(strings.pdfRange(dates.format(startDate), dates.format(endDate))),
           pw.SizedBox(height: 16),
-          _section('Care summary'),
+          _section(strings.careSummary),
           pw.Bullet(
             text: sessionsSummary == null
-                ? 'No resting breathing sessions in this range.'
-                : '${sessionsSummary.count} breathing sessions; latest '
-                      '${formatRespiratoryRate(sessionsSummary.latest)}, range '
-                      '${formatRespiratoryRate(sessionsSummary.minimum)} to '
-                      '${formatRespiratoryRate(sessionsSummary.maximum)} breaths/minute.',
+                ? strings.noBreathingSessionsInRange
+                : strings.pdfBreathingSummary(
+                    sessionsSummary.count,
+                    formatRespiratoryRate(sessionsSummary.latest),
+                    formatRespiratoryRate(sessionsSummary.minimum),
+                    formatRespiratoryRate(sessionsSummary.maximum),
+                  ),
           ),
           pw.Bullet(
-            text: '${medications.where((value) => value.active).length} active medications.',
+            text: strings.pdfActiveMedications(medications.where((value) => value.active).length),
           ),
-          pw.Bullet(text: '$givenDoses of $completedDoses recorded doses marked given.'),
-          pw.Bullet(text: '${health.length} physical-health records.'),
+          pw.Bullet(text: strings.pdfGivenDoses(givenDoses, completedDoses)),
+          pw.Bullet(text: strings.pdfHealthCount(health.length)),
           if (sessions.isNotEmpty) ...<pw.Widget>[
-            _section('Resting breathing'),
+            _section(strings.respiratoryRate),
             pw.TableHelper.fromTextArray(
-              headers: <String>['Recorded', 'Context', 'Breaths', 'Elapsed', 'Rate', 'Note'],
+              headers: <String>[
+                strings.recorded,
+                strings.context,
+                strings.breaths,
+                strings.elapsed,
+                strings.rate,
+                strings.note,
+              ],
               data: sessions
                   .map(
                     (value) => <String>[
                       DateFormat.yMd(locale).add_jm().format(value.recordedAt.toLocal()),
-                      value.context.name,
+                      strings.respiratoryContext(value.context),
                       '${value.breathCount}',
-                      '${(value.durationMilliseconds / 1000).toStringAsFixed(1)} s',
-                      '${formatRespiratoryRate(value.ratePerMinute)}/min',
+                      strings.pdfSeconds((value.durationMilliseconds / 1000).toStringAsFixed(1)),
+                      strings.pdfRate(formatRespiratoryRate(value.ratePerMinute)),
                       value.note ?? '',
                     ],
                   )
                   .toList(growable: false),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerStyle: const pw.TextStyle(fontWeight: pw.FontWeight.bold),
               cellStyle: const pw.TextStyle(fontSize: 9),
               cellAlignment: pw.Alignment.centerLeft,
             ),
           ],
           if (medications.isNotEmpty) ...<pw.Widget>[
-            _section('Medication'),
+            _section(strings.medications),
             ...medications.map(
               (value) => pw.Padding(
                 padding: const pw.EdgeInsets.only(bottom: 6),
                 child: pw.Text(
-                  '${value.name} - ${value.doseAmount} ${value.doseUnit}, '
-                  '${value.form}. ${value.instructions}. '
-                  '${value.strength == null ? '' : 'Strength: ${value.strength}. '}'
-                  'From ${dates.format(value.startDate)}'
-                  '${value.endDate == null ? '' : ' through ${dates.format(value.endDate!)}'}'
-                  '${value.prescriber == null ? '' : '. Prescriber: ${value.prescriber}'}'
-                  '${value.pharmacy == null ? '' : '. Pharmacy: ${value.pharmacy}'}'
-                  '${value.prescriptionNumber == null ? '' : '. Prescription: ${value.prescriptionNumber}'}'
-                  '${value.refillsRemaining == null ? '' : '. Refills remaining: ${value.refillsRemaining}'}'
-                  '${value.nextRefillDate == null ? '' : '. Next refill: ${dates.format(value.nextRefillDate!)}'}'
-                  '${value.notes == null ? '' : '. Notes: ${value.notes}'}'
-                  '${value.active ? '' : ' (inactive)'}',
+                  [
+                    '${value.name} - ${value.doseAmount} ${value.doseUnit}, ${value.form}',
+                    value.instructions,
+                    if (value.strength != null) strings.pdfStrength(value.strength!),
+                    '${strings.pdfFrom(dates.format(value.startDate))}${value.endDate == null ? '' : ' ${strings.pdfThrough(dates.format(value.endDate!))}'}',
+                    if (value.prescriber != null) strings.pdfPrescriber(value.prescriber!),
+                    if (value.pharmacy != null) strings.pdfPharmacy(value.pharmacy!),
+                    if (value.prescriptionNumber != null)
+                      strings.pdfPrescription(value.prescriptionNumber!),
+                    if (value.refillsRemaining != null) strings.pdfRefills(value.refillsRemaining!),
+                    if (value.nextRefillDate != null)
+                      strings.pdfNextRefill(dates.format(value.nextRefillDate!)),
+                    if (value.notes != null) strings.pdfNotes(value.notes!),
+                    if (!value.active) strings.inactive,
+                  ].where((text) => text.isNotEmpty).join('. '),
                 ),
               ),
             ),
           ],
           if (health.isNotEmpty) ...<pw.Widget>[
-            _section('Health records'),
+            _section(strings.healthRecords),
             ...health.map(
               (value) => pw.Bullet(
                 text:
@@ -398,11 +476,11 @@ class PetExportService {
             ),
           ],
           if (documents.isNotEmpty) ...<pw.Widget>[
-            _section('Included documents'),
+            _section(strings.includedDocuments),
             ...documents.map(
               (value) => pw.Bullet(
                 text:
-                    '${value.title} (${value.category.name}, '
+                    '${value.title} (${strings.documentCategory(value.category)}, '
                     '${dates.format(value.documentDate)})',
               ),
             ),
@@ -415,11 +493,7 @@ class PetExportService {
               border: pw.Border.all(color: PdfColors.teal300),
               borderRadius: const pw.BorderRadius.all(pw.Radius.circular(5)),
             ),
-            child: pw.Text(
-              'Creaturely is a personal journal, not a diagnostic tool. This summary is '
-              'user-entered information and does not replace veterinary advice.',
-              style: const pw.TextStyle(fontSize: 9),
-            ),
+            child: pw.Text(strings.pdfDisclaimer, style: const pw.TextStyle(fontSize: 9)),
           ),
         ],
       ),
@@ -429,7 +503,7 @@ class PetExportService {
 
   pw.Widget _section(String title) => pw.Padding(
     padding: const pw.EdgeInsets.only(top: 14, bottom: 6),
-    child: pw.Text(title, style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+    child: pw.Text(title, style: const pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
   );
 
   bool _inside(DateTime value, DateTime start, DateTime end) =>
@@ -471,38 +545,28 @@ class PetExportService {
   };
 }
 
-class TemporaryExportFiles {
-  const TemporaryExportFiles({
-    required this.directory,
-    required this.pdf,
-    required this.csv,
-    required this.zip,
-  });
-
+class TemporaryExportFile {
+  const TemporaryExportFile({required this.directory, required this.file});
   final Directory directory;
-  final File pdf;
-  final File csv;
-  final File zip;
+  final File file;
 
-  static Future<TemporaryExportFiles> write(Directory temporaryRoot, PetExportBundle bundle) async {
-    final directory = Directory(
-      path.join(temporaryRoot.path, 'creaturely-export-${DateTime.now().microsecondsSinceEpoch}'),
-    );
-    await directory.create(recursive: true);
-    final pdf = File(path.join(directory.path, 'creaturely-summary.pdf'));
-    final csv = File(path.join(directory.path, 'creaturely-data.csv'));
-    final zip = File(path.join(directory.path, 'creaturely-package.zip'));
-    await Future.wait<void>([
-      pdf.writeAsBytes(bundle.pdf, flush: true),
-      csv.writeAsBytes(bundle.csv, flush: true),
-      zip.writeAsBytes(bundle.zip, flush: true),
-    ]);
-    return TemporaryExportFiles(directory: directory, pdf: pdf, csv: csv, zip: zip);
+  static Future<TemporaryExportFile> write(
+    Directory temporaryRoot,
+    Uint8List bytes,
+    PetExportFormat format,
+  ) async {
+    final directory = await temporaryRoot.createTemp('creaturely-export-');
+    final file = File(path.join(directory.path, 'creaturely-summary.${format.name}'));
+    try {
+      await file.writeAsBytes(bytes, flush: true);
+      return TemporaryExportFile(directory: directory, file: file);
+    } on Object {
+      await directory.delete(recursive: true);
+      rethrow;
+    }
   }
 
   Future<void> cleanup() async {
-    if (await directory.exists()) {
-      await directory.delete(recursive: true);
-    }
+    if (await directory.exists()) await directory.delete(recursive: true);
   }
 }

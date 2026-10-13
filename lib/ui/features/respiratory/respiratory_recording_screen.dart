@@ -8,8 +8,10 @@ import 'package:go_router/go_router.dart';
 import '../../../domain/models.dart';
 import '../../../domain/respiratory_timer.dart';
 import '../../../domain/units.dart';
+import '../../../l10n/app_strings.dart';
 import '../../app_controller.dart';
 import '../../core/theme.dart';
+import '../../core/widgets.dart' show QueryPane;
 
 class RespiratoryRecordingScreen extends ConsumerStatefulWidget {
   const RespiratoryRecordingScreen({
@@ -36,13 +38,17 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
   final GlobalKey _breathButtonKey = GlobalKey();
   late RespiratoryContext _context;
   late int _durationSeconds;
+  bool _durationLoaded = false;
   final TextEditingController _note = TextEditingController();
   Offset? _pulseOrigin;
   bool _pressed = false;
   bool _saving = false;
+  String? _draftId;
+  DateTime? _recordedAt;
   bool _interrupted = false;
+  bool _feedbackErrorShown = false;
 
-  DateTime get _now => (widget.clock ?? DateTime.now)();
+  DateTime get _now => widget.clock?.call() ?? ref.read(wallClockProvider)();
 
   @override
   void initState() {
@@ -54,7 +60,6 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
       duration: const Duration(milliseconds: 520),
       animationBehavior: AnimationBehavior.preserve,
     );
-    _durationSeconds = ref.read(appControllerProvider).snapshot.settings.defaultTimerSeconds;
   }
 
   @override
@@ -75,7 +80,7 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      timer.pause(_now);
+      timer.pause(widget.clock?.call());
       _interrupted = true;
     } else if (state == AppLifecycleState.resumed && mounted) {
       setState(() {});
@@ -84,10 +89,19 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(appControllerProvider);
-    final animal = state.snapshot.animals.where((value) => value.id == widget.animalId).firstOrNull;
+    final state = ref.watch(
+      journalViewProvider((feature: JournalFeature.respiratory, animalId: widget.animalId)),
+    );
+    if (state.loading || state.error != null) {
+      return QueryPane(error: state.error, onRetry: () => state.retry(ref));
+    }
+    final animal = state.animals.where((value) => value.id == widget.animalId).firstOrNull;
     if (animal == null) {
-      return const Scaffold(body: Center(child: Text('Animal not found.')));
+      return Scaffold(body: Center(child: Text(AppLocalizations.of(context).animalNotFound)));
+    }
+    if (!_durationLoaded) {
+      _durationSeconds = state.settings.defaultTimerSeconds;
+      _durationLoaded = true;
     }
     final timer = _timer;
     if (timer == null) {
@@ -100,7 +114,7 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
         onStart: _start,
       );
     }
-    final snapshot = timer.snapshot(_now);
+    final snapshot = timer.snapshot(widget.clock?.call());
     final complete =
         snapshot.status == RespiratoryTimerStatus.completed ||
         snapshot.status == RespiratoryTimerStatus.saved;
@@ -123,7 +137,7 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
             SafeArea(
               child: Semantics(
                 container: true,
-                label: 'Resting breathing recorder for ${animal.name}',
+                label: AppLocalizations.of(context).restingBreathingRecorderFor(animal.name),
                 child: Column(
                   children: [
                     Padding(
@@ -131,14 +145,14 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
                       child: Row(
                         children: [
                           IconButton(
-                            tooltip: 'Cancel recording',
+                            tooltip: AppLocalizations.of(context).cancelRecording,
                             color: CreaturelyColors.white,
-                            onPressed: _cancel,
+                            onPressed: _saving ? null : _cancel,
                             icon: const Icon(Icons.close_rounded),
                           ),
                           Expanded(
                             child: Text(
-                              '${animal.name} • ${_context.name}',
+                              '${animal.name} • ${AppLocalizations.of(context).respiratoryContextLabel(_context.name)}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: CreaturelyColors.white,
@@ -159,10 +173,12 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
                             const Spacer(),
                             Semantics(
                               liveRegion: true,
-                              label:
-                                  '${snapshot.breathCount} breaths. '
-                                  '${_seconds(snapshot.elapsed)} seconds elapsed. '
-                                  '${_seconds(snapshot.remaining)} seconds remaining.',
+                              label: AppLocalizations.of(context)
+                                  .breathsSecondsElapsedSecondsRemaining(
+                                    snapshot.breathCount,
+                                    _seconds(snapshot.elapsed),
+                                    _seconds(snapshot.remaining),
+                                  ),
                               child: Column(
                                 children: [
                                   Text(
@@ -178,7 +194,8 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    snapshot.breathCount == 1 ? 'breath' : 'breaths',
+                                    AppLocalizations.of(context)
+                                        .countedBreathNoun(snapshot.breathCount),
                                     style: const TextStyle(
                                       color: CreaturelyColors.darkMutedText,
                                       fontSize: 18,
@@ -205,11 +222,13 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '${_seconds(snapshot.elapsed).toStringAsFixed(1)} s elapsed',
+                                  AppLocalizations.of(context)
+                                      .sElapsed(_seconds(snapshot.elapsed).toStringAsFixed(1)),
                                   style: const TextStyle(color: CreaturelyColors.darkMutedText),
                                 ),
                                 Text(
-                                  '${_seconds(snapshot.remaining).toStringAsFixed(1)} s left',
+                                  AppLocalizations.of(context)
+                                      .sLeft(_seconds(snapshot.remaining).toStringAsFixed(1)),
                                   style: const TextStyle(color: CreaturelyColors.darkMutedText),
                                 ),
                               ],
@@ -218,8 +237,8 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
                             if (!complete && !paused)
                               Semantics(
                                 button: true,
-                                onTapHint: 'Record one breath',
-                                label: 'Record breath',
+                                onTapHint: AppLocalizations.of(context).recordOneBreath,
+                                label: AppLocalizations.of(context).recordBreath,
                                 child: GestureDetector(
                                   key: const ValueKey('breath_tap_target'),
                                   onTapDown: _pressBreathButton,
@@ -250,19 +269,19 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
                                           ),
                                         ],
                                       ),
-                                      child: const Column(
+                                      child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(
+                                          const Icon(
                                             Icons.touch_app_rounded,
                                             size: 48,
                                             color: CreaturelyColors.darkOnPrimary,
                                           ),
-                                          SizedBox(height: 6),
+                                          const SizedBox(height: 6),
                                           Text(
-                                            'TAP FOR EACH\nBREATH',
+                                            AppLocalizations.of(context).tapFOREACHBREATH,
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               color: CreaturelyColors.darkOnPrimary,
                                               fontWeight: FontWeight.w900,
                                               fontSize: 17,
@@ -299,11 +318,12 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
                                     ),
                                     onPressed: snapshot.canUndo ? _undo : null,
                                     icon: const Icon(Icons.undo_rounded),
-                                    label: const Text('Undo last'),
+                                    label: Text(AppLocalizations.of(context).undoLast),
                                   ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    snapshot.status.name,
+                                    AppLocalizations.of(context)
+                                        .timerStatusLabel(snapshot.status.name),
                                     style: const TextStyle(color: CreaturelyColors.darkMutedText),
                                   ),
                                 ],
@@ -337,14 +357,14 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
   void _start() {
     final controller = RespiratoryTimerController(
       targetDuration: Duration(seconds: _durationSeconds),
-      clock: widget.clock,
-    )..start(_now);
+      clock: widget.clock ?? ref.read(wallClockProvider),
+    )..start(widget.clock?.call());
     setState(() => _timer = controller);
     _ticker = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (!mounted) {
         return;
       }
-      final finished = controller.tick(_now);
+      final finished = controller.tick(widget.clock?.call());
       setState(() {});
       if (finished) {
         _ticker?.cancel();
@@ -373,7 +393,7 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
   Future<void> _recordBreath() async {
     final timer = _timer!;
     try {
-      timer.recordBreath(_now);
+      timer.recordBreath(widget.clock?.call());
     } on StateError {
       return;
     }
@@ -381,10 +401,21 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
         ? const Duration(milliseconds: 140)
         : const Duration(milliseconds: 520);
     unawaited(_pulse.forward(from: 0));
-    final settings = ref.read(appControllerProvider).snapshot.settings;
-    await ref
-        .read(recordingFeedbackProvider)
-        .breath(haptics: settings.hapticsEnabled, sound: settings.soundEnabled);
+    final settings = ref
+        .read(journalViewProvider((feature: JournalFeature.respiratory, animalId: widget.animalId)))
+        .settings;
+    try {
+      await ref
+          .read(recordingFeedbackProvider)
+          .breath(haptics: settings.hapticsEnabled, sound: settings.soundEnabled);
+    } on Object {
+      if (mounted && !_feedbackErrorShown) {
+        _feedbackErrorShown = true;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).feedbackUnavailable)));
+      }
+    }
     if (mounted) {
       setState(() {});
     }
@@ -396,12 +427,12 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
   }
 
   void _resume() {
-    _timer!.resume(_now);
+    _timer!.resume(widget.clock?.call());
     _interrupted = false;
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (mounted) {
-        final complete = _timer!.tick(_now);
+        final complete = _timer!.tick(widget.clock?.call());
         setState(() {});
         if (complete) {
           _ticker?.cancel();
@@ -412,36 +443,51 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
   }
 
   void _restart() {
+    if (_saving) return;
     _ticker?.cancel();
     setState(() {
       _timer = null;
+      _draftId = null;
+      _recordedAt = null;
       _note.clear();
       _interrupted = false;
+      _feedbackErrorShown = false;
     });
   }
 
   Future<void> _save() async {
-    if (_saving) {
+    final timer = _timer;
+    if (_saving || timer == null || timer.status != RespiratoryTimerStatus.completed) {
       return;
     }
     setState(() => _saving = true);
     try {
       final animal = ref
-          .read(appControllerProvider)
-          .snapshot
+          .read(
+            journalViewProvider((feature: JournalFeature.respiratory, animalId: widget.animalId)),
+          )
           .animals
           .firstWhere((value) => value.id == widget.animalId);
-      final session = _timer!.buildSession(
-        id: ref.read(appControllerProvider.notifier).newId(),
+      final session = timer.buildSession(
+        id: _draftId ??= ref.read(careControllerProvider.notifier).newId(),
         animalId: animal.id,
         context: _context,
         thresholds: animal.thresholds,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
-        recordedAt: _now,
+        recordedAt: _recordedAt ??= _now,
       );
-      await ref.read(appControllerProvider.notifier).saveRespiratorySession(session);
+      await ref.read(careControllerProvider.notifier).saveRespiratorySession(session);
+      timer.markSaved();
       if (mounted) {
         context.pop();
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).couldNotSaveTheRecordingYourBreathsAreKept),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -451,28 +497,29 @@ class _RespiratoryRecordingScreenState extends ConsumerState<RespiratoryRecordin
   }
 
   Future<void> _cancel() async {
+    if (_saving) return;
     final timer = _timer;
     if (timer == null) {
       context.pop();
       return;
     }
-    final hasData = timer.snapshot(_now).breathCount > 0;
+    final hasData = timer.snapshot(widget.clock?.call()).breathCount > 0;
     var confirmed = !hasData;
     if (hasData) {
       confirmed =
           await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Discard this recording?'),
-              content: const Text('The breaths counted in this session will not be saved.'),
+              title: Text(AppLocalizations.of(context).discardThisRecording),
+              content: Text(AppLocalizations.of(context).theBreathsCountedInThisSessionWillNotBe),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Keep recording'),
+                  child: Text(AppLocalizations.of(context).keepRecording),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Discard'),
+                  child: Text(AppLocalizations.of(context).discard),
                 ),
               ],
             ),
@@ -565,7 +612,7 @@ class _Setup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Resting breathing')),
+    appBar: AppBar(title: Text(AppLocalizations.of(context).respiratoryRate)),
     body: ListView(
       padding: const EdgeInsets.all(24),
       children: [
@@ -579,49 +626,55 @@ class _Setup extends StatelessWidget {
                   Icons.air_rounded,
                   size: 64,
                   color: Theme.of(context).colorScheme.primary,
-                  semanticLabel: 'Breathing',
+                  semanticLabel: AppLocalizations.of(context).breathing,
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'Count ${animal.name}’s breaths',
+                  AppLocalizations.of(context).countSBreaths(animal.name),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Wait until ${animal.name} is quietly resting or sleeping. Tap once for '
-                  'each rise of the chest. Creaturely uses the actual elapsed time.',
+                  AppLocalizations.of(context)
+                      .waitUntilIsQuietlyRestingOrSleepingTapOnce(animal.name),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 28),
-                Text('Context', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  AppLocalizations.of(context).context,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 SegmentedButton<RespiratoryContext>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: RespiratoryContext.sleeping,
-                      label: Text('Sleeping'),
-                      icon: Icon(Icons.bedtime_outlined),
+                      label: Text(AppLocalizations.of(context).sleeping),
+                      icon: const Icon(Icons.bedtime_outlined),
                     ),
                     ButtonSegment(
                       value: RespiratoryContext.resting,
-                      label: Text('Resting'),
-                      icon: Icon(Icons.spa_outlined),
+                      label: Text(AppLocalizations.of(context).resting),
+                      icon: const Icon(Icons.spa_outlined),
                     ),
                   ],
                   selected: {this.context},
                   onSelectionChanged: (values) => onContextChanged(values.first),
                 ),
                 const SizedBox(height: 22),
-                Text('Timer', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  AppLocalizations.of(context).timer,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 SegmentedButton<int>(
-                  segments: const [
-                    ButtonSegment(value: 15, label: Text('15 s')),
-                    ButtonSegment(value: 20, label: Text('20 s')),
-                    ButtonSegment(value: 30, label: Text('30 s')),
-                    ButtonSegment(value: 60, label: Text('60 s')),
+                  segments: [
+                    ButtonSegment(value: 15, label: Text(AppLocalizations.of(context).label15S)),
+                    ButtonSegment(value: 20, label: Text(AppLocalizations.of(context).label20S)),
+                    ButtonSegment(value: 30, label: Text(AppLocalizations.of(context).label30S)),
+                    ButtonSegment(value: 60, label: Text(AppLocalizations.of(context).label60S)),
                   ],
                   selected: {durationSeconds},
                   onSelectionChanged: (values) => onDurationChanged(values.first),
@@ -631,7 +684,7 @@ class _Setup extends StatelessWidget {
                   key: const ValueKey('start_breathing_session'),
                   onPressed: onStart,
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Start counting'),
+                  label: Text(AppLocalizations.of(context).startCounting),
                 ),
               ],
             ),
@@ -663,7 +716,9 @@ class _PausedPanel extends StatelessWidget {
         const Icon(Icons.pause_circle_outline_rounded, color: CreaturelyColors.white, size: 46),
         const SizedBox(height: 10),
         Text(
-          interrupted ? 'Paused after interruption' : 'Paused',
+          interrupted
+              ? AppLocalizations.of(context).pausedAfterInterruption
+              : AppLocalizations.of(context).paused,
           style: const TextStyle(
             color: CreaturelyColors.white,
             fontSize: 20,
@@ -671,16 +726,16 @@ class _PausedPanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Check that the animal is still settled, then continue.',
+        Text(
+          AppLocalizations.of(context).checkThatTheAnimalIsStillSettledThenContinue,
           textAlign: TextAlign.center,
-          style: TextStyle(color: CreaturelyColors.darkMutedText),
+          style: const TextStyle(color: CreaturelyColors.darkMutedText),
         ),
         const SizedBox(height: 14),
         FilledButton.icon(
           onPressed: onResume,
           icon: const Icon(Icons.play_arrow_rounded),
-          label: const Text('Resume'),
+          label: Text(AppLocalizations.of(context).resume),
         ),
       ],
     ),
@@ -718,8 +773,9 @@ class _CompletePanel extends StatelessWidget {
         children: [
           Text(
             snapshot.breathCount == 0
-                ? 'No breaths counted'
-                : '${formatRespiratoryRate(snapshot.ratePerMinute)} breaths/min',
+                ? AppLocalizations.of(context).noBreathsCounted
+                : AppLocalizations.of(context)
+                      .breathsMin(formatRespiratoryRate(snapshot.ratePerMinute)),
             key: const ValueKey('calculated_rate'),
             style: const TextStyle(
               color: CreaturelyColors.softInk,
@@ -732,29 +788,32 @@ class _CompletePanel extends StatelessWidget {
           const SizedBox(height: 12),
           TextField(
             controller: note,
+            readOnly: saving,
             minLines: 1,
             maxLines: 3,
             style: const TextStyle(color: CreaturelyColors.softInk),
-            decoration: const InputDecoration(labelText: 'Optional note'),
+            decoration: InputDecoration(labelText: AppLocalizations.of(context).optionalNote),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'If you are concerned about your animal, contact a veterinarian. '
-            'Creaturely does not diagnose conditions.',
+          Text(
+            AppLocalizations.of(context).seekAdvice,
             textAlign: TextAlign.center,
-            style: TextStyle(color: CreaturelyColors.quietSlate, fontSize: 12),
+            style: const TextStyle(color: CreaturelyColors.quietSlate, fontSize: 12),
           ),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextButton(onPressed: onRetry, child: const Text('Try again')),
+              TextButton(
+                onPressed: saving ? null : onRetry,
+                child: Text(AppLocalizations.of(context).tryAgain),
+              ),
               const SizedBox(width: 8),
               FilledButton.icon(
                 key: const ValueKey('save_breathing_session'),
                 onPressed: snapshot.breathCount == 0 || saving ? null : onSave,
                 icon: const Icon(Icons.check_rounded),
-                label: const Text('Save session'),
+                label: Text(AppLocalizations.of(context).saveSession),
               ),
             ],
           ),
@@ -774,19 +833,27 @@ class _ThresholdResultStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     final band = thresholds.describe(ratePerMinute);
     final description = switch (band) {
-      ThresholdBand.below =>
-        'Below your minimum of ${_thresholdValue(thresholds.minimum!)} breaths/min',
-      ThresholdBand.above =>
-        'Above your maximum of ${_thresholdValue(thresholds.maximum!)} breaths/min',
+      ThresholdBand.below => AppLocalizations.of(
+        context,
+      ).belowYourMinimumOfBreathsMin(_thresholdValue(thresholds.minimum!)),
+      ThresholdBand.above => AppLocalizations.of(
+        context,
+      ).aboveYourMaximumOfBreathsMin(_thresholdValue(thresholds.maximum!)),
       ThresholdBand.inRange when thresholds.minimum != null && thresholds.maximum != null =>
-        'Within your saved range of ${_thresholdValue(thresholds.minimum!)}–'
-            '${_thresholdValue(thresholds.maximum!)} breaths/min',
-      ThresholdBand.inRange when thresholds.minimum != null =>
-        'At or above your saved minimum of ${_thresholdValue(thresholds.minimum!)} breaths/min',
-      ThresholdBand.inRange when thresholds.maximum != null =>
-        'At or below your saved maximum of ${_thresholdValue(thresholds.maximum!)} breaths/min',
-      ThresholdBand.inRange => 'Saved target: ${_thresholdValue(thresholds.target!)} breaths/min',
-      ThresholdBand.notConfigured => 'No personal range configured',
+        AppLocalizations.of(context).withinYourSavedRangeOfBreathsMin(
+          _thresholdValue(thresholds.minimum!),
+          _thresholdValue(thresholds.maximum!),
+        ),
+      ThresholdBand.inRange when thresholds.minimum != null => AppLocalizations.of(
+        context,
+      ).atOrAboveYourSavedMinimumOfBreathsMin(_thresholdValue(thresholds.minimum!)),
+      ThresholdBand.inRange when thresholds.maximum != null => AppLocalizations.of(
+        context,
+      ).atOrBelowYourSavedMaximumOfBreathsMin(_thresholdValue(thresholds.maximum!)),
+      ThresholdBand.inRange => AppLocalizations.of(
+        context,
+      ).savedTargetBreathsMin(_thresholdValue(thresholds.target!)),
+      ThresholdBand.notConfigured => AppLocalizations.of(context).noPersonalRangeConfigured,
     };
     final alert = band == ThresholdBand.below || band == ThresholdBand.above;
     final colors = Theme.of(context).colorScheme;

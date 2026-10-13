@@ -11,6 +11,10 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('real application bootstrap reaches a usable local screen', (tester) async {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    });
     creaturely.main();
     for (var index = 0; index < 80; index++) {
       await tester.pump(const Duration(milliseconds: 50));

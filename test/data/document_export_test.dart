@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:creaturely/data/document_storage.dart';
 import 'package:creaturely/data/export_service.dart';
+import 'package:creaturely/domain/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fixtures.dart';
@@ -46,16 +47,15 @@ void main() {
     expect(await storage.inspect(document), AttachmentHealth.missing);
   });
 
-  test('staged attachment swap commits atomically and can be finalized', () async {
+  test('published attachment generation preserves the previous file set', () async {
     final old = File('${storage.root.path}/old.bin')..writeAsBytesSync(<int>[1]);
     expect(await old.exists(), isTrue);
     final swap = await storage.stageRestore(<String, Uint8List>{
       fixtureChecksum: fixtureAttachment,
     });
     await swap.commit();
-    expect(await old.exists(), isFalse);
+    expect(await old.exists(), isTrue);
     expect(await File(swap.finalPaths[fixtureChecksum]!).readAsBytes(), fixtureAttachment);
-    await swap.finalize();
   });
 
   test('delete-everything clears attachments and recoverable safety copies', () async {
@@ -78,7 +78,7 @@ void main() {
 
   test('PDF, CSV, ZIP, selected originals, and temporary cleanup are verifiable', () async {
     final snapshot = fixtureSnapshot();
-    final bundle = await const PetExportService().build(
+    final bundle = await _allFormats(
       snapshot: snapshot,
       animalId: 'animal-1',
       startDate: DateTime.utc(2026, 3, 1),
@@ -114,23 +114,21 @@ void main() {
     expect(csv, isNot(contains('reminder_at_utc')));
 
     final archive = ZipDecoder().decodeBytes(bundle.zip);
-    expect(archive.find('creaturely-summary.pdf')?.readBytes(), bundle.pdf);
+    expect(latin1.decode(archive.find('creaturely-summary.pdf')!.readBytes()!), contains('Moss'));
     expect(archive.find('creaturely-raw-data.csv')?.readBytes(), bundle.csv);
     final originals = archive.files.where((entry) => entry.name.startsWith('documents/'));
     expect(originals, hasLength(1));
     expect(originals.single.readBytes(), fixtureAttachment);
 
-    final files = await TemporaryExportFiles.write(sandbox, bundle);
-    expect(await files.pdf.exists(), isTrue);
-    expect(await files.csv.exists(), isTrue);
-    expect(await files.zip.exists(), isTrue);
+    final files = await TemporaryExportFile.write(sandbox, bundle.zip, PetExportFormat.zip);
+    expect(await files.file.exists(), isTrue);
     final exportDirectory = files.directory;
     await files.cleanup();
     expect(await exportDirectory.exists(), isFalse);
   });
 
   test('document metadata remains in reports when its original is not selected', () async {
-    final bundle = await const PetExportService().build(
+    final bundle = await _allFormats(
       snapshot: fixtureSnapshot(),
       animalId: 'animal-1',
       startDate: DateTime.utc(2026),
@@ -147,6 +145,7 @@ void main() {
   test('missing selected document prevents a partial export package', () async {
     await expectLater(
       const PetExportService().build(
+        format: PetExportFormat.zip,
         snapshot: fixtureSnapshot(),
         animalId: 'animal-1',
         startDate: DateTime.utc(2026),
@@ -163,4 +162,28 @@ void main() {
     expect(DocumentStorage.mediaTypeForPath('photo.heic'), 'image/heic');
     expect(DocumentStorage.mediaTypeForPath('photo.png'), 'image/png');
   });
+}
+
+Future<({Uint8List pdf, Uint8List csv, Uint8List zip})> _allFormats({
+  required CreaturelySnapshot snapshot,
+  required String animalId,
+  required DateTime startDate,
+  required DateTime endDate,
+  required Set<String> selectedDocumentIds,
+  required Map<String, Uint8List> attachmentBytes,
+}) async {
+  Future<Uint8List> build(PetExportFormat format) => const PetExportService().build(
+    format: format,
+    snapshot: snapshot,
+    animalId: animalId,
+    startDate: startDate,
+    endDate: endDate,
+    selectedDocumentIds: selectedDocumentIds,
+    attachmentBytes: attachmentBytes,
+  );
+  return (
+    pdf: await build(PetExportFormat.pdf),
+    csv: await build(PetExportFormat.csv),
+    zip: await build(PetExportFormat.zip),
+  );
 }

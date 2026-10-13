@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../../../data/document_storage.dart';
 import '../../../domain/models.dart';
 import '../../../domain/units.dart';
+import '../../../l10n/app_strings.dart';
+import '../../../platform/media_service.dart';
 import '../../app_controller.dart';
+import '../../core/commands.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import 'animal_profile_fields.dart';
@@ -39,19 +43,25 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
   late String _speciesChoice;
   DateTime? _dateOfBirth;
   String? _photoPath;
+  String? _importedPhoto;
   late final WeightUnit _weightUnit;
   double? _canonicalWeightDraft;
   bool _archived = false;
   bool _saving = false;
+  bool _choosingFile = false;
 
-  @override
-  void initState() {
-    super.initState();
-    final state = ref.read(appControllerProvider);
-    _animal = state.snapshot.animals.where((value) => value.id == widget.animalId).firstOrNull;
+  bool _draftLoaded = false;
+  void Function(String?)? _releaseImport;
+
+  void _loadDraft() {
+    _draftLoaded = true;
+    final state = ref.read(
+      journalViewProvider((feature: JournalFeature.animalForm, animalId: widget.animalId)),
+    );
+    _animal = state.animals.where((value) => value.id == widget.animalId).firstOrNull;
     final animal = _animal;
     _name = TextEditingController(text: animal?.name);
-    final savedSpecies = animal?.species ?? 'Dog';
+    final savedSpecies = animal?.species ?? AppLocalizations.of(context).dog;
     _speciesChoice = speciesChoiceFor(savedSpecies);
     _customSpecies = TextEditingController(
       text: _speciesChoice == customSpeciesOption ? savedSpecies : '',
@@ -64,7 +74,7 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
         : completedAgeMonths(_dateOfBirth!, DateTime.now());
     _age = TextEditingController(text: ageMonths?.toString());
     _color = TextEditingController(text: animal?.colorMarkings);
-    final settings = state.snapshot.settings;
+    final settings = state.settings;
     _weightUnit = settings.weightUnit;
     _canonicalWeightDraft = animal?.currentWeightKg;
     _weight = TextEditingController(
@@ -86,298 +96,405 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
 
   @override
   void dispose() {
-    for (final controller in <TextEditingController>[
-      _name,
-      _customSpecies,
-      _breed,
-      _sex,
-      _age,
-      _color,
-      _weight,
-      _notes,
-      _thresholdMin,
-      _thresholdTarget,
-      _thresholdMax,
-    ]) {
-      controller.dispose();
+    if (_draftLoaded) {
+      for (final controller in <TextEditingController>[
+        _name,
+        _customSpecies,
+        _breed,
+        _sex,
+        _age,
+        _color,
+        _weight,
+        _notes,
+        _thresholdMin,
+        _thresholdTarget,
+        _thresholdMax,
+      ]) {
+        controller.dispose();
+      }
     }
+    _releaseImport?.call(_importedPhoto);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(appControllerProvider).snapshot.settings;
+    final storage = ref.watch(documentStorageProvider).value;
+    final cleanup = ref.read(attachmentCleanupProvider.notifier);
+    if (storage != null) {
+      _releaseImport = (filePath) {
+        if (filePath != null) storage.release(filePath);
+        unawaited(cleanup.collect());
+      };
+    }
+
+    final recovered = ref.watch(recoveredMediaProvider).value ?? [];
+    final draft = ref.watch(
+      journalViewProvider((feature: JournalFeature.animalForm, animalId: widget.animalId)),
+    );
+    if (draft.loading || draft.error != null) {
+      return QueryPane(error: draft.error, onRetry: () => draft.retry(ref));
+    }
+    if (!_draftLoaded) _loadDraft();
+    final settings = ref
+        .watch(journalViewProvider((feature: JournalFeature.animalForm, animalId: widget.animalId)))
+        .settings;
     final unitLabel = settings.weightUnit == WeightUnit.kilograms ? 'kg' : 'lb';
     final identifiers = ref
-        .watch(appControllerProvider)
-        .snapshot
+        .watch(journalViewProvider((feature: JournalFeature.animalForm, animalId: widget.animalId)))
         .identifiers
         .where((value) => value.animalId == widget.animalId && !value.archived)
         .toList(growable: false);
     return Scaffold(
-      appBar: AppBar(title: Text(_animal == null ? 'Add animal' : 'Edit ${_animal!.name}')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.all(CreaturelySpacing.medium),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: CreaturelySpacing.maxFormWidth),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Stack(
+      appBar: AppBar(
+        title: Text(
+          _animal == null
+              ? AppLocalizations.of(context).addAnimal
+              : AppLocalizations.of(context).edit2(_animal!.name),
+        ),
+      ),
+      body: AbsorbPointer(
+        absorbing: _saving,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.all(CreaturelySpacing.medium),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: CreaturelySpacing.maxFormWidth),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 58,
+                              foregroundImage: _photoPath == null
+                                  ? null
+                                  : FileImage(File(_photoPath!)),
+                              child: _photoPath == null
+                                  ? const Icon(Icons.pets_rounded, size: 46)
+                                  : null,
+                            ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: IconButton.filled(
+                                tooltip: AppLocalizations.of(context).chooseAnimalPhoto,
+                                onPressed: _saving || _choosingFile ? null : _pickPhoto,
+                                icon: const Icon(Icons.camera_alt_outlined),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        key: const ValueKey('animal_name'),
+                        controller: _name,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(labelText: AppLocalizations.of(context).name),
+                        validator: _required,
+                      ),
+                      for (final image in recovered)
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.restore),
+                          label: Text(AppLocalizations.of(context).useRecoveredImage),
+                          onPressed: _saving || _choosingFile ? null : () => _useRecovered(image),
+                        ),
+                      const SizedBox(height: 14),
+                      SpeciesSelector(
+                        choice: _speciesChoice,
+                        customSpecies: _customSpecies,
+                        keyPrefix: 'animal',
+                        onChoiceChanged: _changeSpecies,
+                      ),
+                      const SizedBox(height: 14),
+                      BreedAutocompleteField(
+                        controller: _breed,
+                        species: _speciesChoice,
+                        keyPrefix: 'animal',
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<String>(
+                        key: const ValueKey('animal_sex'),
+                        initialValue: _sex.text.trim(),
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).sexOptional,
+                        ),
+                        items:
+                            <String>{
+                                  '',
+                                  AppLocalizations.of(context).male,
+                                  AppLocalizations.of(context).female,
+                                  AppLocalizations.of(context).other,
+                                  if (_sex.text.trim().isNotEmpty) _sex.text.trim(),
+                                }
+                                .map(
+                                  (value) => DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(
+                                      value.isEmpty
+                                          ? AppLocalizations.of(context).notSpecified
+                                          : value,
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                        onChanged: (value) => _sex.text = value ?? '',
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 58,
-                            foregroundImage: _photoPath == null
-                                ? null
-                                : FileImage(File(_photoPath!)),
-                            child: _photoPath == null
-                                ? const Icon(Icons.pets_rounded, size: 46)
-                                : null,
+                          Expanded(
+                            child: InkWell(
+                              key: const ValueKey('animal_birth_date'),
+                              onTap: _chooseBirthDate,
+                              borderRadius: BorderRadius.circular(14),
+                              child: InputDecorator(
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(context).dateOfBirth,
+                                  suffixIcon: _dateOfBirth == null
+                                      ? null
+                                      : IconButton(
+                                          tooltip: AppLocalizations.of(context).clearDateOfBirth,
+                                          onPressed: _clearBirthDate,
+                                          icon: const Icon(Icons.close_rounded),
+                                        ),
+                                ),
+                                child: Text(
+                                  _dateOfBirth == null
+                                      ? AppLocalizations.of(context).notSupplied
+                                      : MaterialLocalizations.of(context)
+                                            .formatMediumDate(_dateOfBirth!),
+                                ),
+                              ),
+                            ),
                           ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: IconButton.filled(
-                              tooltip: 'Choose animal photo',
-                              onPressed: _pickPhoto,
-                              icon: const Icon(Icons.camera_alt_outlined),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              key: const ValueKey('animal_age_months'),
+                              controller: _age,
+                              readOnly: _dateOfBirth != null,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: AppLocalizations.of(context).ageMonths,
+                                helperText: _dateOfBirth == null
+                                    ? AppLocalizations.of(context).optionalEstimate
+                                    : AppLocalizations.of(context).calculatedFromBirthDate,
+                                helperMaxLines: 2,
+                              ),
+                              validator: _wholeNumber,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      key: const ValueKey('animal_name'),
-                      controller: _name,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(labelText: 'Name *'),
-                      validator: _required,
-                    ),
-                    const SizedBox(height: 14),
-                    SpeciesSelector(
-                      choice: _speciesChoice,
-                      customSpecies: _customSpecies,
-                      keyPrefix: 'animal',
-                      onChoiceChanged: _changeSpecies,
-                    ),
-                    const SizedBox(height: 14),
-                    BreedAutocompleteField(
-                      controller: _breed,
-                      species: _speciesChoice,
-                      keyPrefix: 'animal',
-                    ),
-                    const SizedBox(height: 14),
-                    DropdownButtonFormField<String>(
-                      key: const ValueKey('animal_sex'),
-                      initialValue: _sex.text.trim(),
-                      isExpanded: true,
-                      decoration: const InputDecoration(labelText: 'Sex (optional)'),
-                      items:
-                          <String>{
-                                '',
-                                'Male',
-                                'Female',
-                                'Other',
-                                if (_sex.text.trim().isNotEmpty) _sex.text.trim(),
-                              }
-                              .map(
-                                (value) => DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(value.isEmpty ? 'Not specified' : value),
-                                ),
-                              )
-                              .toList(growable: false),
-                      onChanged: (value) => _sex.text = value ?? '',
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            key: const ValueKey('animal_birth_date'),
-                            onTap: _chooseBirthDate,
-                            borderRadius: BorderRadius.circular(14),
-                            child: InputDecorator(
-                              decoration: InputDecoration(
-                                labelText: 'Date of birth',
-                                suffixIcon: _dateOfBirth == null
-                                    ? null
-                                    : IconButton(
-                                        tooltip: 'Clear date of birth',
-                                        onPressed: _clearBirthDate,
-                                        icon: const Icon(Icons.close_rounded),
-                                      ),
-                              ),
-                              child: Text(
-                                _dateOfBirth == null
-                                    ? 'Not supplied'
-                                    : MaterialLocalizations.of(context)
-                                          .formatMediumDate(_dateOfBirth!),
-                              ),
-                            ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _color,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).colorAndMarkings,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        key: const ValueKey('animal_weight'),
+                        controller: _weight,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context).currentWeight2(unitLabel),
+                        ),
+                        validator: _decimal,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _notes,
+                        minLines: 3,
+                        maxLines: 6,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(labelText: AppLocalizations.of(context).notes),
+                      ),
+                      const SizedBox(height: 26),
+                      RespiratoryThresholdFields(
+                        minimum: _thresholdMin,
+                        target: _thresholdTarget,
+                        maximum: _thresholdMax,
+                        keyPrefix: 'animal',
+                      ),
+                      if (_animal != null) ...[
+                        const SizedBox(height: 26),
+                        SectionHeading(
+                          AppLocalizations.of(context).identifiers,
+                          trailing: TextButton.icon(
+                            onPressed: () => _editIdentifier(),
+                            icon: const Icon(Icons.add_rounded),
+                            label: Text(AppLocalizations.of(context).add),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            key: const ValueKey('animal_age_months'),
-                            controller: _age,
-                            readOnly: _dateOfBirth != null,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Age (months)',
-                              helperText: _dateOfBirth == null
-                                  ? 'Optional estimate'
-                                  : 'Calculated from birth date',
-                              helperMaxLines: 2,
+                        if (identifiers.isEmpty)
+                          Text(AppLocalizations.of(context).noIdentifiersSaved)
+                        else
+                          Card(
+                            child: Column(
+                              children: [
+                                for (var index = 0; index < identifiers.length; index++) ...[
+                                  ListTile(
+                                    leading: const Icon(Icons.badge_outlined),
+                                    title: Text(identifiers[index].value),
+                                    subtitle: Text(
+                                      '${identifiers[index].type}'
+                                      '${identifiers[index].issuer == null ? '' : ' • ${identifiers[index].issuer}'}'
+                                      '${identifiers[index].issuedOn == null ? '' : ' • ${DateFormat.yMMMd().format(identifiers[index].issuedOn!)}'}',
+                                    ),
+                                    trailing: PopupMenuButton<String>(
+                                      tooltip: AppLocalizations.of(context).identifierActions,
+                                      onSelected: (action) => action == 'edit'
+                                          ? _editIdentifier(identifiers[index])
+                                          : _deleteIdentifier(identifiers[index]),
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Text(AppLocalizations.of(context).edit),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text(AppLocalizations.of(context).delete2),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (index < identifiers.length - 1) const Divider(height: 1),
+                                ],
+                              ],
                             ),
-                            validator: _wholeNumber,
+                          ),
+                        const SizedBox(height: 20),
+                        SwitchListTile(
+                          value: _archived,
+                          onChanged: (value) => setState(() => _archived = value),
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(AppLocalizations.of(context).archiveAnimal),
+                          subtitle: Text(
+                            AppLocalizations.of(context)
+                                .hideFromActiveCareWithoutDeletingTheJournal,
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _color,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(labelText: 'Color and markings'),
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      key: const ValueKey('animal_weight'),
-                      controller: _weight,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(labelText: 'Current weight ($unitLabel)'),
-                      validator: _decimal,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _notes,
-                      minLines: 3,
-                      maxLines: 6,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(labelText: 'Notes'),
-                    ),
-                    const SizedBox(height: 26),
-                    RespiratoryThresholdFields(
-                      minimum: _thresholdMin,
-                      target: _thresholdTarget,
-                      maximum: _thresholdMax,
-                      keyPrefix: 'animal',
-                    ),
-                    if (_animal != null) ...[
-                      const SizedBox(height: 26),
-                      SectionHeading(
-                        'Identifiers',
-                        trailing: TextButton.icon(
-                          onPressed: () => _editIdentifier(),
-                          icon: const Icon(Icons.add_rounded),
-                          label: const Text('Add'),
-                        ),
+                      const SizedBox(height: 28),
+                      FilledButton.icon(
+                        key: const ValueKey('save_animal'),
+                        onPressed: _saving || _choosingFile ? null : _save,
+                        icon: _saving
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.check_rounded),
+                        label: Text(AppLocalizations.of(context).saveAnimal),
                       ),
-                      if (identifiers.isEmpty)
-                        const Text('No identifiers saved.')
-                      else
-                        Card(
-                          child: Column(
-                            children: [
-                              for (var index = 0; index < identifiers.length; index++) ...[
-                                ListTile(
-                                  leading: const Icon(Icons.badge_outlined),
-                                  title: Text(identifiers[index].value),
-                                  subtitle: Text(
-                                    '${identifiers[index].type}'
-                                    '${identifiers[index].issuer == null ? '' : ' • ${identifiers[index].issuer}'}'
-                                    '${identifiers[index].issuedOn == null ? '' : ' • ${DateFormat.yMMMd().format(identifiers[index].issuedOn!)}'}',
-                                  ),
-                                  trailing: PopupMenuButton<String>(
-                                    tooltip: 'Identifier actions',
-                                    onSelected: (action) => action == 'edit'
-                                        ? _editIdentifier(identifiers[index])
-                                        : _deleteIdentifier(identifiers[index]),
-                                    itemBuilder: (context) => const [
-                                      PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                      PopupMenuItem(value: 'delete', child: Text('Delete')),
-                                    ],
-                                  ),
-                                ),
-                                if (index < identifiers.length - 1) const Divider(height: 1),
-                              ],
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 20),
-                      SwitchListTile(
-                        value: _archived,
-                        onChanged: (value) => setState(() => _archived = value),
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Archive animal'),
-                        subtitle: const Text('Hide from active care without deleting the journal.'),
-                      ),
+                      const SizedBox(height: 32),
                     ],
-                    const SizedBox(height: 28),
-                    FilledButton.icon(
-                      key: const ValueKey('save_animal'),
-                      onPressed: _saving ? null : _save,
-                      icon: _saving
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.check_rounded),
-                      label: const Text('Save animal'),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Future<void> _useRecovered(StoredAttachment image) async {
+    if (_saving || _choosingFile) return;
+    final recovered = ref.read(recoveredMediaProvider.notifier);
+    final documents = ref.read(documentStorageProvider.future);
+    final cleanup = ref.read(attachmentCleanupProvider.notifier);
+    setState(() => _choosingFile = true);
+    try {
+      final storage = await documents;
+      if (!mounted) return;
+      await recovered.consume(image);
+      if (!mounted) {
+        storage.release(image.path);
+        unawaited(cleanup.collect());
+        return;
+      }
+      final previous = _importedPhoto;
+      if (previous != null) storage.release(previous);
+      setState(() {
+        _photoPath = image.path;
+        _importedPhoto = image.path;
+      });
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).fileOperationFailed)));
+      }
+    } finally {
+      if (mounted) setState(() => _choosingFile = false);
+    }
+  }
+
   Future<void> _pickPhoto() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Take a photo'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-          ],
+    if (_saving || _choosingFile) return;
+    setState(() => _choosingFile = true);
+    try {
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: Text(AppLocalizations.of(context).chooseFromGallery),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: Text(AppLocalizations.of(context).takeAPhoto),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-    if (source == null) {
-      return;
-    }
-    final picked = await ImagePicker().pickImage(source: source, imageQuality: 88);
-    if (picked == null) {
-      return;
-    }
-    final storage = await ref.read(documentStorageProvider.future);
-    final stored = await storage.importFile(File(picked.path));
-    if (mounted) {
-      setState(() => _photoPath = stored.path);
+      );
+      if (source == null || !mounted) {
+        return;
+      }
+      final picked = await ref.read(mediaServiceProvider).pickImage(source);
+      if (picked == null || !mounted) {
+        return;
+      }
+      final storage = await ref.read(documentStorageProvider.future);
+      if (!mounted) return;
+      final stored = await storage.importFile(picked);
+      if (!mounted) {
+        storage.release(stored.path);
+        _releaseImport?.call(null);
+        return;
+      }
+      if (_importedPhoto != null) storage.release(_importedPhoto!);
+      _importedPhoto = stored.path;
+      if (mounted) {
+        setState(() => _photoPath = stored.path);
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).fileOperationFailed)));
+      }
+    } finally {
+      if (mounted) setState(() => _choosingFile = false);
     }
   }
 
@@ -388,7 +505,7 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
       lastDate: DateTime.now(),
       initialDate: _dateOfBirth ?? DateTime.now(),
     );
-    if (value != null) {
+    if (value != null && mounted) {
       setState(() {
         _dateOfBirth = value;
         _age.text = completedAgeMonths(value, DateTime.now()).toString();
@@ -414,34 +531,32 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
 
   Future<void> _editIdentifier([AnimalIdentifier? existing]) async {
     final animal = _animal;
-    if (animal == null) {
-      return;
-    }
-    final result = await showDialog<_IdentifierDraft>(
+    if (animal == null) return;
+    final controller = ref.read(animalControllerProvider.notifier);
+    final clock = ref.read(wallClockProvider);
+    final id = existing?.id ?? controller.newId();
+    final created = existing?.createdAt ?? clock().toUtc();
+    await showDialog<void>(
       context: context,
-      builder: (context) => _IdentifierDialog(existing: existing),
-    );
-    if (result == null) {
-      return;
-    }
-    final now = DateTime.now().toUtc();
-    await ref
-        .read(appControllerProvider.notifier)
-        .saveIdentifier(
+      builder: (context) => _IdentifierDialog(
+        existing: existing,
+        onSave: (draft) => controller.saveIdentifier(
           AnimalIdentifier(
-            id: existing?.id ?? ref.read(appControllerProvider.notifier).newId(),
+            id: id,
             animalId: animal.id,
-            createdAt: existing?.createdAt ?? now,
-            updatedAt: now,
-            type: result.type,
-            value: result.value,
-            issuer: result.issuer,
-            url: result.url,
-            phone: result.phone,
-            issuedOn: result.issuedOn,
-            notes: result.notes,
+            createdAt: created,
+            updatedAt: clock().toUtc(),
+            type: draft.type,
+            value: draft.value,
+            issuer: draft.issuer,
+            url: draft.url,
+            phone: draft.phone,
+            issuedOn: draft.issuedOn,
+            notes: draft.notes,
           ),
-        );
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteIdentifier(AnimalIdentifier identifier) async {
@@ -449,27 +564,35 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
         await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Delete ${identifier.type.toLowerCase()} identifier?'),
-            content: Text('${identifier.value} will be removed from this local journal.'),
+            title: Text(
+              AppLocalizations.of(context).deleteIdentifier(identifier.type.toLowerCase()),
+            ),
+            content: Text(
+              AppLocalizations.of(context).willBeRemovedFromThisLocalJournal(identifier.value),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context).cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
+                child: Text(AppLocalizations.of(context).delete2),
               ),
             ],
           ),
         ) ??
         false;
-    if (confirmed) {
-      await ref.read(appControllerProvider.notifier).deleteRecord('identifiers', identifier.id);
+    if (confirmed && mounted) {
+      await runUiCommand(
+        context,
+        () => ref.read(animalControllerProvider.notifier).deleteIdentifier(identifier.id),
+      );
     }
   }
 
   Future<void> _save() async {
+    if (_saving || _choosingFile) return;
     if (!_form.currentState!.validate()) {
       return;
     }
@@ -480,7 +603,9 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
     );
     if (!thresholds.isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review the respiratory-rate values and try again.')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).reviewTheRespiratoryRateValuesAndTryAgain),
+        ),
       );
       return;
     }
@@ -493,7 +618,7 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
       final now = DateTime.now().toUtc();
       final existing = _animal;
       final animal = Animal(
-        id: existing?.id ?? ref.read(appControllerProvider.notifier).newId(),
+        id: existing?.id ?? ref.read(animalControllerProvider.notifier).newId(),
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         name: _name.text.trim(),
@@ -511,9 +636,17 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
         archived: _archived,
         thresholds: thresholds,
       );
-      await ref.read(appControllerProvider.notifier).saveAnimal(animal);
+      await ref.read(animalControllerProvider.notifier).saveAnimal(animal);
       if (mounted) {
         context.pop();
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).couldNotSaveYourChangesAreKeptHereTry),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -522,15 +655,16 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
     }
   }
 
-  String? _required(String? value) =>
-      value == null || value.trim().isEmpty ? 'This field is required.' : null;
+  String? _required(String? value) => value == null || value.trim().isEmpty
+      ? AppLocalizations.of(context).thisFieldIsRequired
+      : null;
 
   String? _wholeNumber(String? value) {
     if (value == null || value.trim().isEmpty) {
       return null;
     }
     final parsed = int.tryParse(value);
-    return parsed == null || parsed < 0 ? 'Use a whole number.' : null;
+    return parsed == null || parsed < 0 ? AppLocalizations.of(context).useAWholeNumber : null;
   }
 
   String? _decimal(String? value) {
@@ -538,7 +672,9 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
       return null;
     }
     final parsed = double.tryParse(value);
-    return parsed == null || !parsed.isFinite || parsed < 0 ? 'Use a positive number.' : null;
+    return parsed == null || !parsed.isFinite || parsed < 0
+        ? AppLocalizations.of(context).useAPositiveNumber
+        : null;
   }
 
   void _updateCanonicalWeightDraft() {
@@ -552,7 +688,8 @@ class _AnimalFormScreenState extends ConsumerState<AnimalFormScreen> {
 }
 
 class _IdentifierDialog extends StatefulWidget {
-  const _IdentifierDialog({this.existing});
+  const _IdentifierDialog({required this.onSave, this.existing});
+  final Future<void> Function(_IdentifierDraft) onSave;
 
   final AnimalIdentifier? existing;
 
@@ -568,7 +705,9 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
   final TextEditingController _url = TextEditingController();
   final TextEditingController _phone = TextEditingController();
   final TextEditingController _notes = TextEditingController();
-  String _type = 'Microchip';
+  bool _saving = false;
+  bool _failed = false;
+  String _type = appStrings.microchip;
   DateTime? _issuedOn;
 
   @override
@@ -578,9 +717,15 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
     if (existing == null) {
       return;
     }
-    const presets = <String>{'Microchip', 'Tag', 'Band', 'Tattoo', 'Registry'};
-    _type = presets.contains(existing.type) ? existing.type : 'Other';
-    if (_type == 'Other') {
+    final presets = <String>{
+      appStrings.microchip,
+      appStrings.tag,
+      appStrings.band,
+      appStrings.tattoo,
+      appStrings.registry,
+    };
+    _type = presets.contains(existing.type) ? existing.type : appStrings.other;
+    if (_type == appStrings.other) {
       _customType.text = existing.type;
     }
     _value.text = existing.value;
@@ -604,7 +749,11 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.existing == null ? 'Add identifier' : 'Edit identifier'),
+    title: Text(
+      widget.existing == null
+          ? AppLocalizations.of(context).addIdentifier
+          : AppLocalizations.of(context).editIdentifier,
+    ),
     content: Form(
       key: _form,
       child: SingleChildScrollView(
@@ -614,46 +763,48 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
             DropdownButtonFormField<String>(
               key: const ValueKey('identifier_type'),
               initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Type'),
-              items: const <String>[
-                'Microchip',
-                'Tag',
-                'Band',
-                'Tattoo',
-                'Registry',
-                'Other',
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).type),
+              items: <String>[
+                AppLocalizations.of(context).microchip,
+                AppLocalizations.of(context).tag,
+                AppLocalizations.of(context).band,
+                AppLocalizations.of(context).tattoo,
+                AppLocalizations.of(context).registry,
+                AppLocalizations.of(context).other,
               ].map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(),
               onChanged: (value) => setState(() => _type = value ?? _type),
             ),
-            if (_type == 'Other') ...[
+            if (_type == AppLocalizations.of(context).other) ...[
               const SizedBox(height: 12),
               TextFormField(
                 key: const ValueKey('identifier_custom_type'),
                 controller: _customType,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Custom type *'),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Enter an identifier type.' : null,
+                decoration: InputDecoration(labelText: AppLocalizations.of(context).customType),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? AppLocalizations.of(context).enterAnIdentifierType
+                    : null,
               ),
             ],
             const SizedBox(height: 12),
             TextFormField(
               controller: _value,
-              decoration: const InputDecoration(labelText: 'Identifier *'),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty ? 'Enter the identifier.' : null,
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).identifier),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? AppLocalizations.of(context).enterTheIdentifier
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _issuer,
-              decoration: const InputDecoration(labelText: 'Issuer or service'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).issuerOrService),
             ),
             const SizedBox(height: 12),
             TextFormField(
               key: const ValueKey('identifier_url'),
               controller: _url,
               keyboardType: TextInputType.url,
-              decoration: const InputDecoration(labelText: 'Service URL'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).serviceURL),
               validator: (value) {
                 final text = value?.trim() ?? '';
                 if (text.isEmpty) {
@@ -661,7 +812,7 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
                 }
                 final parsed = Uri.tryParse(text);
                 return parsed == null || !parsed.hasScheme || parsed.host.isEmpty
-                    ? 'Enter a complete URL, including https://.'
+                    ? AppLocalizations.of(context).enterCompleteServiceUrl
                     : null;
               },
             ),
@@ -670,21 +821,23 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
               key: const ValueKey('identifier_phone'),
               controller: _phone,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Service phone'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).servicePhone),
             ),
             const SizedBox(height: 12),
             ListTile(
               key: const ValueKey('identifier_issued_on'),
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.event_outlined),
-              title: const Text('Implanted or issued date'),
+              title: Text(AppLocalizations.of(context).implantedOrIssuedDate),
               subtitle: Text(
-                _issuedOn == null ? 'Not supplied' : DateFormat.yMMMd().format(_issuedOn!),
+                _issuedOn == null
+                    ? AppLocalizations.of(context).notSupplied
+                    : DateFormat.yMMMd().format(_issuedOn!),
               ),
               trailing: _issuedOn == null
                   ? const Icon(Icons.chevron_right_rounded)
                   : IconButton(
-                      tooltip: 'Clear date',
+                      tooltip: AppLocalizations.of(context).clearDate,
                       onPressed: () => setState(() => _issuedOn = null),
                       icon: const Icon(Icons.close_rounded),
                     ),
@@ -693,32 +846,58 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _notes,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: InputDecoration(labelText: AppLocalizations.of(context).notes),
             ),
           ],
         ),
       ),
     ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+      if (_failed)
+        Semantics(
+          liveRegion: true,
+          child: Text(AppLocalizations.of(context).couldNotSaveYourChangesAreKeptHereTry),
+        ),
+      TextButton(
+        onPressed: _saving ? null : () => Navigator.pop(context),
+        child: Text(AppLocalizations.of(context).cancel),
+      ),
       FilledButton(
-        onPressed: () {
-          if (_form.currentState!.validate()) {
-            Navigator.pop(context, (
-              type: _type == 'Other' ? _customType.text.trim() : _type,
-              value: _value.text.trim(),
-              issuer: _issuer.text.trim().isEmpty ? null : _issuer.text.trim(),
-              url: _url.text.trim().isEmpty ? null : _url.text.trim(),
-              phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
-              issuedOn: _issuedOn,
-              notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
-            ));
-          }
-        },
-        child: Text(widget.existing == null ? 'Add' : 'Save'),
+        onPressed: _saving ? null : _save,
+
+        child: Text(
+          widget.existing == null
+              ? AppLocalizations.of(context).add
+              : AppLocalizations.of(context).save,
+        ),
       ),
     ],
   );
+
+  Future<void> _save() async {
+    if (_saving || !_form.currentState!.validate()) return;
+    final draft = (
+      type: _type == AppLocalizations.of(context).other ? _customType.text.trim() : _type,
+      value: _value.text.trim(),
+      issuer: _issuer.text.trim().isEmpty ? null : _issuer.text.trim(),
+      url: _url.text.trim().isEmpty ? null : _url.text.trim(),
+      phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+      issuedOn: _issuedOn,
+      notes: _notes.text.trim().isEmpty ? null : _notes.text.trim(),
+    );
+    setState(() {
+      _saving = true;
+      _failed = false;
+    });
+    try {
+      await widget.onSave(draft);
+      if (mounted) Navigator.pop(context);
+    } on Object {
+      if (mounted) setState(() => _failed = true);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   Future<void> _pickIssuedDate() async {
     final value = await showDatePicker(
@@ -727,7 +906,7 @@ class _IdentifierDialogState extends State<_IdentifierDialog> {
       lastDate: DateTime.now(),
       initialDate: _issuedOn ?? DateTime.now(),
     );
-    if (value != null) {
+    if (value != null && mounted) {
       setState(() => _issuedOn = value);
     }
   }
